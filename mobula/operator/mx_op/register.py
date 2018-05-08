@@ -65,7 +65,7 @@ def register(op_name):
                 return get_element(self.out_grad)
 
             mx_op = type('_%s_MX_OP' % op_name,
-                (mx.operator.CustomOp,op),
+                (mx.operator.CustomOp, op),
                 dict(
                     __init__ =  __init__,
                     forward = forward,
@@ -91,7 +91,7 @@ def register(op_name):
                 return mx_op(*self._args, **self._kwargs)
 
             mx_prop = type('_%s_MX_OP_PROP' % op_name,
-                (mx.operator.CustomOpProp,),
+                (mx.operator.CustomOpProp, op),
                 dict(
                     __init__ = __init__,
                     list_arguments = lambda self : get_varnames(op.forward),
