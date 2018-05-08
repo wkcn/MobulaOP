@@ -1,11 +1,20 @@
+import sys
 import functools
 import pickle
+import base64
+import copy
 import mxnet as mx
-from .. import operator
+from .. import CustomOp 
+
+if sys.version_info[0] >= 3:
+    pars_encode = lambda x : base64.b64encode(pickle.dumps(x)).decode('utf-8')
+    pars_decode = lambda x : pickle.loads(base64.b64decode(x.encode('utf-8')))
+else:
+    pars_encode = lambda x : pickle.dumps(x)
+    pars_decode = lambda x : pickle.loads(x)
 
 def register_op(op_name):
     def decorator(op):
-
         class_func = ['__init__', 'forward', 'backward', 'infer_shape']
         for func_name in class_func:
             setattr(op, func_name, classmethod(op.__dict__[func_name]))
@@ -48,18 +57,17 @@ def register_op(op_name):
             )
             return mx_op
 
+        def get_varnames(func):
+            varnames = list(func.__code__.co_varnames[1:])
+            return varnames 
+
         def get_mx_prop(op, mx_op):
-            def __init__(self, *args, **kwargs):
+            def __init__(self, pars, *args):
                 mx.operator.CustomOpProp.__init__(self)
-                self._parameters = pickle.dumps([args, kwargs])
+                self._args, self._kwargs = pars_decode(pars)
 
             def create_operator(self, ctx, shapes, dtypes):
-                args, kwargs = pickle.loads(self._parameters)
-                return mx_op(*args, **kwargs)
-
-            def get_varnames(func):
-                varnames = list(func.__code__.co_varnames[1:])
-                return varnames 
+                return mx_op(*self._args, **self._kwargs)
 
             mx_prop = type('_%s_MX_OP_PROP' % op_name,
                 (mx.operator.CustomOpProp,),
@@ -73,6 +81,20 @@ def register_op(op_name):
             )
             return mx_prop
 
+        def get_op(*args, **kwargs):
+            input_names = get_varnames(op.forward)
+            num_inputs = len(input_names)
+            if len(args) > num_inputs:
+                in_args = args[:num_inputs]
+                op_type = kwargs.pop('op_type')
+                pars = [args[num_inputs:], kwargs]
+                return mx.nd.Custom(*in_args, pars = pars_encode(pars), op_type = op_type)
+            # len(args) <= num_inputs
+            inputs = [None for _ in range(num_inputs)]
+            for i, a in enumerate(args):
+                inputs[i] = a
+
+
         mx_op = get_mx_op(op)
         mx_prop = get_mx_prop(op, mx_op)
         mx.operator.register(op_name)(mx_prop)
@@ -80,5 +102,6 @@ def register_op(op_name):
         @functools.wraps(op)
         def wrapper(*args, **kwargs):
             return op(*args, **kwargs) 
-        return wrapper
+
+        return functools.partial(get_op, op_type = op_name) # wrapper
     return decorator

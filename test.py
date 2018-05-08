@@ -1,8 +1,9 @@
 import mobula
 
 @mobula.register_op('FirstOP')
-class FirstOP(mobula.operator):
+class FirstOP(mobula.operator.CustomOp):
     def __init__(self, par):
+        print (type(par))
         self.par = par
         print ('self.par = {}'.format(self.par))
     def forward(self, x, y):
@@ -18,6 +19,7 @@ if __name__ == '__main__':
     import numpy as np
     a = mx.nd.array([1,2,3]) 
     b = mx.nd.array([4,5,6])
-    c = mx.nd.Custom(a, b, par = 99, op_type = 'FirstOP')
+    c = FirstOP(a, b, dict(a = 3))
+    # c = FirstOP(a, b, par = dict(a = 3))
     assert ((a + b).asnumpy() == c.asnumpy()).all()
     print ("Okay")

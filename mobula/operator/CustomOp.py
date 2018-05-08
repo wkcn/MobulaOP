@@ -1,4 +1,4 @@
-class operator(object):
+class CustomOp(object):
     def __init__(self, *args, **kwargs):
         self._num_inputs = None
         self._num_outputs = None
