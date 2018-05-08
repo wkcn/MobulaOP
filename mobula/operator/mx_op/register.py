@@ -13,7 +13,7 @@ else:
     pars_encode = lambda x : pickle.dumps(x)
     pars_decode = lambda x : pickle.loads(x)
 
-def register_op(op_name):
+def register(op_name):
     def decorator(op):
         class_func = ['__init__', 'forward', 'backward', 'infer_shape']
         for func_name in class_func:

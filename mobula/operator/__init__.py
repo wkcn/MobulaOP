@@ -1,2 +1,2 @@
-from .register_op import register_op
+from .register import register
 from .CustomOp import CustomOp

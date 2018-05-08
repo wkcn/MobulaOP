@@ -1,1 +1,1 @@
-from .register import register_op
+from .register import register

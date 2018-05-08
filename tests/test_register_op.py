@@ -2,7 +2,7 @@ import mobula
 import mxnet as mx
 import numpy as np
 
-@mobula.register_op('FirstOP')
+@mobula.operator.register('FirstOP')
 class FirstOP(mobula.operator.CustomOp):
     def __init__(self, par):
         assert type(par) == dict
