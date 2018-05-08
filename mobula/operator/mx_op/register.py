@@ -4,7 +4,7 @@ import pickle
 import base64
 import copy
 import mxnet as mx
-from .. import CustomOp 
+from ..CustomOp import CustomOp
 
 if sys.version_info[0] >= 3:
     pars_encode = lambda x : base64.b64encode(pickle.dumps(x)).decode('utf-8')
@@ -17,7 +17,8 @@ def register_op(op_name):
     def decorator(op):
         class_func = ['__init__', 'forward', 'backward', 'infer_shape']
         for func_name in class_func:
-            setattr(op, func_name, classmethod(op.__dict__[func_name]))
+            f = op.__dict__.get(func_name, CustomOp.__dict__[func_name])
+            setattr(op, func_name, classmethod(f))
 
         def get_mx_op(op):
             input_names = op.forward.__code__.co_varnames[1:]
