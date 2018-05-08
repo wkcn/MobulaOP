@@ -62,9 +62,9 @@ def register_op(op_name):
             return varnames 
 
         def get_mx_prop(op, mx_op):
-            def __init__(self, pars, *args):
+            def __init__(self, __pars, *args):
                 mx.operator.CustomOpProp.__init__(self)
-                self._args, self._kwargs = pars_decode(pars)
+                self._args, self._kwargs = pars_decode(__pars)
 
             def create_operator(self, ctx, shapes, dtypes):
                 return mx_op(*self._args, **self._kwargs)
@@ -84,16 +84,23 @@ def register_op(op_name):
         def get_op(*args, **kwargs):
             input_names = get_varnames(op.forward)
             num_inputs = len(input_names)
+            op_type = kwargs.pop('op_type')
             if len(args) > num_inputs:
-                in_args = args[:num_inputs]
-                op_type = kwargs.pop('op_type')
+                inputs = args[:num_inputs]
                 pars = [args[num_inputs:], kwargs]
-                return mx.nd.Custom(*in_args, pars = pars_encode(pars), op_type = op_type)
-            # len(args) <= num_inputs
-            inputs = [None for _ in range(num_inputs)]
-            for i, a in enumerate(args):
-                inputs[i] = a
-
+            else:
+                # len(args) <= num_inputs
+                inputs = [None for _ in range(num_inputs)]
+                for i, a in enumerate(args):
+                    assert input_names[i] not in kwargs
+                    inputs[i] = a
+                # the rest of parameters
+                for i in range(len(args), num_inputs):
+                    name = input_names[i]
+                    assert name in kwargs
+                    inputs[i] = kwargs.pop(name)
+                pars = [[], kwargs]
+            return mx.nd.Custom(*inputs, __pars = pars_encode(pars), op_type = op_type)
 
         mx_op = get_mx_op(op)
         mx_prop = get_mx_prop(op, mx_op)

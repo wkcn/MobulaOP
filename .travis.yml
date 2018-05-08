@@ -1,0 +1,22 @@
+sudo: false
+
+cache:
+  directories:
+  - $HOME/env
+
+language: python
+
+notifications:
+  email: false
+
+python:
+    - 2.7
+    - 3.6
+
+script:
+    - pip install python-coveralls
+    - pip install mxnet numpy
+    - nosetests --with-coverage
+
+after_success:
+    - coveralls

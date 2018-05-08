@@ -1,11 +1,14 @@
 import mobula
+import mxnet as mx
+import numpy as np
 
 @mobula.register_op('FirstOP')
 class FirstOP(mobula.operator.CustomOp):
     def __init__(self, par):
-        print (type(par))
+        assert type(par) == dict
         self.par = par
         print ('self.par = {}'.format(self.par))
+        assert self.par == {'a': 3} 
     def forward(self, x, y):
         return x + y
     def backward(self, dy): 
@@ -14,12 +17,10 @@ class FirstOP(mobula.operator.CustomOp):
         assert in_shape[0] == in_shape[1]
         return in_shape, [in_shape[0]]
 
-if __name__ == '__main__':
-    import mxnet as mx
-    import numpy as np
+def test_register_op():
     a = mx.nd.array([1,2,3]) 
     b = mx.nd.array([4,5,6])
-    c = FirstOP(a, b, dict(a = 3))
-    # c = FirstOP(a, b, par = dict(a = 3))
-    assert ((a + b).asnumpy() == c.asnumpy()).all()
-    print ("Okay")
+    c1 = FirstOP(a, b, dict(a = 3))
+    c2 = FirstOP(a, b, par = dict(a = 3))
+    assert (c1.asnumpy() == c2.asnumpy()).all()
+    assert ((a + b).asnumpy() == c1.asnumpy()).all()
