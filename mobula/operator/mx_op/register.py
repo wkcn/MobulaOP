@@ -14,46 +14,66 @@ else:
     pars_decode = lambda x : pickle.loads(x)
 
 def register(op_name):
+    if type(op_name) != str:
+        op = op_name
+        op_name = op.__name__
+        return register(op_name)(op)
+
     def decorator(op):
-        class_func = ['__init__', 'forward', 'backward', 'infer_shape']
-        for func_name in class_func:
-            f = op.__dict__.get(func_name, CustomOp.__dict__[func_name])
-            setattr(op, func_name, classmethod(f))
 
         def get_mx_op(op):
             input_names = op.forward.__code__.co_varnames[1:]
-            __init__ = op.__init__
 
             def __init__(self, *args, **kwargs):
                 mx.operator.CustomOp.__init__(self)
-                op.__init__(*args, **kwargs)
+                op.__init__(self, *args, **kwargs)
 
             def forward(self, is_train, req, in_data, out_data, aux):
-                '''
-                self.Xs = in_data
-                self.X = in_data[0]
-                self.Ys = out_data
-                self.Y = out_data[0]
-                '''
-                out = op.forward(*in_data)
-                if type(out) != list:
-                    out = [out]
-                for i, x in enumerate(out): 
-                    self.assign(out_data[i], req[i], x)
+                self.in_data = in_data
+                self.out_data = out_data
+                out = self._forward(*in_data)
+                if out is not None:
+                    if type(out) != list:
+                        out = [out]
+                    for i, x in enumerate(out): 
+                        self.assign(out_data[i], req[i], x)
 
             def backward(self, req, out_grad, in_data, out_data, in_grad, aux):
-                out = op.backward(self, *out_grad)
-                if type(out) != list:
-                    out = [out]
-                for i in range(op.num_inputs):
-                    self.assign(in_grad[i], req[i], out[i])
+                self.in_grad = in_grad
+                self.out_grad = out_grad
+                out = self._backward(*out_grad)
+                if out is not None:
+                    if type(out) != list:
+                        out = [out]
+                    for i in range(op.num_inputs):
+                        self.assign(in_grad[i], req[i], out[i])
+
+            def get_element(data):
+                return data[0] if len(data) <= 1 else data
+
+            @property
+            def func_X(self):
+                return get_element(self.in_data) 
+            @property
+            def func_Y(self):
+                return get_element(self.out_data) 
+            @property
+            def func_dX(self):
+                return get_element(self.in_grad)
+            @property
+            def func_dY(self):
+                return get_element(self.out_grad)
 
             mx_op = type('_%s_MX_OP' % op_name,
-                (mx.operator.CustomOp,),
+                (mx.operator.CustomOp,op),
                 dict(
                     __init__ =  __init__,
                     forward = forward,
-                    backward = backward
+                    backward = backward,
+                    _forward = op.forward,
+                    _backward = op.backward,
+                    X = func_X, dX = func_dX,
+                    Y = func_Y, dY = func_dY,
                 )
             )
             return mx_op

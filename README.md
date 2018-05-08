@@ -15,8 +15,8 @@ You can write the custom operators by Python/C++/C/CUDA without rebuilding deep 
 ```python
 import mobula
 
-@mobula.operator.register('MyFirstOP')
-class MyFirstOP(mobula.operator.CustomOp):
+@mobula.register_op
+class MyFirstOP:
     def forward(self, x, y):
         return x + y
     def backward(self, dy): 
