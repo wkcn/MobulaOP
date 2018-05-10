@@ -17,8 +17,7 @@ def mx_func(v):
         return get_mx_pointer(v)
     elif isinstance(v, (int, float, long)):
         return v
-    assert 0, "Unsupported Type: {}".format(type(v))
-    return None
+    raise TypeError("Unsupported Type: {}".format(type(v)))
 
 def load_lib(lib_name):
     return load_common_lib(lib_name, mx_func)

@@ -3,7 +3,7 @@ import numpy as np
 import mobula
 
 def test_lib():
-    mobula_op = mobula.load_lib('./mobula/build/mobula_op.so')
+    mobula_op = mobula.load_lib('./mobula/build/mobula_op_cpu.so')
 
     dtype = np.float32
     a = mx.nd.array([1,2,3], dtype = dtype)

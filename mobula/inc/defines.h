@@ -30,6 +30,15 @@ typedef float DType;
 #define KERNEL_LOOP(i,n) for (int i = blockIdx.x * blockDim.x + threadIdx.x;i < (n);i += blockDim.x * gridDim.x)
 #define KERNEL_RUN(a, n) (a)<<<CUDA_GET_BLOCKS(n), CUDA_NUM_THREADS>>>
 
+#define CUDA_CHECK(condition) \
+  /* Code block avoids redefinition of cudaError_t error */ \
+  do { \
+    cudaError_t error = condition; \
+    if (error != cudaSuccess) { \
+      std::cout << cudaGetErrorString(error) << std::endl; \
+    } \
+  } while (0)
+
 #else
 
 extern map<thread::id, pair<int, int> > MOBULA_KERNEL_INFOS;
@@ -72,5 +81,11 @@ private:
 #endif
 
 };
+
+extern "C" {
+
+void set_device(const int device_id);
+
+}
 
 #endif
