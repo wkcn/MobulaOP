@@ -1,9 +1,6 @@
 sudo: false
 
 cache: pip
-  directories:
-  - $HOME/env
-  - $HOME/travis/virtualenv/
 
 language: python
 
