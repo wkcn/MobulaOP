@@ -16,6 +16,9 @@ python:
 script:
     - pip install python-coveralls
     - pip install mxnet numpy
+    - cd ./mobula/
+    - make
+    - cd -
     - nosetests --with-coverage
 
 after_success:

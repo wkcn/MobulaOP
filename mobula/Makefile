@@ -1,4 +1,4 @@
-TARGET := libmobula_op.so 
+TARGET := mobula_op.so
 BUILD_PATH := build
 
 CXX := g++ 

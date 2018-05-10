@@ -13,9 +13,12 @@
 #include <memory>
 #include <thread>
 #include <mutex>
+
 using namespace std;
 
 namespace mobula {
+
+typedef float DType;
 
 #ifdef USING_CUDA
 
