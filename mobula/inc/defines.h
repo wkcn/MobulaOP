@@ -27,6 +27,7 @@ typedef float DType;
 #define CUDA_GET_BLOCKS(n) ((n) + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS
 
 #define MOBULA_KERNEL __global__ void 
+#define MOBULA_DEVICE __device__
 #define KERNEL_LOOP(i,n) for (int i = blockIdx.x * blockDim.x + threadIdx.x;i < (n);i += blockDim.x * gridDim.x)
 #define KERNEL_RUN(a, n) (a)<<<CUDA_GET_BLOCKS(n), CUDA_NUM_THREADS>>>
 
@@ -69,6 +70,7 @@ private:
 };
 
 #define MOBULA_KERNEL void
+#define MOBULA_DEVICE
 #define KERNEL_LOOP(i,n) MOBULA_KERNEL_MUTEX.lock(); \
 						 const pair<int, int> MOBULA_KERNEL_INFO = MOBULA_KERNEL_INFOS[this_thread::get_id()]; \
 						 MOBULA_KERNEL_INFOS.erase(this_thread::get_id()); \

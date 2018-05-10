@@ -11,7 +11,7 @@ LDFLAGS := -lpthread -shared
 CU_CFLAGS := -std=c++11 -Iinc -DUSING_CUDA -Wno-deprecated-gpu-targets --compiler-options "-fPIC"
 CU_LDFLAGS := -lpthread -L$(CUDA_DIR)/lib64 -lcuda -lcudart -lcublas -shared
 
-SRCS := $(wildcard src/*.cpp) 
+SRCS := $(wildcard src/*.cpp src/operators/*.cpp)
 OBJS := $(patsubst %cpp,%o,$(SRCS))
 
 CU_SRCS := $(patsubst %cpp,%cu,$(SRCS))
