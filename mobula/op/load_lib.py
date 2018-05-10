@@ -9,6 +9,7 @@ class OPLib:
         def wrapper(*args, **kwargs):
             args_new = [self.func(a) for a in args]
             kwargs_new = dict([(k, self.func(v)) for k, v in kwargs.items()]) 
+            print (cfunc, args_new, kwargs_new)
             return cfunc(*args_new, **kwargs_new)
         return wrapper
 

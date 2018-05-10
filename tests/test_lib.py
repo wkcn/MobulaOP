@@ -12,4 +12,4 @@ def test_lib():
 
     mobula_op.add(a.size, a, b, c)
 
-    assert ((a + b).asnumpy() == c.asnumpy()).all()
+    assert ((a + b).asnumpy() == c.asnumpy()).all(), c

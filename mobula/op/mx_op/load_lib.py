@@ -1,7 +1,11 @@
 import mxnet as mx
 from mxnet.base import _LIB
 import ctypes
+import sys
 from ..load_lib import load_common_lib 
+
+if sys.version_info[0] >= 3:
+    long = int
 
 def get_mx_pointer(v):
     cp = ctypes.c_void_p() 
@@ -11,9 +15,9 @@ def get_mx_pointer(v):
 def mx_func(v):
     if isinstance(v, mx.nd.NDArray):
         return get_mx_pointer(v)
-    elif isinstance(v, (int, float)):
+    elif isinstance(v, (int, float, long)):
         return v
-    assert "Unsupported Type: {}".format(type(v))
+    assert 0, "Unsupported Type: {}".format(type(v))
     return None
 
 def load_lib(lib_name):

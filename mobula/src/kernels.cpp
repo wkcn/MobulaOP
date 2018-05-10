@@ -1,4 +1,6 @@
 #include "kernels.h"
+#include <iostream>
+using namespace std;
 
 namespace mobula{
 
