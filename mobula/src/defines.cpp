@@ -2,10 +2,14 @@
 
 namespace mobula{
 
+#if not USING_CUDA
+#if not USING_OPENMP
 map<thread::id, pair<int, int> > MOBULA_KERNEL_INFOS;
 mutex MOBULA_KERNEL_MUTEX;
 
 mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
+#endif // USING_OPENMP endif
+#endif // USING_CUDA endif
 
 };
 
@@ -17,8 +21,8 @@ void set_device(const int device_id) {
         CUDA_CHECK(cudaSetDevice(device_id));
     }
 }
-#else
+#else // USING_CUDA else
 void set_device(const int device_id) {
     throw "Doesn't support setting device on CPU mode";
 }
-#endif
+#endif // USING_CUDA endif

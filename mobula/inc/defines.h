@@ -54,6 +54,17 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
 
 #else
 
+#define MOBULA_KERNEL void
+#define MOBULA_DEVICE
+
+#if USING_OPENMP
+
+#define KERNEL_LOOP(i,n) _Pragma("omp parallel for") \
+                         for (int i = 0;i < (n);++i)
+#define KERNEL_RUN(a, n) a
+
+#else // USING_OPENMP else
+
 extern map<thread::id, pair<int, int> > MOBULA_KERNEL_INFOS;
 extern mutex MOBULA_KERNEL_MUTEX;
 
@@ -63,40 +74,33 @@ public:
 	KernelRunner(Func func, int n):_func(func), _n(n <= HOST_NUM_THREADS ? n : HOST_NUM_THREADS){};
 	template<typename ...Args>
 	void operator()(Args... args){
-        #if USING_OPENMP
-            #pragma omp parallel for
-            for (int i = 0;i < _n;++i){
-                _func(args...);
-            }
-        #else
-            vector<thread> threads(_n);
-            MOBULA_KERNEL_MUTEX.lock();
-            for (int i = 0;i < _n;++i){
-                threads[i] = thread(_func, args...);
-                thread::id id = threads[i].get_id();
-                MOBULA_KERNEL_INFOS[id] = make_pair(i, _n);
-            }
-            MOBULA_KERNEL_MUTEX.unlock();
-            for (int i = 0;i < _n;++i){
-                threads[i].join();
-            }
-        #endif
-	}
+        vector<thread> threads(_n);
+        MOBULA_KERNEL_MUTEX.lock();
+        for (int i = 0;i < _n;++i) {
+            threads[i] = thread(_func, args...);
+            thread::id id = threads[i].get_id();
+            MOBULA_KERNEL_INFOS[id] = make_pair(i, _n);
+        }
+        MOBULA_KERNEL_MUTEX.unlock();
+        for (int i = 0;i < _n;++i) {
+            threads[i].join();
+        }
+    }
 private:
 	Func _func;
 	int _n;
 };
 
-#define MOBULA_KERNEL void
-#define MOBULA_DEVICE
 #define KERNEL_LOOP(i,n) MOBULA_KERNEL_MUTEX.lock(); \
 						 const pair<int, int> MOBULA_KERNEL_INFO = MOBULA_KERNEL_INFOS[this_thread::get_id()]; \
 						 MOBULA_KERNEL_INFOS.erase(this_thread::get_id()); \
 						 MOBULA_KERNEL_MUTEX.unlock(); \
 						 const int MOBULA_KERNEL_START = MOBULA_KERNEL_INFO.first; \
 						 const int MOBULA_KERNEL_STEP = MOBULA_KERNEL_INFO.second; \
-						 for(int i = MOBULA_KERNEL_START;i < (n);i += MOBULA_KERNEL_STEP)
+						 for (int i = MOBULA_KERNEL_START;i < (n);i += MOBULA_KERNEL_STEP)
 #define KERNEL_RUN(a, n) (KernelRunner<decltype(&a)>(&a, (n)))
+
+#endif // USING_OPENMP endif
 
 constexpr int NUM_MOBULA_ATOMIC_ADD_MUTEXES = HOST_NUM_THREADS * 8;
 extern mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
@@ -107,7 +111,7 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
     MOBULA_ATOMIC_ADD_MUTEXES[id].unlock();
 }
 
-#endif
+#endif // USING_CUDA
 
 };
 
