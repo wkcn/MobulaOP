@@ -41,6 +41,7 @@ def register(op_name):
             def backward(self, req, out_grad, in_data, out_data, in_grad, aux):
                 self.in_grad = in_grad
                 self.out_grad = out_grad
+                self.req = req
                 out = self._backward(*out_grad)
                 if out is not None:
                     if type(out) != list:
@@ -82,6 +83,14 @@ def register(op_name):
             varnames = list(func.__code__.co_varnames[1:])
             return varnames 
 
+        def list_outputs(func):
+            num_outputs = len(get_varnames(func))
+            if num_outputs == 0:
+                return []
+            elif num_outputs == 1:
+                return ['output']
+            return ['output%d' % i for i in range(num_outputs)]
+
         def get_mx_prop(op, mx_op):
             def __init__(self, __pars, *args):
                 mx.operator.CustomOpProp.__init__(self)
@@ -95,7 +104,7 @@ def register(op_name):
                 dict(
                     __init__ = __init__,
                     list_arguments = lambda self : get_varnames(op.forward),
-                    list_outputs = lambda self : get_varnames(op.backward), 
+                    list_outputs = lambda self : list_outputs(op.backward),
                     infer_shape = op.infer_shape,
                     create_operator = create_operator
                 )
