@@ -3,3 +3,5 @@ omit =
     */python?.?/*
     */site-packages/*
 	thirdparty/*
+    */mxnet/*
+    tests/*
