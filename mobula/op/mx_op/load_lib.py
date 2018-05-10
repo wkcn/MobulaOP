@@ -19,5 +19,10 @@ def mx_func(v):
         return v
     raise TypeError("Unsupported Type: {}".format(type(v)))
 
+def dev_id_mx(a):
+    if isinstance(a, mx.nd.NDArray):
+        return a.context.device_id if a.context.device_type == 'gpu' else None
+    return None
+
 def load_lib(lib_name):
-    return load_common_lib(lib_name, mx_func)
+    return load_common_lib(lib_name, mx_func, dev_id_func = dev_id_mx)

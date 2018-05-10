@@ -14,12 +14,9 @@ python:
     - 3.6
 
 script:
-    - pip install python-coveralls
-    - pip install mxnet numpy
-    - cd ./mobula/
-    - make
-    - cd -
-    - nosetests --with-coverage
+    - pip install -r requirements.txt
+    - sh build.sh
+    - sh tests/run_tests.sh
 
 after_success:
     - coveralls
