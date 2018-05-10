@@ -98,11 +98,13 @@ private:
 						 for(int i = MOBULA_KERNEL_START;i < (n);i += MOBULA_KERNEL_STEP)
 #define KERNEL_RUN(a, n) (KernelRunner<decltype(&a)>(&a, (n)))
 
-extern mutex MOBULA_ATOMIC_ADD_MUTEX; // ugly and slow implementation
+constexpr int NUM_MOBULA_ATOMIC_ADD_MUTEXES = HOST_NUM_THREADS * 8;
+extern mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
 inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
-    MOBULA_ATOMIC_ADD_MUTEX.lock();
+    long id = ((long)address / sizeof(float)) % NUM_MOBULA_ATOMIC_ADD_MUTEXES;
+    MOBULA_ATOMIC_ADD_MUTEXES[id].lock();
     *address += val;
-    MOBULA_ATOMIC_ADD_MUTEX.unlock();
+    MOBULA_ATOMIC_ADD_MUTEXES[id].unlock();
 }
 
 #endif

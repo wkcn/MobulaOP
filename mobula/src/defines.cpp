@@ -5,6 +5,8 @@ namespace mobula{
 map<thread::id, pair<int, int> > MOBULA_KERNEL_INFOS;
 mutex MOBULA_KERNEL_MUTEX;
 
+mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
+
 };
 
 #if USING_CUDA
