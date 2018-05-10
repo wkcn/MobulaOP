@@ -10,6 +10,7 @@
 #include <utility>
 #include <typeinfo>
 #include <cassert>
+#include <cmath>
 #include <memory>
 #include <thread>
 #include <mutex>
@@ -26,7 +27,7 @@ typedef float DType;
 #define CUDA_NUM_THREADS 512
 #define CUDA_GET_BLOCKS(n) ((n) + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS
 
-#define MOBULA_KERNEL __global__ void 
+#define MOBULA_KERNEL __global__ void
 #define MOBULA_DEVICE __device__
 #define KERNEL_LOOP(i,n) for (int i = blockIdx.x * blockDim.x + threadIdx.x;i < (n);i += blockDim.x * gridDim.x)
 #define KERNEL_RUN(a, n) (a)<<<CUDA_GET_BLOCKS(n), CUDA_NUM_THREADS>>>
@@ -39,6 +40,14 @@ typedef float DType;
       std::cout << cudaGetErrorString(error) << std::endl; \
     } \
   } while (0)
+
+template <typename T>
+inline MOBULA_DEVICE T atomic_add(const T val, T* address);
+
+template <>
+inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
+  return atomicAdd(address, val);
+}
 
 #else
 
@@ -79,6 +88,10 @@ private:
 						 const int MOBULA_KERNEL_STEP = MOBULA_KERNEL_INFO.second; \
 						 for(int i = MOBULA_KERNEL_START;i < (n);i += MOBULA_KERNEL_STEP)
 #define KERNEL_RUN(a, n) (KernelRunner<decltype(&a)>(&a, (n)))
+
+inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
+    // TODO
+}
 
 #endif
 
