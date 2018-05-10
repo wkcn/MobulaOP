@@ -1,4 +1,4 @@
-sudo: false
+sudo: true 
 
 cache: pip
 
@@ -12,7 +12,7 @@ python:
     - 3.6
 
 script:
-    - sh install_cuda.sh
+    - sh ./install_cuda.sh
     - pip install -r ./requirements.txt
     - sh build.sh
     - sh tests/run_tests.sh

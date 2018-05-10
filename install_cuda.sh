@@ -1,4 +1,4 @@
-CUDA_VER = 7.0-28
+CUDA_VER=7.0-28
 wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1204/x86_64/cuda-repo-ubuntu1204_${CUDA_VER}_amd64.deb
 sudo dpkg -i cuda-repo-ubuntu1204_${CUDA_VER}_amd64.deb
 CUDA_APT_VER=${CUDA_VER%-*}
