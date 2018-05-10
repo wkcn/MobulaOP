@@ -8,7 +8,7 @@ CUDA_DIR = /opt/cuda
 CFLAGS := -std=c++11 -Iinc -fPIC
 LDFLAGS := -lpthread -shared 
 
-CU_CFLAGS := -std=c++11 -Iinc -DUSING_CUDA -Wno-deprecated-gpu-targets --compiler-options "-fPIC"
+CU_CFLAGS := -std=c++11 -Iinc -DUSING_CUDA -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC"
 CU_LDFLAGS := -lpthread -L$(CUDA_DIR)/lib64 -lcuda -lcudart -lcublas -shared
 
 SRCS := $(wildcard src/*.cpp src/operators/*.cpp)
