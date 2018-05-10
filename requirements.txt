@@ -1,0 +1,3 @@
+python-coveralls
+mxnet-cu80
+numpy
