@@ -1,14 +1,18 @@
-TARGET := mobula_op
-BUILD_PATH := build
+TARGET = mobula_op
+BUILD_PATH = build
+USING_OPENMP = 0
+HOST_NUM_THREADS = 8
 
-CXX := g++ 
-NVCC := nvcc
+CXX = g++
+NVCC = nvcc
 CUDA_DIR = /opt/cuda
 
-CFLAGS := -std=c++11 -Iinc -fPIC
+COMMON_FLAGS := -D HOST_NUM_THREADS=$(HOST_NUM_THREADS)
+
+CFLAGS := -std=c++11 -Iinc -fPIC -D USING_OPENMP=$(USING_OPENMP) $(COMMON_FLAGS)
 LDFLAGS := -lpthread -shared 
 
-CU_CFLAGS := -std=c++11 -Iinc -DUSING_CUDA -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC"
+CU_CFLAGS := -std=c++11 -Iinc -DUSING_CUDA=1 -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC" $(COMMON_FLAGS)
 CU_LDFLAGS := -lpthread -L$(CUDA_DIR)/lib64 -lcuda -lcudart -lcublas -shared
 
 SRCS := $(wildcard src/*.cpp src/operators/*.cpp)

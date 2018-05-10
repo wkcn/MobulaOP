@@ -14,6 +14,9 @@
 #include <memory>
 #include <thread>
 #include <mutex>
+#if USING_OPENMP
+#include "omp.h"
+#endif
 
 using namespace std;
 
@@ -21,7 +24,7 @@ namespace mobula {
 
 typedef float DType;
 
-#ifdef USING_CUDA
+#if USING_CUDA
 
 #include <cuda_runtime.h>
 #define CUDA_NUM_THREADS 512
@@ -53,7 +56,6 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
 
 extern map<thread::id, pair<int, int> > MOBULA_KERNEL_INFOS;
 extern mutex MOBULA_KERNEL_MUTEX;
-#define HOST_NUM_THREADS 8
 
 template<typename Func>
 class KernelRunner{
@@ -61,17 +63,24 @@ public:
 	KernelRunner(Func func, int n):_func(func), _n(n <= HOST_NUM_THREADS ? n : HOST_NUM_THREADS){};
 	template<typename ...Args>
 	void operator()(Args... args){
-		vector<thread> threads(_n);
-		MOBULA_KERNEL_MUTEX.lock();
-		for (int i = 0;i < _n;++i){
-			threads[i] = thread(_func, args...);
-			thread::id id = threads[i].get_id();
-			MOBULA_KERNEL_INFOS[id] = make_pair(i, _n);
-		}
-		MOBULA_KERNEL_MUTEX.unlock();
-		for (int i = 0;i < _n;++i){
-			threads[i].join();
-		}
+        #if USING_OPENMP
+            #pragma omp parallel for
+            for (int i = 0;i < _n;++i){
+                _func(args...);
+            }
+        #else
+            vector<thread> threads(_n);
+            MOBULA_KERNEL_MUTEX.lock();
+            for (int i = 0;i < _n;++i){
+                threads[i] = thread(_func, args...);
+                thread::id id = threads[i].get_id();
+                MOBULA_KERNEL_INFOS[id] = make_pair(i, _n);
+            }
+            MOBULA_KERNEL_MUTEX.unlock();
+            for (int i = 0;i < _n;++i){
+                threads[i].join();
+            }
+        #endif
 	}
 private:
 	Func _func;
@@ -89,8 +98,11 @@ private:
 						 for(int i = MOBULA_KERNEL_START;i < (n);i += MOBULA_KERNEL_STEP)
 #define KERNEL_RUN(a, n) (KernelRunner<decltype(&a)>(&a, (n)))
 
+extern mutex MOBULA_ATOMIC_ADD_MUTEX; // ugly and slow implementation
 inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
-    // TODO
+    MOBULA_ATOMIC_ADD_MUTEX.lock();
+    *address += val;
+    MOBULA_ATOMIC_ADD_MUTEX.unlock();
 }
 
 #endif

@@ -7,7 +7,7 @@ mutex MOBULA_KERNEL_MUTEX;
 
 };
 
-#ifdef USING_CUDA
+#if USING_CUDA
 void set_device(const int device_id) {
     int current_device;
     CUDA_CHECK(cudaGetDevice(&current_device));
