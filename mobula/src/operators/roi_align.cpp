@@ -208,31 +208,35 @@ MOBULA_KERNEL RoIAlignBackwardFeature(
   } // KERNEL_LOOP
 } // RoIAlignBackward
 
-template MOBULA_KERNEL RoIAlignForward(
+} // namespace mobula
+
+void roi_align_forward(
     const int nthreads,
-    const float* bottom_data,
-    const float spatial_scale,
+    const DType* bottom_data,
+    const DType spatial_scale,
     const int channels,
     const int height,
     const int width,
     const int pooled_height,
     const int pooled_width,
     const int sampling_ratio,
-    const float* bottom_rois,
-    float* top_data);
+    const DType* bottom_rois,
+    DType* top_data) {
+    KERNEL_RUN(RoIAlignForward<DType>, nthreads)(nthreads, bottom_data, spatial_scale, channels, height, width, pooled_height, pooled_width, sampling_ratio, bottom_rois, top_data);
+}
 
-template MOBULA_KERNEL RoIAlignBackwardFeature(
+void roi_align_backward(
     const int nthreads,
-    const float* top_diff,
+    const DType* top_diff,
     const int num_rois,
-    const float spatial_scale,
+    const DType spatial_scale,
     const int channels,
     const int height,
     const int width,
     const int pooled_height,
     const int pooled_width,
     const int sampling_ratio,
-    float* bottom_diff,
-    const float* bottom_rois);
-
+    DType* bottom_diff,
+    const DType* bottom_rois) {
+    KERNEL_RUN(RoIAlignBackwardFeature<DType>, nthreads)(nthreads, top_diff, num_rois, spatial_scale, channels, height, width, pooled_height, pooled_width, sampling_ratio, bottom_diff, bottom_rois);
 }

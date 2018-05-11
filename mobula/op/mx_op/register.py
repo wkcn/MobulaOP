@@ -3,15 +3,18 @@ import functools
 import pickle
 import base64
 import copy
+import inspect
 import mxnet as mx
 from ..CustomOp import CustomOp
 
 if sys.version_info[0] >= 3:
     pars_encode = lambda x : base64.b64encode(pickle.dumps(x)).decode('utf-8')
     pars_decode = lambda x : pickle.loads(base64.b64decode(x.encode('utf-8')))
+    get_varnames = lambda func : inspect.getfullargspec(func).args[1:]
 else:
     pars_encode = lambda x : pickle.dumps(x)
     pars_decode = lambda x : pickle.loads(x)
+    get_varnames = lambda func : inspect.getargspec(func).args[1:]
 
 def register(op_name):
     if type(op_name) != str:
@@ -31,6 +34,7 @@ def register(op_name):
             def forward(self, is_train, req, in_data, out_data, aux):
                 self.in_data = in_data
                 self.out_data = out_data
+                self.req = req
                 out = self._forward(*in_data)
                 if out is not None:
                     if type(out) != list:
@@ -64,6 +68,10 @@ def register(op_name):
             @property
             def func_dY(self):
                 return get_element(self.out_grad)
+            def get_zeros_like(self, e):
+                return mx.nd.zeros_like(e)
+            def get_empty_like(self, e):
+                return mx.nd.empty(e.shape)
 
             mx_op = type('_%s_MX_OP' % op_name,
                 (mx.operator.CustomOp, op),
@@ -75,13 +83,11 @@ def register(op_name):
                     _backward = op.backward,
                     X = func_X, dX = func_dX,
                     Y = func_Y, dY = func_dY,
+                    get_zeros_like = get_zeros_like,
+                    get_empty_like = get_empty_like,
                 )
             )
             return mx_op
-
-        def get_varnames(func):
-            varnames = list(func.__code__.co_varnames[1:])
-            return varnames 
 
         def list_outputs(func):
             num_outputs = len(get_varnames(func))
@@ -92,9 +98,10 @@ def register(op_name):
             return ['output%d' % i for i in range(num_outputs)]
 
         def get_mx_prop(op, mx_op):
-            def __init__(self, __pars, *args):
+            def __init__(self, __pars):
                 mx.operator.CustomOpProp.__init__(self)
                 self._args, self._kwargs = pars_decode(__pars)
+                op.__init__(self, *self._args, **self._kwargs)
 
             def create_operator(self, ctx, shapes, dtypes):
                 return mx_op(*self._args, **self._kwargs)
@@ -127,10 +134,12 @@ def register(op_name):
                 # the rest of parameters
                 for i in range(len(args), num_inputs):
                     name = input_names[i]
-                    assert name in kwargs
+                    assert name in kwargs, "Variable %s not found" % name
                     inputs[i] = kwargs.pop(name)
                 pars = [[], kwargs]
-            return mx.nd.Custom(*inputs, __pars = pars_encode(pars), op_type = op_type)
+            if isinstance(inputs[0], mx.nd.NDArray):
+                return mx.nd.Custom(*inputs, __pars = pars_encode(pars), op_type = op_type)
+            return mx.sym.Custom(*inputs, __pars = pars_encode(pars), op_type = op_type)
 
         mx_op = get_mx_op(op)
         mx_prop = get_mx_prop(op, mx_op)

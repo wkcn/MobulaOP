@@ -15,7 +15,9 @@ def get_mx_pointer(v):
 def mx_func(v):
     if isinstance(v, mx.nd.NDArray):
         return get_mx_pointer(v)
-    elif isinstance(v, (int, float, long)):
+    elif isinstance(v, float):
+        return ctypes.c_float(v)
+    elif isinstance(v, (int, long)):
         return v
     raise TypeError("Unsupported Type: {}".format(type(v)))
 

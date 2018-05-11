@@ -3,11 +3,11 @@
 namespace mobula{
 
 #if not USING_CUDA
+mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
 #if not USING_OPENMP
 map<thread::id, pair<int, int> > MOBULA_KERNEL_INFOS;
 mutex MOBULA_KERNEL_MUTEX;
 
-mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
 #endif // USING_OPENMP endif
 #endif // USING_CUDA endif
 

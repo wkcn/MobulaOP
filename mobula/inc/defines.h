@@ -109,6 +109,7 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
     MOBULA_ATOMIC_ADD_MUTEXES[id].lock();
     *address += val;
     MOBULA_ATOMIC_ADD_MUTEXES[id].unlock();
+    return *address;
 }
 
 #endif // USING_CUDA

@@ -59,7 +59,10 @@ class Func:
                 if aid is not None and dev_id is not None:
                     assert aid == dev_id
                 dev_id = aid
-                args_new.append(self.func(a))
+                try:
+                    args_new.append(self.func(a))
+                except TypeError as e:
+                    raise TypeError(str(e) + str([type(a) for a in args]))
             if dev_id is not None:
                 if self.gpu_lib is None:
                     raise RuntimeError("Doesn't support GPU")
