@@ -7,7 +7,7 @@ class TestInputsOP:
     def __init__(self):
         pass
     def forward(self, x, y):
-        self.Y[:] = self.X[0] * self.X[1]
+        self.y[:] = self.X[0] * self.X[1]
     def backward(self, dy): 
         self.dX[0][:] = dy * self.X[1]
         self.assign(self.dX[1], self.req[1], dy * self.X[0])

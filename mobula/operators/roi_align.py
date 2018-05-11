@@ -9,13 +9,13 @@ class ROIAlign:
     def forward(self, data, rois):
         if self.req[0] == 'null':
             return
-        out = self.Y
+        out = self.y
         if self.req[0] == 'add':
             out_temp = self.get_empty_like(out)
             mobula.func.roi_align_forward(out.size, data, self.spatial_scale, data.shape[1], data.shape[2], data.shape[3], self.pooled_size[0], self.pooled_size[1], self.sampling_ratio, rois, out_temp)
-            self.Y[:] += out_temp
+            self.y[:] += out_temp
         else:
-            mobula.func.roi_align_forward(out.size, data, self.spatial_scale, data.shape[1], data.shape[2], data.shape[3], self.pooled_size[0], self.pooled_size[1], self.sampling_ratio, rois, self.Y)
+            mobula.func.roi_align_forward(out.size, data, self.spatial_scale, data.shape[1], data.shape[2], data.shape[3], self.pooled_size[0], self.pooled_size[1], self.sampling_ratio, rois, self.y)
     def backward(self, dy):
         if self.req[0] == 'null':
             return

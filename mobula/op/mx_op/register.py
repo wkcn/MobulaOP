@@ -56,18 +56,6 @@ def register(op_name):
             def get_element(data):
                 return data[0] if len(data) <= 1 else data
 
-            @property
-            def func_X(self):
-                return get_element(self.in_data) 
-            @property
-            def func_Y(self):
-                return get_element(self.out_data) 
-            @property
-            def func_dX(self):
-                return get_element(self.in_grad)
-            @property
-            def func_dY(self):
-                return get_element(self.out_grad)
             def get_zeros_like(self, e):
                 return mx.nd.zeros_like(e)
             def get_empty_like(self, e):
@@ -81,8 +69,14 @@ def register(op_name):
                     backward = backward,
                     _forward = op.forward,
                     _backward = op.backward,
-                    X = func_X, dX = func_dX,
-                    Y = func_Y, dY = func_dY,
+                    X = property(lambda self : self.in_data),
+                    Y = property(lambda self : self.out_data),
+                    dX = property(lambda self : self.in_grad),
+                    dY = property(lambda self : self.out_grad),
+                    x = property(lambda self : self.in_data[0]),
+                    y = property(lambda self : self.out_data[0]),
+                    dx = property(lambda self : self.in_grad[0]),
+                    dy = property(lambda self : self.out_grad[0]),
                     get_zeros_like = get_zeros_like,
                     get_empty_like = get_empty_like,
                 )
