@@ -2,7 +2,6 @@ import mxnet as mx
 from mxnet.base import _LIB
 import ctypes
 import sys
-from ..load_lib import load_common_lib 
 
 if sys.version_info[0] >= 3:
     long = int

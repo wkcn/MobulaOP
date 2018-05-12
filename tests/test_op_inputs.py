@@ -2,7 +2,7 @@ import mobula
 import mxnet as mx
 import numpy as np
 
-@mobula.register_op
+@mobula.operator.register
 class TestInputsOP:
     def __init__(self):
         pass

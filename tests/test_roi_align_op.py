@@ -14,7 +14,7 @@ def test_roi_align_sym():
     data_sym = mx.sym.Variable('data')
     rois_sym = mx.sym.Variable('rois')
 
-    output_sym = mobula.operators.ROIAlign(data = data_sym, rois = rois_sym, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
+    output_sym = mobula.operator.ROIAlign(data = data_sym, rois = rois_sym, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
     output_sym = mx.sym.MakeLoss(output_sym)
 
     exe = output_sym.simple_bind(ctx, data = data.shape, rois = rois.shape) 
@@ -36,7 +36,10 @@ def test_roi_align_nd():
 
     data.attach_grad()
     with mx.autograd.record():
-        output = mobula.operators.ROIAlign(data = data, rois = rois, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
+        output = mobula.operator.ROIAlign(data = data, rois = rois, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
     output.backward()
     mx.nd.waitall()
 
+if __name__ == '__main__':
+    test_roi_align_sym()
+    test_roi_align_nd()
