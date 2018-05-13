@@ -1,60 +1,65 @@
 import ctypes
 import functools
 import os
+from . import glue
 
 class MobulaFuncLib:
-    def __init__(self, func, dev_id_func):
-        self.func = func
-        self.dev_id_func = dev_id_func
+    def __init__(self):
         lib_path = './mobula/build/mobula_op'
         cpu_lib_fname = "%s_cpu.so" % lib_path
         gpu_lib_fname = "%s_gpu.so" % lib_path
         self.cpu_lib = ctypes.CDLL(cpu_lib_fname)
         self.gpu_lib = ctypes.CDLL(gpu_lib_fname) if os.path.exists(gpu_lib_fname) else None
-    def __getattr__(self, name):
-        def wrapper(*args):
-            args_new = []
-            dev_id = None
-            for a in args:
-                aid = self.dev_id_func(a)
-                if aid is not None and dev_id is not None:
-                    assert aid == dev_id
-                dev_id = aid
-                try:
-                    args_new.append(self.func(a))
-                except TypeError as e:
-                    raise TypeError(str(e) + str([type(a) for a in args]))
-            if dev_id is not None:
-                if self.gpu_lib is None:
-                    raise RuntimeError("Doesn't support GPU")
-                # gpu
-                self.lib.set_device(dev_id)
-                cfunc = getattr(self.gpu_lib, name)
-                return cfunc(*args_new)
-            cfunc = getattr(self.cpu_lib, name)
-            return cfunc(*args_new)
-        return wrapper
+
+func_lib = MobulaFuncLib()
+T = lambda x : x
 
 class MobulaFunc:
-    def __init__(self, name, par_type, func_lib):
+    def __init__(self, name, par_type):
         self.name = name
         self.par_type = par_type
-        self.func_lib = func_lib
     def __call__(self, *args):
         # type check
         args_new = []
+        backend = None
+        dev_id = None
         for a, p in zip(args, self.par_type):
-            pa = p(a)
-            args_new.append(pa)
-        getattr(self.func_lib, self.name)(*args_new)
+            if p == T:
+                backend_tmp = glue.backend.get_backend(a)
+                if backend is not None and backend_tmp != backend:
+                    raise ValueError("Don't use multiple backends in a call :-(")
+                backend = backend_tmp
+                pa = backend.get_pointer(a)
+                aid = backend.dev_id(a)
 
-from .glue.mx import mx_func, dev_id_mx, T
-func_lib = MobulaFuncLib(mx_func, dev_id_mx)
+                if aid is not None and dev_id is not None:
+                    raise ValueError("Don't use multiple devices in a call :-(")
+                dev_id = aid
+
+            else:
+                pa = self.convert_ctype(p(a))
+            args_new.append(pa)
+
+        assert backend is not None, ValueError("No parameter about backend:-(")
+
+        if dev_id is not None:
+            if func_lib.gpu_lib is None:
+                raise RuntimeError("Doesn't support GPU")
+            func_lib.gpu_lib.set_device(dev_id)
+            return getattr(func_lib.gpu_lib, self.name)(*args_new)
+        return getattr(func_lib.cpu_lib, self.name)(*args_new)
+
+    def convert_ctype(self, v):
+        if isinstance(v, float):
+            return ctypes.c_float(v)
+        elif isinstance(v, int):
+            return v
+        raise TypeError("Unsupported Type: {}".format(type(v)))
 
 def bind(functions):
     for k, v in functions.items():
         assert k not in globals(), "Duplicated function name %s" % k # function overload [todo]
-        globals()[k] = MobulaFunc(k, v, func_lib)
+        globals()[k] = MobulaFunc(k, v)
 
 functions = dict(
         add = (int, T, T, T),
