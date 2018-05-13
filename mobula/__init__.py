@@ -1,2 +1,2 @@
-from . import operator
-from .func import func
+from . import op as operator
+from . import func

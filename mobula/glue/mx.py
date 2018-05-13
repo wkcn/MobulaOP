@@ -1,3 +1,6 @@
+import mxnet as mx
+from mxnet.base import _LIB
+import ctypes
 import sys
 import functools
 import pickle
@@ -5,7 +8,7 @@ import base64
 import copy
 import inspect
 import mxnet as mx
-from ..CustomOp import CustomOp
+from ..op.CustomOp import CustomOp
 
 if sys.version_info[0] >= 3:
     pars_encode = lambda x : base64.b64encode(pickle.dumps(x)).decode('utf-8')
@@ -15,6 +18,29 @@ else:
     pars_encode = lambda x : pickle.dumps(x)
     pars_decode = lambda x : pickle.loads(x)
     get_varnames = lambda func : inspect.getargspec(func).args[1:]
+
+def get_mx_pointer(v):
+    cp = ctypes.c_void_p() 
+    rtn =  _LIB.MXNDArrayGetData(v.handle, ctypes.byref(cp))
+    return cp
+
+def mx_func(v):
+    if isinstance(v, mx.nd.NDArray):
+        return get_mx_pointer(v)
+    elif isinstance(v, float):
+        return ctypes.c_float(v)
+    elif isinstance(v, int):
+        return v
+    raise TypeError("Unsupported Type: {}".format(type(v)))
+
+def T(v):
+    assert isinstance(v, mx.nd.NDArray) 
+    return v
+
+def dev_id_mx(a):
+    if isinstance(a, mx.nd.NDArray):
+        return a.context.device_id if a.context.device_type == 'gpu' else None
+    return None
 
 def register(op_name):
     if type(op_name) != str:

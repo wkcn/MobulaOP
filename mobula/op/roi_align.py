@@ -4,9 +4,9 @@ import mobula
 @register
 class ROIAlign:
     def __init__(self, pooled_size, spatial_scale, sampling_ratio):
-        self.pooled_size = [int(e) for e in pooled_size]
-        self.spatial_scale = float(spatial_scale)
-        self.sampling_ratio = int(sampling_ratio)
+        self.pooled_size = pooled_size
+        self.spatial_scale = spatial_scale
+        self.sampling_ratio = sampling_ratio
     def forward(self, data, rois):
         if self.req[0] == 'null':
             return

@@ -2,15 +2,7 @@ import ctypes
 import functools
 import os
 
-def load_common_lib(lib_name, func, dev_id_func = None):
-    lib = OPLib(ctypes.CDLL(lib_name), func, dev_id_func)
-    return lib
-
-from .mx import mx_func, dev_id_mx
-def load_lib(lib_name):
-    return load_common_lib(lib_name, mx_func, dev_id_func = dev_id_mx)
-
-class Func:
+class MobulaFuncLib:
     def __init__(self, func, dev_id_func):
         self.func = func
         self.dev_id_func = dev_id_func
@@ -43,4 +35,30 @@ class Func:
             return cfunc(*args_new)
         return wrapper
 
-func = Func(mx_func, dev_id_mx)
+class MobulaFunc:
+    def __init__(self, name, par_type, func_lib):
+        self.name = name
+        self.par_type = par_type
+        self.func_lib = func_lib
+    def __call__(self, *args):
+        # type check
+        args_new = []
+        for a, p in zip(args, self.par_type):
+            pa = p(a)
+            args_new.append(pa)
+        getattr(self.func_lib, self.name)(*args_new)
+
+from .glue.mx import mx_func, dev_id_mx, T
+func_lib = MobulaFuncLib(mx_func, dev_id_mx)
+
+def bind(functions):
+    for k, v in functions.items():
+        assert k not in globals(), "Duplicated function name %s" % k # function overload [todo]
+        globals()[k] = MobulaFunc(k, v, func_lib)
+
+functions = dict(
+        add = (int, T, T, T),
+        roi_align_forward = (int, T, float, int, int, int, int, int, int, T, T),
+        roi_align_backward = (int, T, int, float, int, int, int, int, int, int, T, T),
+)
+bind(functions)

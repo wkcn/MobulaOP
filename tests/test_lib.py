@@ -9,6 +9,10 @@ def test_lib():
     b = mx.nd.array([4,5,6], dtype = dtype)
     c = mx.nd.array([0,0,0], dtype = dtype)
 
+    print (mobula.func)
     mobula.func.add(a.size, a, b, c)
 
     assert ((a + b).asnumpy() == c.asnumpy()).all(), c
+
+if __name__ == '__main__':
+    test_lib()
