@@ -13,7 +13,7 @@ python:
 
 script:
     - pip install -r ./requirements.txt
-    - sh build.sh
+    - no | sh build.sh
     - sh tests/run_tests.sh
 
 after_success:

@@ -31,3 +31,39 @@ b = mx.nd.array([4,5,6])
 c = MyFirstOP(a, b)
 print (c) # [5,7,9]
 ```
+
+- Use **custom operators** without rebuilding the source of deep learning framework
+```python
+# Use ROIAlign operator
+import mxnet as mx
+import numpy as np
+import mobula
+
+ctx = mx.cpu(0)
+dtype = np.float32
+N, C, H, W = 2, 3, 4, 4
+
+data = mx.nd.array(np.arange(N*C*H*W).astype(dtype).reshape((N,C,H,W)))
+rois = mx.nd.array(np.array([[0, 1, 1, 3, 3]], dtype = dtype))
+
+data.attach_grad()
+with mx.autograd.record():
+    output = mobula.operator.ROIAlign(data = data, rois = rois, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
+
+output.backward()
+
+mx.nd.waitall()
+print (output.asnumpy(), data.grad.asnumpy())
+```
+
+## How to get it? 
+```bash
+# Clone the project
+git clone https://github.com/wkcn/MobulaOP
+
+# Enter the directory
+cd MobulaOP
+
+# Build
+sh build.sh
+```
