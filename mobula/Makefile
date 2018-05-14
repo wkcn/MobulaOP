@@ -10,10 +10,6 @@ NVCC = nvcc
 CUDA_DIR = /opt/cuda
 
 COMMON_FLAGS := -D HOST_NUM_THREADS=$(HOST_NUM_THREADS)
-HIGH_LEVEL_WARNINGS =  -Werror -Wall -Wextra -pedantic -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wundef -Wno-unused -Wno-variadic-macros -Wno-parentheses -fdiagnostics-show-option
-ifeq ($(USING_HIGH_LEVEL_WARNINGS), 1)
-	COMMON_FLAGS += $(HIGH_LEVEL_WARNINGS)
-endif
 ifeq ($(USING_OPTIMIZATION), 1)
 	COMMON_FLAGS += -O3
 endif
@@ -23,6 +19,10 @@ LDFLAGS := -lpthread -shared
 
 CU_CFLAGS := -std=c++11 -Iinc -DUSING_CUDA=1 -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC" $(COMMON_FLAGS)
 CU_LDFLAGS := -lpthread -L$(CUDA_DIR)/lib64 -lcuda -lcudart -lcublas -shared
+
+ifeq ($(USING_HIGH_LEVEL_WARNINGS), 1)
+	CFLAGS += -Werror -Wall -Wextra -pedantic -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wundef -Wno-unused -Wno-variadic-macros -Wno-parentheses -fdiagnostics-show-option
+endif
 
 SRCS := $(wildcard src/*.cpp src/operators/*.cpp)
 OBJS := $(patsubst %cpp,%o,$(SRCS))

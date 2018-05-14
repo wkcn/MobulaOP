@@ -32,9 +32,11 @@ class MobulaFunc:
                 pa = backend.get_pointer(a)
                 aid = backend.dev_id(a)
 
-                if aid is not None and dev_id is not None:
-                    raise ValueError("Don't use multiple devices in a call :-(")
-                dev_id = aid
+                if aid is not None:
+                    if dev_id is not None:
+                        assert aid == dev_id, ValueError("Don't use multiple devices in a call :-(")
+                    else:
+                        dev_id = aid
 
             else:
                 pa = self.convert_ctype(p(a))
