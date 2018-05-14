@@ -48,6 +48,7 @@ rois = mx.nd.array(np.array([[0, 1, 1, 3, 3]], dtype = dtype))
 
 data.attach_grad()
 with mx.autograd.record():
+    # mx.nd.NDArray and mx.sym.Symbol are both available as the inputs.
     output = mobula.operator.ROIAlign(data = data, rois = rois, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
 
 output.backward()
