@@ -11,7 +11,7 @@ mutex MOBULA_KERNEL_MUTEX;
 #endif // USING_OPENMP endif
 #endif // USING_CUDA endif
 
-};
+}
 
 #if USING_CUDA
 void set_device(const int device_id) {

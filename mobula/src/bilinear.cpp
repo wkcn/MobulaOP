@@ -26,21 +26,21 @@ MOBULA_DEVICE T bilinear_interpolate(
     x = 0;
   }
 
-  int y_low = (int)y;
-  int x_low = (int)x;
+  int y_low = static_cast<int>(y);
+  int x_low = static_cast<int>(x);
   int y_high;
   int x_high;
 
   if (y_low >= height - 1) {
     y_high = y_low = height - 1;
-    y = (T)y_low;
+    y = static_cast<T>(y_low);
   } else {
     y_high = y_low + 1;
   }
 
   if (x_low >= width - 1) {
     x_high = x_low = width - 1;
-    x = (T)x_low;
+    x = static_cast<T>(x_low);
   } else {
     x_high = x_low + 1;
   }
@@ -90,19 +90,19 @@ MOBULA_DEVICE void bilinear_interpolate_gradient(
     x = 0;
   }
 
-  y_low = (int)y;
-  x_low = (int)x;
+  y_low = static_cast<int>(y);
+  x_low = static_cast<int>(x);
 
   if (y_low >= height - 1) {
     y_high = y_low = height - 1;
-    y = (T)y_low;
+    y = static_cast<T>(y_low);
   } else {
     y_high = y_low + 1;
   }
 
   if (x_low >= width - 1) {
     x_high = x_low = width - 1;
-    x = (T)x_low;
+    x = static_cast<T>(x_low);
   } else {
     x_high = x_low + 1;
   }

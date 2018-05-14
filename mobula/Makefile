@@ -2,14 +2,23 @@ TARGET = mobula_op
 BUILD_PATH = build
 USING_OPENMP = 0
 HOST_NUM_THREADS = 8
+USING_HIGH_LEVEL_WARNINGS = 1
+USING_OPTIMIZATION = 1
 
 CXX = g++
 NVCC = nvcc
 CUDA_DIR = /opt/cuda
 
 COMMON_FLAGS := -D HOST_NUM_THREADS=$(HOST_NUM_THREADS)
+HIGH_LEVEL_WARNINGS =  -Werror -Wall -Wextra -pedantic -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wundef -Wno-unused -Wno-variadic-macros -Wno-parentheses -fdiagnostics-show-option
+ifeq ($(USING_HIGH_LEVEL_WARNINGS), 1)
+	COMMON_FLAGS += $(HIGH_LEVEL_WARNINGS)
+endif
+ifeq ($(USING_OPTIMIZATION), 1)
+	COMMON_FLAGS += -O3
+endif
 
-CFLAGS := -std=c++11 -Iinc -fPIC -D USING_OPENMP=$(USING_OPENMP) $(COMMON_FLAGS)
+CFLAGS := -std=c++11 -Iinc -fPIC -DUSING_CUDA=0 -DUSING_OPENMP=$(USING_OPENMP) $(COMMON_FLAGS)
 LDFLAGS := -lpthread -shared 
 
 CU_CFLAGS := -std=c++11 -Iinc -DUSING_CUDA=1 -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC" $(COMMON_FLAGS)

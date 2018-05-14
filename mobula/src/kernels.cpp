@@ -13,4 +13,4 @@ MOBULA_KERNEL add_kernel(const int n, const T *a, const T *b, T *out){
 
 template MOBULA_KERNEL add_kernel(const int n, const float *a, const float *b, float *out);
 
-};
+}
