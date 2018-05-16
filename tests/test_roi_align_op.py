@@ -162,7 +162,8 @@ def test_roi_align_value():
     output.backward(dy)
     real_output, [dx, drois] = roialign_forward_backward(data.asnumpy(), rois.asnumpy(), pooled_size, spatial_scale, sampling_ratio, dy.asnumpy())
     assert np.allclose(output.asnumpy(), real_output)
-    # assert np.allclose(data.grad.asnumpy(), dx)
+    # It seems that the precision between Cfloat and Pyfloat is different.
+    assert np.allclose(data.grad.asnumpy(), dx, atol = 1e-6), np.abs(data.grad.asnumpy() - dx).max()
     assert np.allclose(rois.grad.asnumpy(), drois)
 
 if __name__ == '__main__':
