@@ -1,6 +1,6 @@
 import mxnet as mx
 import numpy as np
-import mobula
+import mobula_op
 
 def test_lib():
 
@@ -9,8 +9,7 @@ def test_lib():
     b = mx.nd.array([4,5,6], dtype = dtype)
     c = mx.nd.array([0,0,0], dtype = dtype)
 
-    print (mobula.func)
-    mobula.func.add(a.size, a, b, c)
+    mobula_op.func.add(a.size, a, b, c)
 
     assert ((a + b).asnumpy() == c.asnumpy()).all(), c
 

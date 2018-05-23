@@ -13,9 +13,9 @@ You can write the custom operators by Python/C++/C/CUDA without rebuilding deep 
 - Add an addition operator
 
 ```python
-import mobula
+import mobula_op
 
-@mobula.operator.register
+@mobula_op.operator.register
 class MyFirstOP:
     def forward(self, x, y):
         return x + y
@@ -37,7 +37,7 @@ print (c) # [5,7,9]
 # Use ROIAlign operator
 import mxnet as mx
 import numpy as np
-import mobula
+import mobula_op
 
 ctx = mx.cpu(0)
 dtype = np.float32
@@ -49,7 +49,7 @@ rois = mx.nd.array(np.array([[0, 1, 1, 3, 3]], dtype = dtype))
 data.attach_grad()
 with mx.autograd.record():
     # mx.nd.NDArray and mx.sym.Symbol are both available as the inputs.
-    output = mobula.operator.ROIAlign(data = data, rois = rois, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
+    output = mobula_op.operator.ROIAlign(data = data, rois = rois, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
 
 output.backward()
 

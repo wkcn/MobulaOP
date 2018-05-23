@@ -1,11 +1,12 @@
 import ctypes
 import functools
 import os
+import sys
 from . import glue
 
 class MobulaFuncLib:
     def __init__(self):
-        lib_path = './mobula/build/mobula_op'
+        lib_path = os.path.join(os.path.dirname(__file__), 'build/mobula_op')
         cpu_lib_fname = "%s_cpu.so" % lib_path
         gpu_lib_fname = "%s_gpu.so" % lib_path
         self.cpu_lib = ctypes.CDLL(cpu_lib_fname)

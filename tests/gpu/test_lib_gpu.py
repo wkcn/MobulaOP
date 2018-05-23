@@ -1,6 +1,6 @@
 import mxnet as mx
 import numpy as np
-import mobula
+import mobula_op
 
 def test_lib_gpu():
     ctx = mx.gpu(0)
@@ -10,6 +10,6 @@ def test_lib_gpu():
     b = mx.nd.array([4,5,6], dtype = dtype, ctx = ctx)
     c = mx.nd.array([0,0,0], dtype = dtype, ctx = ctx)
 
-    mobula.func.add(a.size, a, b, c)
+    mobula_op.func.add(a.size, a, b, c)
 
     assert ((a + b).asnumpy() == c.asnumpy()).all(), c

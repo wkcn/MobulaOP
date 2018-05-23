@@ -1,8 +1,8 @@
-import mobula
+import mobula_op
 import mxnet as mx
 import numpy as np
 
-@mobula.operator.register
+@mobula_op.operator.register
 class TestInputsOP:
     def __init__(self):
         pass
