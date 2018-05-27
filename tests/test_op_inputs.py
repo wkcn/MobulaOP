@@ -28,5 +28,12 @@ def test_op_inputs():
     assert (b.grad.asnumpy() == (a * dy).asnumpy()).all(), b.grad
     assert ((a * b).asnumpy() == c.asnumpy()).all()
 
+def test_op_inputs_np():
+    a = np.array([1,2,3])
+    b = np.array([4,5,6])
+    c = TestInputsOP(a, b)
+    assert ((a * b) == c).all()
+
 if __name__ == '__main__':
     test_op_inputs()
+    test_op_inputs_np()

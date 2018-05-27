@@ -12,7 +12,7 @@ class ROIAlign:
             return
         out = self.y
         if self.req[0] == 'add':
-            out_temp = self.get_empty_like(out)
+            out_temp = self.F.empty_like(out)
             mobula_op.func.roi_align_forward(out.size, data, self.spatial_scale, data.shape[1], data.shape[2], data.shape[3], self.pooled_size[0], self.pooled_size[1], self.sampling_ratio, rois, out_temp)
             self.y[:] += out_temp
         else:

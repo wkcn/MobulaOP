@@ -1,11 +1,30 @@
+import importlib
+
 dtypes = dict()
-try:
-    from . import mx
-    import mxnet
-    dtypes[mxnet.nd.NDArray] = mx
-    dtypes[mxnet.sym.Symbol] = mx
-except ImportError as e:
-    pass
+
+def register_backend(glue_name, types_name):
+    if not isinstance(types_name, list):
+        types_name = [types_name]
+    glue = None
+    try:
+        glue = importlib.import_module('.' + glue_name, __package__)
+    except ImportError as e:
+        raise(e)
+    if glue is not None:
+        for t in types_name:
+            sp = t.split('.')
+            try:
+                e = importlib.import_module(sp[0])
+                for s in sp[1:]:
+                    e = getattr(e, s)
+                dtypes[e] = glue
+            except ImportError as e:
+                raise(e)
+
+# register backends
+register_backend('mx', ['mxnet.nd.NDArray', 'mxnet.sym.Symbol'])
+register_backend('np', ['numpy.ndarray'])
+assert len(dtypes) > 0, RuntimeError("No supported backend :-(")
 
 # create generators cache
 for b in dtypes.values():

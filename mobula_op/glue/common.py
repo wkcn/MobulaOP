@@ -49,6 +49,9 @@ def get_in_data(*args, **kwargs):
         raise NotImplementedError
     return inputs, pars
 
+def get_in_shape(in_data):
+    return [d.shape for d in in_data]
+
 class MobulaOperator(object):
     def __init__(self, op, name):
         self.op = op
@@ -65,3 +68,21 @@ def register(op_name):
     def decorator(op):
         return MobulaOperator(op = op, name = op_name)
     return decorator
+
+inputs_func = dict(
+    X = property(lambda self : self.in_data),
+    Y = property(lambda self : self.out_data),
+    dX = property(lambda self : self.in_grad),
+    dY = property(lambda self : self.out_grad),
+    x = property(lambda self : self.in_data[0]),
+    y = property(lambda self : self.out_data[0]),
+    dx = property(lambda self : self.in_grad[0]),
+    dy = property(lambda self : self.out_grad[0]),
+)
+'''
+OpGen:
+    in_data, out_data, in_grad, out_grad
+    req[write/add/null]
+    X,Y,dX,dY,x,y,dx,dy
+    F
+'''

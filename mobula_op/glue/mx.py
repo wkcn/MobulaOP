@@ -3,8 +3,10 @@ from mxnet.base import _LIB
 import numpy as np
 from .common import *
 
+mx.nd.empty_like = lambda x : mx.nd.empty(x.shape)
+
 def get_pointer(v):
-    assert v.dtype == np.float32, TypeError('The type of NDArray should be float32')
+    assert v.dtype == np.float32, TypeError('The type of mx.nd.NDArray should be float32')
     cp = ctypes.c_void_p() 
     rtn =  _LIB.MXNDArrayGetData(v.handle, ctypes.byref(cp))
     return cp
@@ -58,29 +60,18 @@ class OpGen(object):
                         self.assign(in_grad[i], req[i], out[i])
             def get_element(data):
                 return data[0] if len(data) <= 1 else data
-            def get_zeros_like(self, e):
-                return mx.nd.zeros_like(e)
-            def get_empty_like(self, e):
-                return mx.nd.empty(e.shape)
-            mx_op = type('_%s_MX_OP' % op_name,
-                (mx.operator.CustomOp, op),
-                dict(
+            mx_op_dict = dict(
                     __init__ =  __init__,
                     forward = forward,
                     backward = backward,
                     _forward = op.forward,
                     _backward = op.backward,
-                    X = property(lambda self : self.in_data),
-                    Y = property(lambda self : self.out_data),
-                    dX = property(lambda self : self.in_grad),
-                    dY = property(lambda self : self.out_grad),
-                    x = property(lambda self : self.in_data[0]),
-                    y = property(lambda self : self.out_data[0]),
-                    dx = property(lambda self : self.in_grad[0]),
-                    dy = property(lambda self : self.out_grad[0]),
-                    get_zeros_like = get_zeros_like,
-                    get_empty_like = get_empty_like,
-                )
+                    F = property(lambda self : mx.nd)
+            )
+            mx_op_dict.update(inputs_func)
+            mx_op = type('_%s_MX_OP' % op_name,
+                (mx.operator.CustomOp, op),
+                mx_op_dict
             )
             return mx_op
 
