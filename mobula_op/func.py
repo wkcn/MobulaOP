@@ -26,7 +26,7 @@ class MobulaFunc:
         dev_id = None
         for a, p in zip(args, self.par_type):
             if p == T:
-                backend_tmp = glue.backend.get_backend(a)
+                backend_tmp = glue.backend.get_var_backend(a)
                 if backend is not None and backend_tmp != backend:
                     raise ValueError("Don't use multiple backends in a call :-(")
                 backend = backend_tmp

@@ -5,6 +5,7 @@ import base64
 import ctypes
 import functools
 from ..op.CustomOp import CustomOp
+from . import backend
 
 if sys.version_info[0] >= 3:
     pars_encode = lambda x : base64.b64encode(pickle.dumps(x)).decode('utf-8')
@@ -49,7 +50,18 @@ def get_in_data(*args, **kwargs):
     return inputs, pars
 
 class MobulaOperator(object):
-    def __init__(self, op_gen):
-        self.op_gen = op_gen
+    def __init__(self, op, name):
+        self.op = op
+        self.name = name
     def __call__(self, *args, **kwargs):
-        return self.op_gen(*args, **kwargs)
+        b = backend.get_args_backend(*args, **kwargs)
+        return backend.op_gen(b, op = self.op, name = self.name)(*args, **kwargs)
+
+def register(op_name):
+    if type(op_name) != str:
+        op = op_name
+        op_name = op.__name__
+        return register(op_name)(op)
+    def decorator(op):
+        return MobulaOperator(op = op, name = op_name)
+    return decorator

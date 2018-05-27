@@ -113,12 +113,3 @@ class OpGen(object):
         mx_op = get_mx_op(op)
         mx_prop = get_mx_prop(op, mx_op)
         mx.operator.register(op_name)(mx_prop)
-
-def register(op_name):
-    if type(op_name) != str:
-        op = op_name
-        op_name = op.__name__
-        return register(op_name)(op)
-    def decorator(op):
-        return MobulaOperator(op_gen = OpGen(op = op, name = op_name))
-    return decorator
