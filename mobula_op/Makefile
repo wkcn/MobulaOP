@@ -15,10 +15,15 @@ ifeq ($(USING_OPTIMIZATION), 1)
 endif
 
 CFLAGS := -std=c++11 -Iinc -fPIC -DUSING_CUDA=0 -DUSING_OPENMP=$(USING_OPENMP) $(COMMON_FLAGS)
-LDFLAGS := -lpthread -shared 
+LDFLAGS := -lpthread -shared
 
 CU_CFLAGS := -std=c++11 -Iinc -DUSING_CUDA=1 -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC" $(COMMON_FLAGS)
 CU_LDFLAGS := -lpthread -L$(CUDA_DIR)/lib64 -lcuda -lcudart -lcublas -shared
+
+ifeq ($(USING_OPENMP), 1)
+	CFLAGS += -fopenmp
+	LDFLAGS += -fopenmp
+endif
 
 ifeq ($(USING_HIGH_LEVEL_WARNINGS), 1)
 	CFLAGS += -Werror -Wall -Wextra -pedantic -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wundef -Wno-unused -Wno-variadic-macros -Wno-parentheses -fdiagnostics-show-option
