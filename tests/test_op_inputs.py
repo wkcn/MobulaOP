@@ -31,8 +31,22 @@ def test_op_inputs():
 def test_op_inputs_np():
     a = np.array([1,2,3])
     b = np.array([4,5,6])
-    c = TestInputsOP(a, b)
+    op = TestInputsOP('np')
+
+    c = op(a, b)
     assert ((a * b) == c).all()
+
+    c = op.forward(a, b)
+    assert ((a * b) == c).all()
+
+    dy = np.array([10,11,12])
+    dX1 = op.backward(out_grad = dy)
+    dX2 = op.backward(dy)
+    for x1, x2 in zip(dX1, dX2):
+        assert (x1 == x2).all()
+    a_grad, b_grad = dX1
+    assert (a_grad == (b * dy)).all(), a_grad
+    assert (b_grad == (a * dy)).all(), b_grad
 
 if __name__ == '__main__':
     test_op_inputs()

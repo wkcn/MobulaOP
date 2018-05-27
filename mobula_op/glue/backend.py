@@ -1,6 +1,7 @@
 import importlib
 
 dtypes = dict()
+glues = dict()
 
 def register_backend(glue_name, types_name):
     if not isinstance(types_name, list):
@@ -9,7 +10,7 @@ def register_backend(glue_name, types_name):
     try:
         glue = importlib.import_module('.' + glue_name, __package__)
     except ImportError as e:
-        raise(e)
+        raise e
     if glue is not None:
         for t in types_name:
             sp = t.split('.')
@@ -19,7 +20,8 @@ def register_backend(glue_name, types_name):
                     e = getattr(e, s)
                 dtypes[e] = glue
             except ImportError as e:
-                raise(e)
+                raise e
+            glues[glue_name] = glue
 
 # register backends
 register_backend('mx', ['mxnet.nd.NDArray', 'mxnet.sym.Symbol'])
@@ -41,7 +43,10 @@ def get_args_backend(*args, **kwargs):
         for a in kwargs.values():
             yield a
     for a in args_gen():
-        t = get_var_backend(a)
+        if type(a) == str:
+            t = glues.get(a, None)
+        else:
+            t = get_var_backend(a)
         if t is not None:
             if b is not None:
                 assert b == t, TypeError("Support only 1 backend in a call, now: [%s, %s]" % (str(b), str(t)))

@@ -52,12 +52,22 @@ def get_in_data(*args, **kwargs):
 def get_in_shape(in_data):
     return [d.shape for d in in_data]
 
+def assign(self, dst, req, src):
+    """Helper function for assigning into dst depending on requirements."""
+    if req == 'null':
+        return
+    elif req == 'write' or req == 'inplace':
+        dst[:] = src
+    elif req == 'add':
+        dst[:] += src
+
 class MobulaOperator(object):
     def __init__(self, op, name):
         self.op = op
         self.name = name
     def __call__(self, *args, **kwargs):
         b = backend.get_args_backend(*args, **kwargs)
+        assert b is not None, ValueError('No explict backend')
         return backend.op_gen(b, op = self.op, name = self.name)(*args, **kwargs)
 
 def register(op_name):
