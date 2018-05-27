@@ -16,22 +16,40 @@ else:
     get_varnames = lambda func : inspect.getargspec(func).args[1:]
 
 def get_in_data(*args, **kwargs):
+    '''
+    return:
+        inputs: input variances
+        pars: parameters of the operator
+    '''
     op = kwargs.pop('op')
     input_names = get_varnames(op.forward)
     num_inputs = len(input_names)
-    if len(args) > num_inputs:
-        inputs = args[:num_inputs]
-        pars = [args[num_inputs:], kwargs]
+    if num_inputs > 0:
+        # define input variances in the forward function
+        # And the input variances may be in args or kwargs
+        if len(args) > num_inputs:
+            inputs = args[:num_inputs]
+            pars = [args[num_inputs:], kwargs]
+        else:
+            # len(args) <= num_inputs
+            inputs = [None for _ in range(num_inputs)]
+            for i, a in enumerate(args):
+                assert input_names[i] not in kwargs
+                inputs[i] = a
+            # the rest of parameters
+            for i in range(len(args), num_inputs):
+                name = input_names[i]
+                assert name in kwargs, "Variable %s not found" % name
+                inputs[i] = kwargs.pop(name)
+            pars = [[], kwargs]
     else:
-        # len(args) <= num_inputs
-        inputs = [None for _ in range(num_inputs)]
-        for i, a in enumerate(args):
-            assert input_names[i] not in kwargs
-            inputs[i] = a
-        # the rest of parameters
-        for i in range(len(args), num_inputs):
-            name = input_names[i]
-            assert name in kwargs, "Variable %s not found" % name
-            inputs[i] = kwargs.pop(name)
-        pars = [[], kwargs]
+        # The input variances are in args.
+        # And the parameters are in kwargs.
+        raise NotImplementedError
     return inputs, pars
+
+class MobulaOperator(object):
+    def __init__(self, op_gen):
+        self.op_gen = op_gen
+    def __call__(self, *args, **kwargs):
+        return self.op_gen(*args, **kwargs)
