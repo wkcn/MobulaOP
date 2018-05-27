@@ -5,7 +5,6 @@ import base64
 import ctypes
 import functools
 from ..op.CustomOp import CustomOp
-from . import backend
 
 if sys.version_info[0] >= 3:
     pars_encode = lambda x : base64.b64encode(pickle.dumps(x)).decode('utf-8')
@@ -60,6 +59,8 @@ def assign(self, dst, req, src):
         dst[:] = src
     elif req == 'add':
         dst[:] += src
+
+backend = None # wait for importing in __init__.py
 
 class MobulaOperator(object):
     def __init__(self, op, name):

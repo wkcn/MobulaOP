@@ -82,7 +82,7 @@ class OpGen(object):
         )
         np_op_dict.update(inputs_func)
         np_op = type('_%s_NP_OP' % self.name,
-                (self.op, ),
+                (self.op, object),
                 np_op_dict
         )
         return np_op
