@@ -2,8 +2,11 @@ import numpy as np
 from .common import *
 
 def get_pointer(v):
-    assert v.dtype == np.float32, TypeError('The type of np.ndarray should be float32')
-    return v.ctypes.data
+    assert v.dtype == np.float32, TypeError('The type of np.ndarray should be float32 rather than %s' % v.dtype)
+    if not v.flags.c_contiguous:
+        c = np.ascontiguousarray(v)
+        return c.ctypes, c
+    return v.ctypes
 
 def dev_id(a):
     return None

@@ -58,8 +58,6 @@ class OpGen(object):
                         out = [out]
                     for i in range(op.num_inputs):
                         self.assign(in_grad[i], req[i], out[i])
-            def get_element(data):
-                return data[0] if len(data) <= 1 else data
             mx_op_dict = dict(
                     __init__ =  __init__,
                     forward = forward,

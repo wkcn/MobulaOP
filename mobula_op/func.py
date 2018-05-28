@@ -24,6 +24,7 @@ class MobulaFunc:
         args_new = []
         backend = None
         dev_id = None
+        noncontiguous_list = []
         for a, p in zip(args, self.par_type):
             if p == T:
                 backend_tmp = glue.backend.get_var_backend(a)
@@ -31,6 +32,9 @@ class MobulaFunc:
                     raise ValueError("Don't use multiple backends in a call :-(")
                 backend = backend_tmp
                 pa = backend.get_pointer(a)
+                if isinstance(pa, (list, tuple)):
+                    noncontiguous_list.append((a, pa[1]))
+                    pa = pa[0]
                 aid = backend.dev_id(a)
 
                 if aid is not None:
@@ -49,8 +53,11 @@ class MobulaFunc:
             if func_lib.gpu_lib is None:
                 raise RuntimeError("Doesn't support GPU")
             func_lib.gpu_lib.set_device(dev_id)
-            return getattr(func_lib.gpu_lib, self.name)(*args_new)
-        return getattr(func_lib.cpu_lib, self.name)(*args_new)
+            rtn = getattr(func_lib.gpu_lib, self.name)(*args_new)
+        rtn = getattr(func_lib.cpu_lib, self.name)(*args_new)
+        for source, target in noncontiguous_list:
+            source[:] = target
+        return rtn
 
     def convert_ctype(self, v):
         if isinstance(v, float):
