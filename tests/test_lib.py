@@ -19,16 +19,26 @@ def test_lib_add_np():
     mobula_op.func.add(a.size, a, b, c)
     assert ((a + b) == c).all(), c
 
-# mxnet.ndarray.NDArray doesn't have iscontiguous property :-(
-@nottest
 def test_lib_continuous_mx():
     dtype = np.float32
     shape = (10, 10)
     a = mx.nd.random.uniform(-100, 100, shape, dtype = dtype)
     b = mx.nd.random.uniform(-100, 100, shape, dtype = dtype)
-    c = mx.nd.empty((5,5), dtype = dtype)
+    # a = mx.nd.array(np.random.randint(-100, 100, size = shape), dtype = dtype)
+    # b = mx.nd.array(np.random.randint(-100, 100, size = shape), dtype = dtype)
+    c = mx.nd.empty((5, 5), dtype = dtype)
     sa = a[2:7, 3:8]
     sb = b[1:6, 4:9]
+    # [NOTICE] prepare data
+    '''
+    NDArray is an asynchronize computation object whose content may not be available.
+    [link](https://github.com/apache/incubator-mxnet/issues/2033)
+    '''
+    mx.nd.waitall()
+    # sa and sb are both copies rather than views.
+    assert sa.iscontiguous() == True
+    assert sb.iscontiguous() == True
+    assert c.iscontiguous() == True
     mobula_op.func.add(c.size, sa, sb, c)
     assert (c.asnumpy() == (sa + sb).asnumpy()).all(), (c, (sa + sb))
 
@@ -37,11 +47,13 @@ def test_lib_continuous_np():
     shape = (10, 10)
     a = np.random.randint(-100, 100, shape).astype(dtype)
     b = np.random.randint(-100, 100, shape).astype(dtype)
-    c = np.empty((5,5), dtype = dtype)
+    c = np.empty((10, 10), dtype = dtype)
     sa = a[2:7, 3:8]
     sb = b[1:6, 4:9]
-    mobula_op.func.add(c.size, sa, sb, c)
-    assert (c == (sa + sb)).all(), (c, (sa + sb))
+    sc = c[3:8, 1:6]
+    mobula_op.func.add(sc.size, sa, sb, sc)
+    tc = c[3:8, 1:6]
+    assert (tc == (sa + sb)).all(), (tc, (sa + sb))
 
 if __name__ == '__main__':
     test_lib_add_mx()
