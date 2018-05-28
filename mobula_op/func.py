@@ -13,7 +13,8 @@ class MobulaFuncLib:
         self.gpu_lib = ctypes.CDLL(gpu_lib_fname) if os.path.exists(gpu_lib_fname) else None
 
 func_lib = MobulaFuncLib()
-T = lambda x : x
+IN = lambda x : x
+OUT = lambda x : x
 
 class MobulaFunc:
     def __init__(self, name, par_type):
@@ -26,14 +27,15 @@ class MobulaFunc:
         dev_id = None
         noncontiguous_list = []
         for a, p in zip(args, self.par_type):
-            if p == T:
+            if p == IN or p == OUT:
                 backend_tmp = glue.backend.get_var_backend(a)
                 if backend is not None and backend_tmp != backend:
                     raise ValueError("Don't use multiple backends in a call :-(")
                 backend = backend_tmp
                 pa = backend.get_pointer(a)
                 if isinstance(pa, (list, tuple)):
-                    noncontiguous_list.append((a, pa[1]))
+                    if p == OUT:
+                        noncontiguous_list.append((a, pa[1]))
                     pa = pa[0]
                 aid = backend.dev_id(a)
 
@@ -72,8 +74,8 @@ def bind(functions):
         globals()[k] = MobulaFunc(k, v)
 
 functions = dict(
-        add = (int, T, T, T),
-        roi_align_forward = (int, T, float, int, int, int, int, int, int, T, T),
-        roi_align_backward = (int, T, int, float, int, int, int, int, int, int, T, T),
+        add = (int, IN, IN, OUT),
+        roi_align_forward = (int, IN, float, int, int, int, int, int, int, IN, OUT),
+        roi_align_backward = (int, IN, int, float, int, int, int, int, int, int, OUT, OUT),
 )
 bind(functions)
