@@ -45,6 +45,7 @@ clean:
 	rm -f $(BUILD_PATH)/$(TARGET)_?pu.so $(CU_SRCS) src/*.o
 clean_all:  
 	rm -f $(BUILD_PATH)/$(TARGET)_?pu.so $(CU_SRCS) $(OBJS) $(CU_OBJS)
+rebuild: clean_all all
 %.o:%.cpp  
 	$(CXX) $< $(CFLAGS) -c -o $@ 
 %.cu.o:%.cu
