@@ -4,7 +4,6 @@ import inspect
 import base64
 import ctypes
 import functools
-from ..op.CustomOp import CustomOp
 
 if sys.version_info[0] >= 3:
     pars_encode = lambda x : base64.b64encode(pickle.dumps(x)).decode('utf-8')
