@@ -2,6 +2,7 @@ import ctypes
 import functools
 import os
 import sys
+import inspect
 from . import glue
 
 class MobulaFuncLib:
@@ -17,9 +18,11 @@ IN = lambda x : x
 OUT = lambda x : x
 
 class MobulaFunc:
-    def __init__(self, name, par_type):
+    def __init__(self, name, func):
         self.name = name
-        self.par_type = par_type
+        spec = glue.common.getargspec(func)
+        assert len(spec.args) == len(spec.defaults), ValueError('Function %s should specify type for each parameter')
+        self.par_type = spec.defaults
     def __call__(self, *args):
         # type check
         args_new = []
@@ -74,8 +77,29 @@ def bind(functions):
         globals()[k] = MobulaFunc(k, v)
 
 functions = dict(
-        add = (int, IN, IN, OUT),
-        roi_align_forward = (int, IN, float, int, int, int, int, int, int, IN, OUT),
-        roi_align_backward = (int, IN, int, float, int, int, int, int, int, int, OUT, OUT),
+    add = lambda n = int, a = IN, b = IN, out = OUT : None,
+    roi_align_forward = lambda n = int,
+        bottom_data = IN,
+        spatial_scale = float,
+        channels = int,
+        height = int,
+        width = int,
+        pooled_height = int,
+        pooled_width = int,
+        sampling_ratio = int,
+        bottom_rois = IN,
+        top_data = OUT : None,
+    roi_align_backward = lambda n = int,
+        top_diff = IN,
+        num_rois = int,
+        spatial_scale = float,
+        channels = int,
+        height = int,
+        width = int,
+        pooled_height = int,
+        pooled_width = int,
+        sampling_ratio = int,
+        bottom_diff = OUT,
+        bottom_rois = OUT : None,
 )
 bind(functions)
