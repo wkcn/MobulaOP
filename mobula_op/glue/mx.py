@@ -51,6 +51,7 @@ class OpGen(object):
     def register(self):
         op = self.op
         op_name = self.name
+        is_loss = 'loss' in op_name.lower()
         def get_mx_op(op):
             def __init__(self, *args, **kwargs):
                 mx.operator.CustomOp.__init__(self)
@@ -92,8 +93,8 @@ class OpGen(object):
 
         def get_mx_prop(op, mx_op):
             def __init__(self, mobula_pars):
-                mx.operator.CustomOpProp.__init__(self)
                 self._args, self._kwargs = pars_decode(mobula_pars)
+                mx.operator.CustomOpProp.__init__(self, need_top_grad = not is_loss)
                 op.__init__(self, *self._args, **self._kwargs)
             def list_outputs(func):
                 num_outputs = len(get_varnames(func))
