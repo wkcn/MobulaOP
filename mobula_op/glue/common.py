@@ -64,22 +64,33 @@ def assign(self, dst, req, src):
 backend = None # wait for importing in __init__.py
 
 class MobulaOperator(object):
-    def __init__(self, op, name):
+    def __init__(self, op, name, **attrs):
         self.op = op
         self.name = name
+        self.attrs = attrs
     def __call__(self, *args, **kwargs):
         b = backend.get_args_backend(*args, **kwargs)
         assert b is not None, ValueError('No explict backend')
-        return backend.op_gen(b, op = self.op, name = self.name)(*args, **kwargs)
+        new_kwargs = kwargs.copy()
+        new_kwargs.update(self.attrs)
+        return backend.op_gen(b, op = self.op, name = self.name)(*args, **new_kwargs)
 
-def register(op_name):
-    if type(op_name) != str:
-        op = op_name
-        op_name = op.__name__
-        return register(op_name)(op)
-    def decorator(op):
-        return MobulaOperator(op = op, name = op_name)
-    return decorator
+'''
+1. @register
+   class XXX
+2. @register("OP")
+   class XXX
+3. @register(a = 3)
+   class XXX
+'''
+def register(op_name = None, **attrs):
+    def decorator(op_name, op):
+        if op_name is None:
+            op_name = op.__name__
+        return MobulaOperator(op = op, name = op_name, **attrs)
+    if op_name is not None and type(op_name) != str:
+        return decorator(None, op_name)
+    return functools.partial(decorator, op_name)
 
 inputs_func = dict(
     X = property(lambda self : self.in_data),

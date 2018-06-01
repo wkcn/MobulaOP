@@ -1,3 +1,3 @@
 from .. import glue
-def register(op_name):
-    return glue.register(op_name)
+def register(*args, **kwargs):
+    return glue.register(*args, **kwargs)
