@@ -40,12 +40,13 @@ class OpGen(object):
     def __call__(self, *args, **kwargs):
         inputs, pars = get_in_data(op = self.op, *args, **kwargs)
         op_type = self.name
+        name = pars[1].pop("name", None)
         if op_type not in self.cache:
             # register operator
             self.cache[op_type] = True
             self.register()
         if isinstance(inputs[0], mx.nd.NDArray):
-            return mx.nd.Custom(*inputs, mobula_pars = pars_encode(pars), op_type = op_type)
+            return mx.nd.Custom(*inputs, mobula_pars = pars_encode(pars), op_type = op_type, name = name)
         return mx.sym.Custom(*inputs, mobula_pars = pars_encode(pars), op_type = op_type)
     def register(self):
         op = self.op
