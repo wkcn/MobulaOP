@@ -15,14 +15,25 @@ def test_softmax_loss_forward():
     ry = mx.nd.SoftmaxOutput(data = data, label = label, preserve_shape = True)
     assert_almost_equal(y.asnumpy(), ry.asnumpy())
 
-    y, losses = mobula_op.operator.SoftmaxLoss(data = data, label = label, axis = -1, compute_loss = True)
+    data.attach_grad()
+    with mx.autograd.record():
+        y, loss = mobula_op.operator.SoftmaxLoss(data = data, label = label, axis = -1, compute_loss = True)
     assert_almost_equal(y.asnumpy(), ry.asnumpy())
+    y.backward()
+    mx.nd.waitall()
+
     rlosses = np.zeros(n)
+    dx = y.asnumpy()
     for i in range(n):
         a = int(label[i].asscalar())
         if a >= 0:
             rlosses[i] = -np.log(y[i, a].asscalar() + FLT_MIN)
-    assert_almost_equal(losses.asnumpy(), FLT_MIN)
+            dx[i, a] -= 1
+        else:
+            dx[i, :] = 0
+    rloss = rlosses.sum() / np.maximum((label.asnumpy() >= 0).sum(), 1.0)
+    assert_almost_equal(loss.asnumpy(), rloss)
+    assert_almost_equal(data.grad.asnumpy(), dx)
 
 if __name__ == '__main__':
     test_softmax_loss_forward()

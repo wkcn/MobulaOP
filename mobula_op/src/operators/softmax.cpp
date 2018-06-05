@@ -44,6 +44,27 @@ MOBULA_KERNEL SoftmaxLossForward(
     }
 }
 
+template <typename T>
+MOBULA_KERNEL SoftmaxLossBackward(
+    const int nthreads,
+    const T *probs,
+    const T *labels,
+    const int num_classes,
+    const int inner_size,
+    T *dX) {
+
+    KERNEL_LOOP(index, nthreads) {
+        const int i = index / (num_classes * inner_size);
+        const int j = (index / inner_size) % num_classes;
+        const int k = index % inner_size;
+        const int label = static_cast<int>(labels[i * inner_size + k]);
+        if (label >= 0) {
+            dX[index] += probs[index];
+            if (label == j) --dX[index];
+        }
+    }
+}
+
 } // namespace mobula
 
 void softmax_forward(
@@ -65,4 +86,15 @@ void softmax_loss_forward(
     DType *losses) {
     const int nthreads = outer_size * inner_size;
     KERNEL_RUN(SoftmaxLossForward<DType>, nthreads)(nthreads, probs, labels,  num_classes, inner_size, losses);
+}
+
+void softmax_loss_backward(
+    const DType *probs,
+    const DType *labels,
+    const int num_classes,
+    const int outer_size,
+    const int inner_size,
+    DType *dX) {
+    const int nthreads = outer_size * num_classes * inner_size;
+    KERNEL_RUN(SoftmaxLossBackward<DType>, nthreads)(nthreads, probs, labels,  num_classes, inner_size, dX);
 }

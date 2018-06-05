@@ -239,9 +239,9 @@ def test_roi_align_value():
     roialign_backward(bottom_diff, rois.asnumpy(), pooled_size, spatial_scale, sampling_ratio, dy.asnumpy())
     assert_almost_equal(dx, bottom_diff)
 
-    assert_almost_equal(output.asnumpy(), real_output)
-    assert_almost_equal(data.grad.asnumpy(), dx, atol = 1e-6)
-    assert_almost_equal(rois.grad.asnumpy(), drois)
+    assert_almost_equal(output.asnumpy(), real_output, atol = 1e-3)
+    assert_almost_equal(data.grad.asnumpy(), dx, atol = 1e-3)
+    assert_almost_equal(rois.grad.asnumpy(), drois, atol = 1e-3)
 
 if __name__ == '__main__':
     test_roi_align_value()

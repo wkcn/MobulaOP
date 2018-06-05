@@ -41,5 +41,12 @@ functions = dict(
         outer_size = int,
         inner_size = int,
         losses = OUT : None,
+
+    softmax_loss_backward = lambda probs = IN,
+        labels = IN,
+        num_classes = int,
+        outer_size = int,
+        inner_size = int,
+        dX = OUT : None,
 )
 func.bind(functions)

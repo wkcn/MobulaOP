@@ -43,6 +43,15 @@ void softmax_loss_forward(
     const int inner_size,
     DType *losses);
 
+
+void softmax_loss_backward(
+    const DType *probs,
+    const DType *labels,
+    const int num_classes,
+    const int outer_size,
+    const int inner_size,
+    DType *dX);
+
 }
 
 #endif
