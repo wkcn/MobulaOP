@@ -1,6 +1,7 @@
 import mxnet as mx
 import numpy as np
 import mobula_op
+from mobula_op.test_utils import assert_almost_equal
 
 T = np.float32
 
@@ -236,12 +237,11 @@ def test_roi_align_value():
 
     bottom_diff = np.zeros(data.shape, dtype = T)
     roialign_backward(bottom_diff, rois.asnumpy(), pooled_size, spatial_scale, sampling_ratio, dy.asnumpy())
-    assert (dx == bottom_diff).all(), np.max(np.abs(dx - bottom_diff))
-    # assert np.allclose(data.grad.asnumpy(), bottom_diff), np.max(np.abs(data.grad.asnumpy() - bottom_diff))
+    assert_almost_equal(dx, bottom_diff)
 
-    assert np.allclose(output.asnumpy(), real_output)
-    assert np.allclose(data.grad.asnumpy(), dx, atol = 1e-6), np.max(np.abs(data.grad.asnumpy() - dx))
-    assert np.allclose(rois.grad.asnumpy(), drois)
+    assert_almost_equal(output.asnumpy(), real_output)
+    assert_almost_equal(data.grad.asnumpy(), dx, atol = 1e-6)
+    assert_almost_equal(rois.grad.asnumpy(), drois)
 
 if __name__ == '__main__':
     test_roi_align_value()

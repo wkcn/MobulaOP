@@ -1,6 +1,7 @@
 import mobula_op
 import mxnet as mx
 import numpy as np
+from mobula_op.test_utils import assert_almost_equal
 
 @mobula_op.operator.register('FirstOP')
 class FirstOP:
@@ -22,5 +23,5 @@ def test_register_op():
     b = mx.nd.array([4,5,6])
     c1 = FirstOP(a, b, dict(a = 3))
     c2 = FirstOP(a, b, par = dict(a = 3))
-    assert (c1.asnumpy() == c2.asnumpy()).all()
-    assert ((a + b).asnumpy() == c1.asnumpy()).all()
+    assert_almost_equal(c1.asnumpy(), c2.asnumpy())
+    assert_almost_equal((a + b).asnumpy(), c1.asnumpy())

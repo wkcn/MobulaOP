@@ -29,10 +29,17 @@ functions = dict(
         bottom_diff = OUT,
         bottom_rois = OUT : None,
 
-    softmax_loss_forward = lambda data = IN,
+    softmax_forward = lambda data = IN,
         num_classes = int,
         outer_size = int,
         inner_size = int,
         probs = OUT : None,
+
+    softmax_loss_forward = lambda probs = IN,
+        labels = IN,
+        num_classes = int,
+        outer_size = int,
+        inner_size = int,
+        losses = OUT : None,
 )
 func.bind(functions)

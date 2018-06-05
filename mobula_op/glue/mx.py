@@ -95,8 +95,8 @@ class OpGen(object):
                 self._args, self._kwargs = pars_decode(mobula_pars)
                 mx.operator.CustomOpProp.__init__(self, need_top_grad = self._kwargs.pop('need_top_grad', True))
                 op.__init__(self, *self._args, **self._kwargs)
-            def list_outputs(func):
-                num_outputs = len(get_varnames(func))
+            def list_outputs(self, func):
+                num_outputs = getattr(self, 'num_outputs', len(get_varnames(func)))
                 if num_outputs == 0:
                     return []
                 elif num_outputs == 1:
@@ -109,7 +109,7 @@ class OpGen(object):
                 dict(
                     __init__ = __init__,
                     list_arguments = lambda self : get_varnames(op.forward),
-                    list_outputs = lambda self : list_outputs(op.backward),
+                    list_outputs = lambda self : list_outputs(self, op.backward),
                     infer_shape = op.infer_shape,
                     create_operator = create_operator
                 )
