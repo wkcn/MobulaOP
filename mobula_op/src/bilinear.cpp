@@ -12,7 +12,7 @@ MOBULA_DEVICE T bilinear_interpolate(
     const int width,
     T y,
     T x,
-    const int index /* index for debug only*/) {
+    const int /*index for debug only*/) {
   // deal with cases that inverse elements are out of feature map boundary
   if (y < -1.0 || y > height || x < -1.0 || x > width) {
     // empty
@@ -74,7 +74,7 @@ MOBULA_DEVICE void bilinear_interpolate_gradient(
     int& x_high,
     int& y_low,
     int& y_high,
-    const int index /* index for debug only*/) {
+    const int /*index for debug only*/) {
   // deal with cases that inverse elements are out of feature map boundary
   if (y < -1.0 || y > height || x < -1.0 || x > width) {
     // empty

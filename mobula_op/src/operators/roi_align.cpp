@@ -107,7 +107,7 @@ template <typename T>
 MOBULA_KERNEL RoIAlignBackwardFeature(
     const int nthreads,
     const T* top_diff,
-    const int num_rois,
+    const int /*num_rois*/,
     const T spatial_scale,
     const int channels,
     const int height,

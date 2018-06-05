@@ -22,7 +22,7 @@ void set_device(const int device_id) {
     }
 }
 #else // USING_CUDA else
-void set_device(const int device_id) {
+void set_device(const int /*device_id*/) {
     throw "Doesn't support setting device on CPU mode";
 }
 #endif // USING_CUDA endif
