@@ -23,13 +23,23 @@ class MobulaFunc:
         spec = glue.common.getargspec(func)
         assert len(spec.args) == len(spec.defaults), ValueError('Function %s should specify type for each parameter')
         self.par_type = spec.defaults
-    def __call__(self, *args):
+        self.par_name = spec.args
+    def __call__(self, *args, **kwargs):
+        def args_gen():
+            i = 0
+            for a in args:
+                yield a
+                i += 1
+            num_pars = len(self.par_name)
+            while i < num_pars:
+                yield kwargs[self.par_name[i]]
+                i += 1
         # type check
         args_new = []
         backend = None
         dev_id = None
         noncontiguous_list = []
-        for a, p in zip(args, self.par_type):
+        for a, p in zip(args_gen(), self.par_type):
             if p == IN or p == OUT:
                 backend_tmp = glue.backend.get_var_backend(a)
                 if backend is not None and backend_tmp != backend:
@@ -75,3 +85,17 @@ def bind(functions):
     for k, v in functions.items():
         assert k not in globals(), "Duplicated function name %s" % k # function overload [todo]
         globals()[k] = MobulaFunc(k, v)
+
+def get_3loop_size(shape, axis):
+    # return: outer_size, middle_size, inner_size
+    len_shape = len(shape)
+    if axis < 0:
+        axis += len_shape
+    assert 0 <= axis < len_shape
+    outer_size = 1
+    for i in range(0, axis):
+        outer_size *= shape[i]
+    inner_size = 1
+    for i in range(axis + 1, len_shape):
+        inner_size *= shape[i]
+    return outer_size, shape[axis], inner_size

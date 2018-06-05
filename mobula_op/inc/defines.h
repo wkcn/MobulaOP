@@ -14,6 +14,7 @@
 #include <memory>
 #include <thread>
 #include <mutex>
+#include <cfloat>
 #if USING_OPENMP
 #include "omp.h"
 #endif
@@ -114,8 +115,55 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
 
 #endif // USING_CUDA
 
+// Allocate Memory
+template<typename T = DType>
+T* xnew(int size) {
+#if USING_CUDA
+	T *p;
+	cudaMalloc((void **)&p, sizeof(T) * size);
+	return p;
+#else
+	return new T[size];
+#endif
 }
 
+template<typename T = DType>
+void xdel(T* p) {
+#if USING_CUDA
+	cudaFree(p);
+#else
+	delete []p;
+#endif
+}
+
+template<typename F, typename T = DType>
+inline MOBULA_DEVICE void mobula_map(F func, const T *data, const int n, const int stride = 1, T *out = 0) {
+    if (out == 0) out = const_cast<T*>(data);
+    for (int i = 0, j = 0; i < n; ++i, j += stride) {
+        out[j] = func(data[j]);
+    }
+}
+
+template<typename F, typename T = DType>
+inline MOBULA_DEVICE void mobula_reduce(F func, const T *data, const int n, const int stride = 1, T *out = 0) {
+    if (out == 0) out = const_cast<T*>(data);
+    T &val = out[0];
+    val = data[0];
+    for (int i = 1, j = stride; i < n; ++i, j += stride) {
+        val = func(val, data[j]);
+    }
+}
+
+inline MOBULA_DEVICE int get_middle_loop_offset(const int i, const int middle_size, const int inner_size) {
+    // &a[outer_size][0][inner_size] = &a[j]
+    const int inner_i = i % inner_size;
+    const int outer_i = i / inner_size;
+    return outer_i * middle_size * inner_size + inner_i; // j
+}
+
+} // namespace mobula
+
+// C API
 extern "C" {
 
 void set_device(const int device_id);

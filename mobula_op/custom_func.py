@@ -28,5 +28,11 @@ functions = dict(
         sampling_ratio = int,
         bottom_diff = OUT,
         bottom_rois = OUT : None,
+
+    softmax_loss_forward = lambda data = IN,
+        num_classes = int,
+        outer_size = int,
+        inner_size = int,
+        probs = OUT : None,
 )
 func.bind(functions)
