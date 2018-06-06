@@ -19,8 +19,6 @@
 #include "omp.h"
 #endif
 
-using namespace std;
-
 namespace mobula {
 
 typedef float DType;
@@ -55,6 +53,9 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
 
 #else
 
+using std::max;
+using std::min;
+
 #define MOBULA_KERNEL void
 #define MOBULA_DEVICE
 
@@ -66,8 +67,8 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
 
 #else // USING_OPENMP else
 
-extern map<thread::id, pair<int, int> > MOBULA_KERNEL_INFOS;
-extern mutex MOBULA_KERNEL_MUTEX;
+extern std::map<std::thread::id, std::pair<int, int> > MOBULA_KERNEL_INFOS;
+extern std::mutex MOBULA_KERNEL_MUTEX;
 
 template<typename Func>
 class KernelRunner{
@@ -75,12 +76,12 @@ public:
 	KernelRunner(Func func, int n):_func(func), _n(n <= HOST_NUM_THREADS ? n : HOST_NUM_THREADS){};
 	template<typename ...Args>
 	void operator()(Args... args){
-        vector<thread> threads(_n);
+        std::vector<std::thread> threads(_n);
         MOBULA_KERNEL_MUTEX.lock();
         for (int i = 0;i < _n;++i) {
-            threads[i] = thread(_func, args...);
-            thread::id id = threads[i].get_id();
-            MOBULA_KERNEL_INFOS[id] = make_pair(i, _n);
+            threads[i] = std::thread(_func, args...);
+            std::thread::id id = threads[i].get_id();
+            MOBULA_KERNEL_INFOS[id] = std::make_pair(i, _n);
         }
         MOBULA_KERNEL_MUTEX.unlock();
         for (int i = 0;i < _n;++i) {
@@ -93,8 +94,8 @@ private:
 };
 
 #define KERNEL_LOOP(i,n) MOBULA_KERNEL_MUTEX.lock(); \
-						 const pair<int, int> MOBULA_KERNEL_INFO = MOBULA_KERNEL_INFOS[this_thread::get_id()]; \
-						 MOBULA_KERNEL_INFOS.erase(this_thread::get_id()); \
+						 const std::pair<int, int> MOBULA_KERNEL_INFO = MOBULA_KERNEL_INFOS[std::this_thread::get_id()]; \
+						 MOBULA_KERNEL_INFOS.erase(std::this_thread::get_id()); \
 						 MOBULA_KERNEL_MUTEX.unlock(); \
 						 const int MOBULA_KERNEL_START = MOBULA_KERNEL_INFO.first; \
 						 const int MOBULA_KERNEL_STEP = MOBULA_KERNEL_INFO.second; \
@@ -104,7 +105,7 @@ private:
 #endif // USING_OPENMP endif
 
 constexpr int NUM_MOBULA_ATOMIC_ADD_MUTEXES = HOST_NUM_THREADS * 8;
-extern mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
+extern std::mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
 inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
     long id = (reinterpret_cast<long>(address) / sizeof(float)) % NUM_MOBULA_ATOMIC_ADD_MUTEXES;
     MOBULA_ATOMIC_ADD_MUTEXES[id].lock();
@@ -159,6 +160,15 @@ inline MOBULA_DEVICE int get_middle_loop_offset(const int i, const int middle_si
     const int inner_i = i % inner_size;
     const int outer_i = i / inner_size;
     return outer_i * middle_size * inner_size + inner_i; // j
+}
+
+template<typename T = DType>
+MOBULA_DEVICE T ADD_FUNC(const T &a, const T &b) {
+    return a + b;
+}
+template<typename T = DType>
+MOBULA_DEVICE T MAX_FUNC(const T &a, const T &b) {
+    return a > b ? a : b;
 }
 
 } // namespace mobula

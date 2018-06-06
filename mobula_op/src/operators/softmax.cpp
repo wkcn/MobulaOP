@@ -15,12 +15,12 @@ MOBULA_KERNEL SoftmaxForward(
         T *probs_i = probs + j;
         // get maximum
         T max_val;
-        mobula_reduce(std::max<T>, data_i, num_classes, inner_size, &max_val);
+        mobula_reduce(MAX_FUNC<T>, data_i, num_classes, inner_size, &max_val);
         // exp(x - max(x))
-        mobula_map([&max_val](const T &a){return std::exp(a - max_val);}, data_i, num_classes, inner_size, probs_i);
+        mobula_map([&max_val](const T &a){return exp(a - max_val);}, data_i, num_classes, inner_size, probs_i);
         // sum
         T sum_val;
-        mobula_reduce([](const T &a, const T &b){return a + b;}, probs_i, num_classes, inner_size, &sum_val);
+        mobula_reduce(ADD_FUNC<T>, probs_i, num_classes, inner_size, &sum_val);
         // result
         mobula_map([&sum_val](const T &a){return a / sum_val;}, probs_i, num_classes, inner_size);
     }
