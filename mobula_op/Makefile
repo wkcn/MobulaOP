@@ -18,7 +18,7 @@ CFLAGS := -std=c++11 -Iinc -fPIC -DUSING_CUDA=0 -DUSING_OPENMP=$(USING_OPENMP) $
 LDFLAGS := -lpthread -shared
 
 CU_CFLAGS := -std=c++11 -Iinc -DUSING_CUDA=1 -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC" $(COMMON_FLAGS)
-CU_LDFLAGS := -lpthread -L$(CUDA_DIR)/lib64 -lcuda -lcudart -lcublas -shared
+CU_LDFLAGS := -lpthread -L$(CUDA_DIR)/lib64 -lcuda -lcudart -lcublas -shared -Wno-deprecated-gpu-targets
 
 ifeq ($(USING_OPENMP), 1)
 	CFLAGS += -fopenmp
