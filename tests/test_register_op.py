@@ -8,7 +8,6 @@ class FirstOP:
     def __init__(self, par):
         assert type(par) == dict
         self.par = par
-        print ('self.par = {}'.format(self.par))
         assert self.par == {'a': 3} 
     def forward(self, x, y):
         return x + y

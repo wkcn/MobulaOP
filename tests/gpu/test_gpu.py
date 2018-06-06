@@ -7,6 +7,6 @@ def test_gpu():
     ctx = mx.gpu(0)
     mx.Context._default_ctx.value = ctx 
     path = os.path.join(os.path.dirname(__file__), '../')
-    TestProgram(defaultTest = path)
+    TestProgram(defaultTest = path, argv = [path, '-s'])
 
 test_gpu()

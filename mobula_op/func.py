@@ -69,7 +69,8 @@ class MobulaFunc:
                 raise RuntimeError("Doesn't support GPU")
             func_lib.gpu_lib.set_device(dev_id)
             rtn = getattr(func_lib.gpu_lib, self.name)(*args_new)
-        rtn = getattr(func_lib.cpu_lib, self.name)(*args_new)
+        else:
+            rtn = getattr(func_lib.cpu_lib, self.name)(*args_new)
         for source, target in noncontiguous_list:
             source[:] = target
         return rtn
