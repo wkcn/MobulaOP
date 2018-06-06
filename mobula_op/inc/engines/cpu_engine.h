@@ -13,6 +13,7 @@ namespace mobula {
 using std::max;
 using std::min;
 
+#if HOST_NUM_THREADS > 1 or USING_OPENMP
 constexpr int NUM_MOBULA_ATOMIC_ADD_MUTEXES = HOST_NUM_THREADS * 8;
 extern std::mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
 inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
@@ -22,6 +23,13 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
     MOBULA_ATOMIC_ADD_MUTEXES[id].unlock();
     return *address;
 }
+#else
+// no lock for single thread mode
+inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
+    *address += val;
+    return *address;
+}
+#endif
 
 }
 

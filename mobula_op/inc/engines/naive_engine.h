@@ -3,6 +3,7 @@
 
 namespace mobula {
 
+#if HOST_NUM_THREADS > 1
 extern std::map<std::thread::id, std::pair<int, int> > MOBULA_KERNEL_INFOS;
 extern std::mutex MOBULA_KERNEL_MUTEX;
 
@@ -37,6 +38,14 @@ private:
 						 const int MOBULA_KERNEL_STEP = MOBULA_KERNEL_INFO.second; \
 						 for (int i = MOBULA_KERNEL_START;i < (n);i += MOBULA_KERNEL_STEP)
 #define KERNEL_RUN(a, n) (KernelRunner<decltype(&a)>(&a, (n)))
+
+#else
+
+// Single Thread Mode
+#define KERNEL_LOOP(i,n) for (int i = 0;i < (n);++i)
+#define KERNEL_RUN(a, n) a
+
+#endif
 
 }
 
