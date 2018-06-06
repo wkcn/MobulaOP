@@ -170,7 +170,6 @@ def roialign_backward(bottom_diff, rois, pooled_size, spatial_scale, sampling_ra
                                 bottom_diff[batch_ind, c, y_high, x_high] += dtop * w4 / count
 
 def test_roi_align_sym():
-    ctx = mx.cpu(0)
     dtype = np.float32
 
     N, C, H, W = 2, 3, 4, 4
@@ -184,7 +183,7 @@ def test_roi_align_sym():
     output_sym = mobula_op.operator.ROIAlign(data = data_sym, rois = rois_sym, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
     output_sym = mx.sym.MakeLoss(output_sym)
 
-    exe = output_sym.simple_bind(ctx, data = data.shape, rois = rois.shape) 
+    exe = output_sym.simple_bind(ctx = mx.context.current_context(), data = data.shape, rois = rois.shape)
     exe.forward(data = data, rois = rois)
 
     res = exe.outputs[0].asnumpy()
@@ -193,7 +192,6 @@ def test_roi_align_sym():
     mx.nd.waitall()
 
 def test_roi_align_nd():
-    ctx = mx.cpu(0)
     dtype = np.float32
 
     N, C, H, W = 2, 3, 4, 4
@@ -208,7 +206,6 @@ def test_roi_align_nd():
     mx.nd.waitall()
 
 def test_roi_align_value():
-    ctx = mx.cpu(0)
     dtype = np.float32
 
     dlen = 224
