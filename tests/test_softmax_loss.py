@@ -9,7 +9,7 @@ def test_softmax_loss_forward():
     n = 5
     num_classes = 7
     data = mx.nd.random.uniform(-100, 100, shape = (n, num_classes))
-    label = mx.nd.array(np.random.randint(0, num_classes, size = (n)))
+    label = mx.nd.array(np.random.randint(-1, num_classes, size = (n)))
 
     y = mobula_op.operator.SoftmaxLoss(data = data, label = label, axis = -1)
     ry = mx.nd.SoftmaxOutput(data = data, label = label, preserve_shape = True)
@@ -31,7 +31,9 @@ def test_softmax_loss_forward():
             dx[i, a] -= 1
         else:
             dx[i, :] = 0
-    rloss = rlosses.sum() / np.maximum((label.asnumpy() >= 0).sum(), 1.0)
+    num_valid = np.maximum((label.asnumpy() >= 0).sum(), 1.0)
+    rloss = rlosses.sum() / num_valid
+    dx /= num_valid
     assert_almost_equal(loss.asnumpy(), rloss)
     assert_almost_equal(data.grad.asnumpy(), dx)
 

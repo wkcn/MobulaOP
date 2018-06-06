@@ -51,6 +51,7 @@ MOBULA_KERNEL SoftmaxLossBackward(
     const T *labels,
     const int num_classes,
     const int inner_size,
+    const T grad_scale,
     T *dX) {
 
     KERNEL_LOOP(index, nthreads) {
@@ -59,8 +60,9 @@ MOBULA_KERNEL SoftmaxLossBackward(
         const int k = index % inner_size;
         const int label = static_cast<int>(labels[i * inner_size + k]);
         if (label >= 0) {
-            dX[index] += probs[index];
-            if (label == j) --dX[index];
+            T grad = probs[index];
+            if (label == j) --grad;
+            dX[index] += grad * grad_scale;
         }
     }
 }
@@ -94,7 +96,8 @@ void softmax_loss_backward(
     const int num_classes,
     const int outer_size,
     const int inner_size,
+    const DType grad_scale,
     DType *dX) {
     const int nthreads = outer_size * num_classes * inner_size;
-    KERNEL_RUN(SoftmaxLossBackward<DType>, nthreads)(nthreads, probs, labels,  num_classes, inner_size, dX);
+    KERNEL_RUN(SoftmaxLossBackward<DType>, nthreads)(nthreads, probs, labels,  num_classes, inner_size, grad_scale, dX);
 }

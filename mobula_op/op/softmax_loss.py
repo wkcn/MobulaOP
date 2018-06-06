@@ -7,21 +7,22 @@ class SoftmaxLoss:
         self.axis = axis
         self.compute_loss = compute_loss
         self.num_outputs = 2 if compute_loss else 1
+        self.num_valid = 1.0
     def forward(self, data, label):
         outer_size, middle_size, inner_size = mobula_op.func.get_3loop_size(data.shape, self.axis) 
         mobula_op.func.softmax_forward(data = data, num_classes = middle_size, outer_size = outer_size, inner_size = inner_size, probs = self.y)
+        self.num_valid = self.F.maximum(1.0, (label >= 0).sum()).asscalar()
         if self.compute_loss:
             losses = self.F.empty((outer_size, inner_size))
             mobula_op.func.softmax_loss_forward(probs = self.y, labels = label, num_classes = middle_size, outer_size = outer_size, inner_size = inner_size, losses = losses)
-            num_valid = self.F.maximum(1.0, (label >= 0).sum())
-            self.Y[1][:] = losses.sum() / num_valid
+            self.Y[1][:] = losses.sum() / self.num_valid
     def backward(self, dy, *args):
         if self.req[0] == 'null':
             return
         if self.req[0] != 'add':
             self.dX[0][:] = 0
         outer_size, middle_size, inner_size = mobula_op.func.get_3loop_size(self.x.shape, self.axis)
-        mobula_op.func.softmax_loss_backward(probs = self.y, labels = self.X[1], num_classes = middle_size, outer_size = outer_size, inner_size = inner_size, dX = self.dx)
+        mobula_op.func.softmax_loss_backward(probs = self.y, labels = self.X[1], num_classes = middle_size, outer_size = outer_size, inner_size = inner_size, grad_scale = 1.0 / self.num_valid, dX = self.dx)
     def infer_shape(self, in_shape):
         out_shape = [in_shape[0]]
         if self.compute_loss:
