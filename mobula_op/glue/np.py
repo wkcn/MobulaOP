@@ -24,12 +24,16 @@ class OpGen(object):
             args = args[1:]
         return self.cache[self.name](*args, **kwargs)
     def register(self): 
-        def forward(self, *inputs):
+        def forward(self, *args, **kwargs):
+            inputs, pars = get_in_data(op = self.op, *args, **kwargs)
+            for k, v in pars[1].items():
+                setattr(self, k, v)
             self.in_data = inputs
+            dtype = self.in_data[0].dtype
             self.req = ['write' for _ in range(len(self.in_data))]
             in_shape = get_in_shape(self.in_data)
             out_shape = self.infer_shape(in_shape)[1]
-            self.out_data = [self.F.empty(s) for s in out_shape]
+            self.out_data = [self.F.empty(s, dtype = dtype) for s in out_shape]
             out = self._forward(*inputs)
             if out is not None:
                 if type(out) != list:
@@ -46,15 +50,20 @@ class OpGen(object):
             if out_data is not None:
                 self.out_data = out_data
 
+            dtype = self.in_data[0].dtype
+
             if in_grad is None:
-                in_grad = [self.F.empty_like(d) for d in self.in_data]
+                in_grad = [self.F.empty_like(d, dtype = dtype) for d in self.in_data]
             else:
                 if type(in_grad) != list:
                     in_grad = [in_grad]
             self.in_grad = in_grad
 
-            if type(out_grad) != list:
-                out_grad = [out_grad]
+            if out_grad is None:
+                out_grad = [self.F.ones_like(d, dtype = dtype) for d in self.out_data]
+            else:
+                if type(out_grad) != list:
+                    out_grad = [out_grad]
             self.out_grad = out_grad
 
             if req is None:
@@ -81,7 +90,8 @@ class OpGen(object):
             _backward = self.op.backward,
             infer_shape = self.op.infer_shape,
             assign = assign,
-            F = property(lambda self : np)
+            F = property(lambda self : np),
+            op = property(lambda dummy : self.op)
         )
         np_op_dict.update(inputs_func)
         np_op = type('_%s_NP_OP' % self.name,

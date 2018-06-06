@@ -61,7 +61,8 @@ class MobulaFunc:
                         dev_id = aid
 
             else:
-                pa = self.convert_ctype(p(a))
+                ta = backend.convert_type(a, p) if hasattr(backend, 'convert_type') else p(a)
+                pa = self.convert_ctype(ta)
             args_new.append(pa)
 
         assert backend is not None, ValueError("No parameter about backend:-(")

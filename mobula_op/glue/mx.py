@@ -36,6 +36,11 @@ def sync_vars(variables):
     for v in variables:
         v.wait_to_read()
 
+def convert_type(a, p):
+    if isinstance(a, mx.nd.NDArray):
+        return p(a.asscalar())
+    return p(a)
+
 class OpGen(object):
     def __init__(self, op, name):
         self.op = op
