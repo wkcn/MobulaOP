@@ -3,6 +3,13 @@ import importlib
 dtypes = dict()
 glues = dict()
 
+def check_backend(b):
+    func_names = ['get_pointer', 'dev_id', 'OpGen']
+    for name in func_names:
+        assert hasattr(b, name)
+    assert hasattr(b.OpGen, '__call__')
+    assert hasattr(b.OpGen, 'register')
+
 def register_backend(glue_name, types_name):
     if not isinstance(types_name, list):
         types_name = [types_name]
@@ -10,7 +17,7 @@ def register_backend(glue_name, types_name):
     try:
         glue = importlib.import_module('.' + glue_name, __package__)
     except ImportError as e:
-        raise e
+        pass
     if glue is not None:
         for t in types_name:
             sp = t.split('.')
@@ -20,7 +27,8 @@ def register_backend(glue_name, types_name):
                     e = getattr(e, s)
                 dtypes[e] = glue
             except ImportError as e:
-                raise e
+                pass
+            check_backend(glue)
             glues[glue_name] = glue
 
 # register backends
