@@ -32,6 +32,10 @@ def dev_id(a):
         return a.context.device_id if a.context.device_type == 'gpu' else None
     return None
 
+def sync_vars(variables):
+    for v in variables:
+        v.wait_to_read()
+
 class OpGen(object):
     def __init__(self, op, name):
         self.op = op

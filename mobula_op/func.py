@@ -39,12 +39,14 @@ class MobulaFunc:
         backend = None
         dev_id = None
         noncontiguous_list = []
+        backend_vars = []
         for a, p in zip(args_gen(), self.par_type):
             if p == IN or p == OUT:
                 backend_tmp = glue.backend.get_var_backend(a)
                 if backend is not None and backend_tmp != backend:
                     raise ValueError("Don't use multiple backends in a call :-(")
                 backend = backend_tmp
+                backend_vars.append(a)
                 pa = backend.get_pointer(a)
                 if isinstance(pa, (list, tuple)):
                     if p == OUT:
@@ -63,6 +65,9 @@ class MobulaFunc:
             args_new.append(pa)
 
         assert backend is not None, ValueError("No parameter about backend:-(")
+
+        if hasattr(backend, 'sync_vars'):
+            backend.sync_vars(backend_vars)
 
         if dev_id is not None:
             if func_lib.gpu_lib is None:
