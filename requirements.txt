@@ -1,4 +1,3 @@
-python-coveralls
 mxnet
 numpy
 pyyaml

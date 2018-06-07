@@ -13,7 +13,8 @@ python:
 
 script:
     - pip install -r ./requirements.txt
-    - no | sh build.sh
+    - pip install python-coveralls
+    - yes no | sh build.sh
     - sh tests/run_tests.sh
 
 after_success:
