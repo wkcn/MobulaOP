@@ -48,16 +48,16 @@ void xdel(T* p) {
 }
 
 template<typename F, typename T = DType>
-inline MOBULA_DEVICE void mobula_map(F func, const T *data, const int n, const int stride = 1, T *out = 0) {
-    if (out == 0) out = const_cast<T*>(data);
+inline MOBULA_DEVICE void mobula_map(F func, const T *data, const int n, const int stride = 1, T *out = nullptr) {
+    if (out == nullptr) out = const_cast<T*>(data);
     for (int i = 0, j = 0; i < n; ++i, j += stride) {
         out[j] = func(data[j]);
     }
 }
 
 template<typename F, typename T = DType>
-inline MOBULA_DEVICE void mobula_reduce(F func, const T *data, const int n, const int stride = 1, T *out = 0) {
-    if (out == 0) out = const_cast<T*>(data);
+inline MOBULA_DEVICE void mobula_reduce(F func, const T *data, const int n, const int stride = 1, T *out = nullptr) {
+    if (out == nullptr) out = const_cast<T*>(data);
     T &val = out[0];
     val = data[0];
     for (int i = 1, j = stride; i < n; ++i, j += stride) {
