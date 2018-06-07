@@ -14,7 +14,7 @@ python:
 script:
     - pip install -r ./requirements.txt
     - pip install python-coveralls
-    - yes no | sh build.sh
+    - yes n | sh build.sh
     - sh tests/run_tests.sh
 
 after_success:

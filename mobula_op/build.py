@@ -3,6 +3,9 @@ import sys
 import functools
 import yaml
 from easydict import EasyDict as edict
+from multiprocessing import Process
+import pickle
+import hashlib
 
 class Flags:
     def __init__(self, s = ''):
@@ -81,13 +84,55 @@ OBJS = change_ext(SRCS, 'cpp', 'o')
 CU_SRCS = change_ext(SRCS, 'cpp', 'cu')
 CU_OBJS = change_ext(CU_SRCS, 'cu', 'cu.o')
 
+code_hash = dict()
+code_hash_filename = os.path.join(config.BUILD_PATH, 'code.hash')
+if os.path.exists(code_hash_filename):
+    code_hash = pickle.load(open(code_hash_filename, 'rb'))
+code_hash_updated = False
+
+def get_file_hash(fname):
+    m = hashlib.md5()
+    with open(fname, 'rb') as f:
+        while True:
+            data = f.read(1024)
+            if not data:
+                break
+            m.update(data)
+    return m.hexdigest()
+
+def file_changed(fname):
+    global code_hash_updated
+    new_hash = get_file_hash(fname)
+    if fname not in code_hash or new_hash != code_hash[fname]:
+        code_hash_updated = True
+        code_hash[fname] = new_hash
+        return True
+    return False
+
 def file_is_latest(source, target):
+    if file_changed(source):
+        return False
     return os.path.exists(target)
+
+def run_processes(processes):
+    def join_processes(ps):
+        for p in ps:
+            p.join()
+    count = 0
+    current_proc = []
+    for p in processes:
+        p.start()
+        current_proc.append(p)
+        if len(current_proc) >= config.MAX_BUILDING_THREAD:
+            join_processes(current_proc)
+            current_proc = []
+    join_processes(current_proc)
 
 def source_to_o(build_path, it, compiler = config.CXX, cflags = CFLAGS):
     mkdir(build_path)
     existed_dirs = set()
     updated = False
+    processes = []
     for src, obj in it:
         dir_name = os.path.dirname(obj)
         build_dir_name = os.path.join(build_path, dir_name)
@@ -99,7 +144,9 @@ def source_to_o(build_path, it, compiler = config.CXX, cflags = CFLAGS):
             mkdir(build_dir_name)
             existed_dirs.add(build_dir_name)
         command = '%s %s %s -c -o %s' % (compiler, src, cflags, build_name) 
-        run_command(command)
+        proc = Process(target = run_command, args = (command, ))
+        processes.append(proc)
+    run_processes(processes)
     return updated
 
 def o_to_so(target_name, objs, linker, ldflags = LDFLAGS):
@@ -120,18 +167,20 @@ def add_path(path, files):
 
 def all_func():
     build_path = os.path.join(config.BUILD_PATH, 'cpu')
-    source_to_o(build_path, zip(SRCS, OBJS))
-    objs = add_path(build_path, OBJS)
     target_name = os.path.join(config.BUILD_PATH, '%s_cpu.so' % config.TARGET)
-    o_to_so(target_name, objs, config.CXX) 
+    if source_to_o(build_path, zip(SRCS, OBJS)) or not os.path.exists(target_name):
+        objs = add_path(build_path, OBJS)
+        o_to_so(target_name, objs, config.CXX)
+
 def cuda_func():
     build_path = os.path.join(config.BUILD_PATH, 'gpu')
     cu_srcs = add_path(build_path, CU_SRCS)
     link(SRCS, cu_srcs)
-    source_to_o(build_path, zip(cu_srcs, CU_OBJS), config.NVCC, CU_FLAGS)
-    objs = add_path(build_path, CU_OBJS)
     target_name = os.path.join(config.BUILD_PATH, '%s_gpu.so' % config.TARGET)
-    o_to_so(target_name, objs, config.NVCC, CU_LDFLAGS)
+    if source_to_o(build_path, zip(cu_srcs, CU_OBJS), config.NVCC, CU_FLAGS) or not os.path.exists(target_name):
+        objs = add_path(build_path, CU_OBJS)
+        o_to_so(target_name, objs, config.NVCC, CU_LDFLAGS)
+
 def clean_func():
     rmdir(config.BUILD_PATH)
 
@@ -145,3 +194,5 @@ def run_rule(name):
 
 if __name__ == '__main__':
     run_rule(sys.argv[1])
+    if code_hash_updated:
+        pickle.dump(code_hash, open(code_hash_filename, 'wb'), protocol = 2)
