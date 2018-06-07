@@ -87,33 +87,49 @@ def file_is_latest(source, target):
 def source_to_o(build_path, it, compiler = config.CXX, cflags = CFLAGS):
     mkdir(build_path)
     existed_dirs = set()
-    res = []
+    updated = False
     for src, obj in it:
         dir_name = os.path.dirname(obj)
         build_dir_name = os.path.join(build_path, dir_name)
         build_name = os.path.join(build_path, obj)
-        res.append(build_name)
         if file_is_latest(src, build_name):
             continue
+        updated = True
         if build_dir_name not in existed_dirs:
             mkdir(build_dir_name)
             existed_dirs.add(build_dir_name)
         command = '%s %s %s -c -o %s' % (compiler, src, cflags, build_name) 
         run_command(command)
-    return res
+    return updated
 
 def o_to_so(target_name, objs, linker, ldflags = LDFLAGS):
     command = "%s %s %s -o %s" % (linker, ' '.join(objs), ldflags, target_name)
     run_command(command)
 
+def link(srcs, tars):
+    existed_dirs = set()
+    for src, tar in zip(srcs, tars):
+        dir_name = os.path.dirname(tar)
+        if dir_name not in existed_dirs:
+            mkdir(dir_name)
+            existed_dirs.add(dir_name)
+        run_command('ln -f %s %s' % (src, tar))
+
+def add_path(path, files):
+    return list(map(lambda x : os.path.join(path, x), files))
+
 def all_func():
     build_path = os.path.join(config.BUILD_PATH, 'cpu')
-    objs = source_to_o(build_path, zip(SRCS, OBJS))
+    source_to_o(build_path, zip(SRCS, OBJS))
+    objs = add_path(build_path, OBJS)
     target_name = os.path.join(config.BUILD_PATH, '%s_cpu.so' % config.TARGET)
     o_to_so(target_name, objs, config.CXX) 
 def cuda_func():
     build_path = os.path.join(config.BUILD_PATH, 'gpu')
-    objs = source_to_o(build_path, zip(SRCS, OBJS), config.NVCC, CU_CFLAGS)
+    cu_srcs = add_path(build_path, CU_SRCS)
+    link(SRCS, cu_srcs)
+    source_to_o(build_path, zip(cu_srcs, CU_OBJS), config.NVCC, CU_FLAGS)
+    objs = add_path(build_path, CU_OBJS)
     target_name = os.path.join(config.BUILD_PATH, '%s_gpu.so' % config.TARGET)
     o_to_so(target_name, objs, config.NVCC, CU_LDFLAGS)
 def clean_func():
