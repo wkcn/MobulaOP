@@ -2,3 +2,4 @@ python-coveralls
 mxnet
 numpy
 pyyaml
+easydict
