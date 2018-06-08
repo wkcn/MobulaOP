@@ -62,7 +62,9 @@ def rmdir(dir_name):
 with open('./config.yaml') as fin:
     config = edict(yaml.load(fin))
 
-COMMON_FLAGS = Flags().add_definition('HOST_NUM_THREADS', config.HOST_NUM_THREADS)
+num_cpu_core = multiprocessing.cpu_count()
+host_num_threads = config.HOST_NUM_THREADS if config.HOST_NUM_THREADS > 0 else num_cpu_core
+COMMON_FLAGS = Flags().add_definition('HOST_NUM_THREADS', host_num_threads)
 if config.USING_OPTIMIZATION:
     COMMON_FLAGS.add_string('-O3')
 

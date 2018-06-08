@@ -12,15 +12,9 @@
 #include <cassert>
 #include <cmath>
 #include <memory>
-#include <thread>
-#include <mutex>
 #include <cfloat>
 
-#if USING_CUDA
-#include "context/cuda_ctx.h"
-#else
-#include "context/cpu_ctx.h"
-#endif // USING_CUDA
+#include "context/context.h"
 
 namespace mobula {
 

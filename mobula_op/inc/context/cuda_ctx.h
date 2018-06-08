@@ -30,6 +30,14 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
   return atomicAdd(address, val);
 }
 
+// parfor for cuda device should be called in cuda kernel.
+template <typename Func>
+MOBULA_DEVICE void parfor(const int n, Func F) {
+    KERNEL_LOOP(i, n) {
+        F(i);
+    }
+}
+
 }
 
 #endif

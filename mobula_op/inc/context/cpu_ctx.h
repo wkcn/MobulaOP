@@ -1,11 +1,11 @@
 #ifndef _CPU_CTX_
 #define _CPU_CTX_
 
-namespace mobula {
-
-#include <cmath>
 #include <thread>
 #include <mutex>
+#include <cmath>
+
+namespace mobula {
 
 #define MOBULA_KERNEL void
 #define MOBULA_DEVICE
