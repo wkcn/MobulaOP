@@ -3,7 +3,8 @@ import sys
 import functools
 import yaml
 from easydict import EasyDict as edict
-from multiprocessing import Process
+import multiprocessing
+import multiprocessing.queues
 import pickle
 import hashlib
 
@@ -114,25 +115,37 @@ def file_is_latest(source, target):
         return False
     return os.path.exists(target)
 
-def run_processes(processes):
-    def join_processes(ps):
-        for p in ps:
-            p.join()
-    count = 0
-    current_proc = []
-    for p in processes:
-        p.start()
-        current_proc.append(p)
-        if len(current_proc) >= config.MAX_BUILDING_THREAD:
-            join_processes(current_proc)
-            current_proc = []
-    join_processes(current_proc)
+class ProcessQueue(multiprocessing.queues.Queue):
+    def __init__(self):
+        if sys.version_info[0] <= 2:
+            super(ProcessQueue, self).__init__()
+        else:
+            super(ProcessQueue, self).__init__(ctx = multiprocessing.get_context())
+
+def run_command_parallel(commands):
+    command_queue = ProcessQueue()
+    for c in commands:
+        command_queue.put(c)
+    max_worker_num = min(config.MAX_BUILDING_WORKER_NUM, len(commands))
+    def worker(command_queue):
+        while not command_queue.empty():
+            e = command_queue.get()
+            if e is None:
+                break
+            run_command(e)
+    workers = [multiprocessing.Process(target = worker, args = (command_queue,)) for _ in range(max_worker_num)]
+    for w in workers:
+        w.daemon = True
+    for w in workers:
+        w.start()
+    for w in workers:
+        w.join()
 
 def source_to_o(build_path, it, compiler = config.CXX, cflags = CFLAGS):
     mkdir(build_path)
     existed_dirs = set()
     updated = False
-    processes = []
+    commands = []
     for src, obj in it:
         dir_name = os.path.dirname(obj)
         build_dir_name = os.path.join(build_path, dir_name)
@@ -144,9 +157,8 @@ def source_to_o(build_path, it, compiler = config.CXX, cflags = CFLAGS):
             mkdir(build_dir_name)
             existed_dirs.add(build_dir_name)
         command = '%s %s %s -c -o %s' % (compiler, src, cflags, build_name) 
-        proc = Process(target = run_command, args = (command, ))
-        processes.append(proc)
-    run_processes(processes)
+        commands.append(command)
+    run_command_parallel(commands)
     return updated
 
 def o_to_so(target_name, objs, linker, ldflags = LDFLAGS):
