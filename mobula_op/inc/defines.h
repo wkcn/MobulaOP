@@ -77,11 +77,4 @@ MOBULA_DEVICE T MAX_FUNC(const T &a, const T &b) {
 
 } // namespace mobula
 
-// C API
-extern "C" {
-
-void set_device(const int device_id);
-
-}
-
 #endif

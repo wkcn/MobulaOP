@@ -7,4 +7,11 @@
 #include "context/cpu_ctx.h"
 #endif // USING_CUDA
 
+// C API
+extern "C" {
+
+void set_device(const int device_id);
+
+}
+
 #endif

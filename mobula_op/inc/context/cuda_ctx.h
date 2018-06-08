@@ -1,9 +1,10 @@
 #ifndef _CUDA_CTX_H_
 #define _CUDA_CTX_H_
 
-namespace mobula {
-
+#include <iostream>
 #include <cuda_runtime.h>
+
+namespace mobula {
 
 #define CUDA_NUM_THREADS 512
 #define CUDA_GET_BLOCKS(n) ((n) + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS

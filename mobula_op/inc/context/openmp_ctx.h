@@ -1,7 +1,7 @@
 #ifndef _OPENMP_CTX_
 #define _OPENMP_CTX_
 
-#include "omp.h"
+#include <omp.h>
 
 namespace mobula {
 

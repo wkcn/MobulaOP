@@ -1,4 +1,3 @@
-mxnet
 numpy
 pyyaml
 easydict
