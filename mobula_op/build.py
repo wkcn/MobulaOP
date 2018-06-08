@@ -5,8 +5,23 @@ import yaml
 from easydict import EasyDict as edict
 import multiprocessing
 import multiprocessing.queues
-import pickle
 import hashlib
+
+def save_code_hash(obj, fname):
+    with open(fname, 'w') as f:
+        for k, v in obj.items():
+            f.write('%s %s\n' % (k, v))
+
+def load_code_hash(fname):
+    data = dict()
+    try:
+        with open(fname, 'r') as f:
+            for line in f:
+                sp = line.split(' ')
+                data[sp[0]] = sp[1].strip()
+    except:
+        pass
+    return data
 
 class Flags:
     def __init__(self, s = ''):
@@ -90,7 +105,7 @@ CU_OBJS = change_ext(CU_SRCS, 'cu', 'cu.o')
 code_hash = dict()
 code_hash_filename = os.path.join(config.BUILD_PATH, 'code.hash')
 if os.path.exists(code_hash_filename):
-    code_hash = pickle.load(open(code_hash_filename, 'rb'))
+    code_hash = load_code_hash(code_hash_filename)
 code_hash_updated = False
 
 def get_file_hash(fname):
@@ -101,7 +116,7 @@ def get_file_hash(fname):
             if not data:
                 break
             m.update(data)
-    return m.hexdigest()
+    return m.hexdigest()[:8]
 
 def file_changed(fname):
     global code_hash_updated
@@ -209,4 +224,4 @@ def run_rule(name):
 if __name__ == '__main__':
     run_rule(sys.argv[1])
     if code_hash_updated:
-        pickle.dump(code_hash, open(code_hash_filename, 'wb'), protocol = 2)
+        save_code_hash(code_hash, code_hash_filename)
