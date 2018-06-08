@@ -109,6 +109,7 @@ if os.path.exists(code_hash_filename):
 code_hash_updated = False
 
 def get_file_hash(fname):
+    return str(os.path.getmtime(fname))
     m = hashlib.md5()
     with open(fname, 'rb') as f:
         while True:
