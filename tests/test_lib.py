@@ -14,10 +14,18 @@ def test_lib_add_mx():
 def test_lib_add_np():
     dtype = np.float32
     a = np.array([1,2,3], dtype = dtype)
-    b = np.array([4,5,6], dtype = dtype)
+    b = np.array([4,9,11], dtype = dtype)
     c = np.array([0,0,0], dtype = dtype)
     mobula_op.func.add(a.size, a, b, c)
     assert ((a + b) == c).all(), c
+
+def test_lib_sub_np():
+    dtype = np.float32
+    a = np.array([1,2,3], dtype = dtype)
+    b = np.array([9,54,32], dtype = dtype)
+    c = np.array([0,0,0], dtype = dtype)
+    mobula_op.func.sub(a.size, a, b, c)
+    assert ((a - b) == c).all(), c
 
 def test_lib_continuous_mx():
     dtype = np.float32

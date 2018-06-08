@@ -3,6 +3,7 @@ from .func import IN, OUT
 
 functions = dict(
     add = lambda n = int, a = IN, b = IN, out = OUT : None,
+    sub = lambda n = int, a = IN, b = IN, out = OUT : None,
 
     roi_align_forward = lambda n = int,
         bottom_data = IN,
