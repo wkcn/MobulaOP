@@ -1,5 +1,5 @@
-#ifndef _OPENMP_ENGINE_
-#define _OPENMP_ENGINE_
+#ifndef _OPENMP_CTX_
+#define _OPENMP_CTX_
 
 namespace mobula {
 

@@ -1,5 +1,5 @@
-#ifndef _NAIVE_ENGINE_
-#define _NAIVE_ENGINE_
+#ifndef _NAIVE_CTX_
+#define _NAIVE_CTX_
 
 namespace mobula {
 

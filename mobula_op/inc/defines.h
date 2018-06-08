@@ -17,9 +17,9 @@
 #include <cfloat>
 
 #if USING_CUDA
-#include "engines/cuda_engine.h"
+#include "context/cuda_ctx.h"
 #else
-#include "engines/cpu_engine.h"
+#include "context/cpu_ctx.h"
 #endif // USING_CUDA
 
 namespace mobula {

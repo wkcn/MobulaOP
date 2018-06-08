@@ -1,5 +1,5 @@
-#ifndef _CPU_ENGINE_
-#define _CPU_ENGINE_
+#ifndef _CPU_CTX_
+#define _CPU_CTX_
 
 namespace mobula {
 
@@ -34,9 +34,9 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
 }
 
 #if USING_OPENMP
-#include "openmp_engine.h"
+#include "openmp_ctx.h"
 #else
-#include "naive_engine.h"
+#include "naive_ctx.h"
 #endif
 
 

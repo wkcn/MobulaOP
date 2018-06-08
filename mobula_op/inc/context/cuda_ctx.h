@@ -1,5 +1,5 @@
-#ifndef _CUDA_ENGINE_H_
-#define _CUDA_ENGINE_H_
+#ifndef _CUDA_CTX_H_
+#define _CUDA_CTX_H_
 
 namespace mobula {
 
