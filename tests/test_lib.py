@@ -27,6 +27,29 @@ def test_lib_sub_np():
     mobula_op.func.sub(a.size, a, b, c)
     assert ((a - b) == c).all(), c
 
+def test_lib_mul_np():
+    dtype = np.float32
+    a = np.array([1,2,3], dtype = dtype)
+    b = np.array([9,54,32], dtype = dtype)
+    c = np.array([0,0,0], dtype = dtype)
+    mobula_op.func.mul(a.size, a, b, c)
+    assert ((a * b) == c).all(), c
+
+def test_lib_div_np():
+    dtype = np.float32
+    a = np.array([1,2,3], dtype = dtype)
+    b = np.array([9,54,32], dtype = dtype)
+    c = np.array([0,0,0], dtype = dtype)
+    mobula_op.func.div(a.size, a, b, c)
+    assert ((a / b) == c).all(), c
+
+def test_lib_abs_np():
+    dtype = np.float32
+    a = np.random.randint(-100, 100, size = (10, 10)).astype(dtype)
+    c = np.zeros_like(a, dtype = dtype)
+    mobula_op.func.abs(a.size, a, c)
+    assert (np.abs(a) == c).all(), c
+
 def test_lib_continuous_mx():
     dtype = np.float32
     shape = (10, 10)

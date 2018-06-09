@@ -12,6 +12,7 @@ namespace mobula {
 
 using std::max;
 using std::min;
+using std::abs;
 
 #if HOST_NUM_THREADS > 1 or USING_OPENMP
 constexpr int NUM_MOBULA_ATOMIC_ADD_MUTEXES = HOST_NUM_THREADS * 8;

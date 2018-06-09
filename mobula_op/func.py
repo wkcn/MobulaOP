@@ -20,6 +20,11 @@ OUT = lambda x : x
 class MobulaFunc:
     def __init__(self, name, func):
         self.name = name
+        if isinstance(func, (list, tuple)):
+            alias, func = func
+            self.name_in_lib = alias
+        else:
+            self.name_in_lib = name
         spec = glue.common.getargspec(func)
         assert len(spec.args) == len(spec.defaults), ValueError('Function %s should specify type for each parameter')
         self.par_type = spec.defaults
@@ -74,9 +79,9 @@ class MobulaFunc:
             if func_lib.gpu_lib is None:
                 raise RuntimeError("Doesn't support GPU")
             func_lib.gpu_lib.set_device(dev_id)
-            rtn = getattr(func_lib.gpu_lib, self.name)(*args_new)
+            rtn = getattr(func_lib.gpu_lib, self.name_in_lib)(*args_new)
         else:
-            rtn = getattr(func_lib.cpu_lib, self.name)(*args_new)
+            rtn = getattr(func_lib.cpu_lib, self.name_in_lib)(*args_new)
         for source, target in noncontiguous_list:
             source[:] = target
         return rtn

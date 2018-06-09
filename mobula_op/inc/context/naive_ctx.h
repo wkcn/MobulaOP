@@ -50,7 +50,7 @@ private:
 						 const int MOBULA_KERNEL_START = MOBULA_KERNEL_INFO.first; \
 						 const int MOBULA_KERNEL_END = min(MOBULA_KERNEL_INFO.second, n); \
 						 for (int i = MOBULA_KERNEL_START; i < MOBULA_KERNEL_END; ++i)
-#define KERNEL_RUN(a, n) (KernelRunner<decltype(&a)>(&a, (n)))
+#define KERNEL_RUN(a, n) (KernelRunner<decltype(&(a))>(&(a), (n)))
 
 template <typename Func>
 MOBULA_DEVICE void parfor(const int n, Func F) {
