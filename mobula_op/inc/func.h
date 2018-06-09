@@ -33,18 +33,17 @@ using namespace mobula;
     } \
 
 #define REGISTER_BINARY_FUNC(func_name, func) \
-    using T = DType;\
-    void func_name(const int _n, const T *_a, const T *_b, T *_out) {\
+    void func_name(const int _n, const DType *_a, const DType *_b, DType *_out) {\
         auto _func = func;\
-        KERNEL_RUN((binary_kernel<T, decltype(_func)>), _n)(_n, _a, _b, _out, _func);\
+        KERNEL_RUN((binary_kernel<DType, decltype(_func)>), _n)(_n, _a, _b, _out, _func);\
     } \
 
-REGISTER_UNARY_FUNC(abs_, [](const T &a){return abs(a);})
+REGISTER_UNARY_FUNC(abs_, [](const DType &a){return abs(a);})
 
-REGISTER_BINARY_FUNC(add, [](const T &a, const T &b){return a + b;})
-REGISTER_BINARY_FUNC(sub, [](const T &a, const T &b){return a - b;})
-REGISTER_BINARY_FUNC(mul, [](const T &a, const T &b){return a * b;})
-REGISTER_BINARY_FUNC(div_, [](const T &a, const T &b){return a / b;})
+REGISTER_BINARY_FUNC(add, [](const DType &a, const DType &b){return a + b;})
+REGISTER_BINARY_FUNC(sub, [](const DType &a, const DType &b){return a - b;})
+REGISTER_BINARY_FUNC(mul, [](const DType &a, const DType &b){return a * b;})
+REGISTER_BINARY_FUNC(div_, [](const DType &a, const DType &b){return a / b;})
 
 }
 
