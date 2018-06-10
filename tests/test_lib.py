@@ -18,6 +18,9 @@ def test_lib_add_np():
     c = np.array([0,0,0], dtype = dtype)
     mobula_op.func.add(a.size, a, b, c)
     assert ((a + b) == c).all(), c
+    c = np.array([0,0,0], dtype = dtype)
+    mobula_op.math.add(a, b, c)
+    assert ((a + b) == c).all(), c
 
 def test_lib_sub_np():
     dtype = np.float32
@@ -25,6 +28,9 @@ def test_lib_sub_np():
     b = np.array([9,54,32], dtype = dtype)
     c = np.array([0,0,0], dtype = dtype)
     mobula_op.func.sub(a.size, a, b, c)
+    assert ((a - b) == c).all(), c
+    c = np.array([0,0,0], dtype = dtype)
+    mobula_op.math.sub(a, b, c)
     assert ((a - b) == c).all(), c
 
 def test_lib_mul_np():
@@ -34,6 +40,9 @@ def test_lib_mul_np():
     c = np.array([0,0,0], dtype = dtype)
     mobula_op.func.mul(a.size, a, b, c)
     assert ((a * b) == c).all(), c
+    c = np.array([0,0,0], dtype = dtype)
+    mobula_op.math.mul(a, b, c)
+    assert ((a * b) == c).all(), c
 
 def test_lib_div_np():
     dtype = np.float32
@@ -42,12 +51,18 @@ def test_lib_div_np():
     c = np.array([0,0,0], dtype = dtype)
     mobula_op.func.div(a.size, a, b, c)
     assert ((a / b) == c).all(), c
+    c = np.array([0,0,0], dtype = dtype)
+    mobula_op.math.div(a, b, c)
+    assert ((a / b) == c).all(), c
 
 def test_lib_abs_np():
     dtype = np.float32
     a = np.random.randint(-100, 100, size = (10, 10)).astype(dtype)
     c = np.zeros_like(a, dtype = dtype)
     mobula_op.func.abs(a.size, a, c)
+    assert (np.abs(a) == c).all(), c
+    c = np.zeros_like(a, dtype = dtype)
+    mobula_op.math.abs(a, c)
     assert (np.abs(a) == c).all(), c
 
 def test_lib_continuous_mx():
