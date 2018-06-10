@@ -15,11 +15,12 @@ def test_lib_add_mx():
 def test_lib_abs_np():
     dtype = np.float32
     a = np.random.randint(-100, 100, size = (10, 10)).astype(dtype)
-    c = np.zeros_like(a, dtype = dtype)
-    mobula_op.func.abs(a.size, a, c)
-    assert (np.abs(a) == c).all(), c
+
     c = np.zeros_like(a, dtype = dtype)
     mobula_op.math.abs(a, out = c)
+    assert (np.abs(a) == c).all(), c
+
+    c = mobula_op.math.abs(a)
     assert (np.abs(a) == c).all(), c
 
 def test_binary_op():
@@ -44,6 +45,16 @@ def test_binary_op():
 
         d = mf(a, b)
         assert_almost_equal(d, rc)
+
+def test_dot():
+    dtype = np.float32
+    I, J, U = 3,4,5
+    K, M = 6,7
+    a = np.random.random((I, J, U)).astype(dtype)
+    b = np.random.random((K, U, M)).astype(dtype)
+    rc = np.dot(a, b)
+    c = mobula_op.math.dot(a, b)
+    assert_almost_equal(rc, c)
 
 def test_lib_continuous_mx():
     dtype = np.float32

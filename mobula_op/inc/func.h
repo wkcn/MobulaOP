@@ -20,6 +20,24 @@ MOBULA_KERNEL binary_kernel(const int n, const T *a, const T *b, T *out, BINARY_
     });
 }
 
+/*
+ * out[i,j,k,m] = sum(a[i,j,:] * b[k, :, m])
+ * for u = 0...n - 1
+ *    out[i, k, m] += a[i, u] * b[k, u, m]
+ */
+template <typename T>
+MOBULA_KERNEL dot_kernel(const int n, const T *a, const T *b, const int U, const int K, const int M, T *out) {
+    parfor(n, [&](int index) {
+        const int i = index / (K * M);
+        const int k = (index / M) % K;
+        const int m = index % M;
+        out[index] = 0;
+        for (int u = 0; u < U; ++u) {
+            out[index] += a[i * U + u] * b[(k * U + u) * M + m];
+        }
+    });
+}
+
 }
 
 extern "C" {
@@ -45,6 +63,11 @@ REGISTER_BINARY_FUNC(add, [](const T &a, const T &b){return a + b;})
 REGISTER_BINARY_FUNC(sub, [](const T &a, const T &b){return a - b;})
 REGISTER_BINARY_FUNC(mul, [](const T &a, const T &b){return a * b;})
 REGISTER_BINARY_FUNC(div_, [](const T &a, const T &b){return a / b;})
+
+void dot(const DType *a, const DType *b, const int I, const int U, const int K, const int M, DType *out) {
+    const int N = I * K * M;
+    KERNEL_RUN(dot_kernel<DType>, N)(N, a, b, U, K, M, out);
+}
 
 }
 
