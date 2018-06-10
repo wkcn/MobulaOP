@@ -2,6 +2,7 @@ import mxnet as mx
 import numpy as np
 import mobula_op
 from nose.tools import nottest
+from mobula_op.test_utils import assert_almost_equal
 
 def test_lib_add_mx():
     dtype = np.float32
@@ -11,50 +12,6 @@ def test_lib_add_mx():
     mobula_op.func.add(a.size, a, b, c)
     assert ((a + b).asnumpy() == c.asnumpy()).all(), c
 
-def test_lib_add_np():
-    dtype = np.float32
-    a = np.array([1,2,3], dtype = dtype)
-    b = np.array([4,9,11], dtype = dtype)
-    c = np.array([0,0,0], dtype = dtype)
-    mobula_op.func.add(a.size, a, b, c)
-    assert ((a + b) == c).all(), c
-    c = np.array([0,0,0], dtype = dtype)
-    mobula_op.math.add(a, b, c)
-    assert ((a + b) == c).all(), c
-
-def test_lib_sub_np():
-    dtype = np.float32
-    a = np.array([1,2,3], dtype = dtype)
-    b = np.array([9,54,32], dtype = dtype)
-    c = np.array([0,0,0], dtype = dtype)
-    mobula_op.func.sub(a.size, a, b, c)
-    assert ((a - b) == c).all(), c
-    c = np.array([0,0,0], dtype = dtype)
-    mobula_op.math.sub(a, b, c)
-    assert ((a - b) == c).all(), c
-
-def test_lib_mul_np():
-    dtype = np.float32
-    a = np.array([1,2,3], dtype = dtype)
-    b = np.array([9,54,32], dtype = dtype)
-    c = np.array([0,0,0], dtype = dtype)
-    mobula_op.func.mul(a.size, a, b, c)
-    assert ((a * b) == c).all(), c
-    c = np.array([0,0,0], dtype = dtype)
-    mobula_op.math.mul(a, b, c)
-    assert ((a * b) == c).all(), c
-
-def test_lib_div_np():
-    dtype = np.float32
-    a = np.array([1,2,3], dtype = dtype)
-    b = np.array([9,54,32], dtype = dtype)
-    c = np.array([0,0,0], dtype = dtype)
-    mobula_op.func.div(a.size, a, b, c)
-    assert ((a / b) == c).all(), c
-    c = np.array([0,0,0], dtype = dtype)
-    mobula_op.math.div(a, b, c)
-    assert ((a / b) == c).all(), c
-
 def test_lib_abs_np():
     dtype = np.float32
     a = np.random.randint(-100, 100, size = (10, 10)).astype(dtype)
@@ -62,8 +19,31 @@ def test_lib_abs_np():
     mobula_op.func.abs(a.size, a, c)
     assert (np.abs(a) == c).all(), c
     c = np.zeros_like(a, dtype = dtype)
-    mobula_op.math.abs(a, c)
+    mobula_op.math.abs(a, out = c)
     assert (np.abs(a) == c).all(), c
+
+def test_binary_op():
+    dtype = np.float32
+    N, C, H, W = 1, 3, 4, 4
+    func = dict(
+        add = lambda x, y : x + y,
+        sub = lambda x, y : x - y,
+        mul = lambda x, y : x * y,
+        div = lambda x, y : x / y,
+    )
+    M = mobula_op.math
+    a = np.random.random((N, C, H, W)).astype(dtype)
+    b = np.random.random((N, C, H, W)).astype(dtype)
+    b[b == 0] = 1.0
+    for name, real_f in func.items():
+        c = np.empty_like(a, dtype = dtype)
+        mf = getattr(M, name)
+        mf(a, b, out = c)
+        rc = real_f(a, b)
+        assert_almost_equal(c, rc)
+
+        d = mf(a, b)
+        assert_almost_equal(d, rc)
 
 def test_lib_continuous_mx():
     dtype = np.float32

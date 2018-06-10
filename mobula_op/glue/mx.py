@@ -126,3 +126,5 @@ class OpGen(object):
         mx_op = get_mx_op(op)
         mx_prop = get_mx_prop(op, mx_op)
         mx.operator.register(op_name)(mx_prop)
+
+F = mx.nd
