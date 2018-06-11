@@ -108,8 +108,8 @@ private:
         _dev_pointer_owner = false;
         _dev_pointer = new_dev_pointer;
     }
-    void resize(int size) {
-        _size = size;
+    void resize(int data_size) {
+        _size = data_size;
     }
     void sync_to_host() {
         if (_host_pointer == nullptr) {
