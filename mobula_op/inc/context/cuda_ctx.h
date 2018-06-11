@@ -31,6 +31,33 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
   return atomicAdd(address, val);
 }
 
+template<typename T>
+T* xnew(const int size) {
+	T *p;
+	cudaMalloc((void **)&p, sizeof(T) * size);
+	return p;
+}
+
+template<typename T>
+void xdel(T *p) {
+	cudaFree(p);
+}
+
+template<typename T>
+T* MemcpyHostToDev(T *dst, const T *src, int size) {
+    return cudaMemcpy(dst, host, size, cudaMemcpyHostToDevice);
+}
+
+template<typename T>
+T* MemcpyDevToHost(T *dst, const T *src, int size) {
+    return cudaMemcpy(dst, host, size, cudaMemcpyDeviceToHost);
+}
+
+template<typename T>
+T* MemcpyDevToDev(T *dst, const T *src, int size) {
+    return cudaMemcpy(dst, host, size, cudaMemcpyDeviceToDevice);
+}
+
 // parfor for cuda device should be called in cuda kernel.
 template <typename Func>
 MOBULA_DEVICE void parfor(const int n, Func F) {
@@ -38,6 +65,7 @@ MOBULA_DEVICE void parfor(const int n, Func F) {
         F(i);
     }
 }
+
 
 }
 

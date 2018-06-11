@@ -20,26 +20,13 @@ namespace mobula {
 
 typedef float DType;
 
-// Allocate Memory
 template<typename T = DType>
-T* xnew(int size) {
-#if USING_CUDA
-	T *p;
-	cudaMalloc((void **)&p, sizeof(T) * size);
-	return p;
-#else
-	return new T[size];
-#endif
-}
-
-template<typename T = DType>
-void xdel(T* p) {
-#if USING_CUDA
-	cudaFree(p);
-#else
-	delete []p;
-#endif
-}
+struct CArray{
+    int size;
+    T* data;
+    CArray<T>* to_device() {
+    }
+};
 
 template<typename F, typename T = DType>
 inline MOBULA_DEVICE void mobula_map(F func, const T *data, const int n, const int stride = 1, T *out = nullptr) {

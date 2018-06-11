@@ -114,3 +114,5 @@ class OpGen(object):
                 np_op_dict
         )
         return np_op
+
+F = np

@@ -17,6 +17,9 @@ func_lib = MobulaFuncLib()
 IN = lambda x : x
 OUT = lambda x : x
 
+class CArray(ctypes.Structure):
+    _fields_ = [('size', ctypes.c_int), ('data', ctypes.c_void_p)]
+
 class MobulaFunc:
     def __init__(self, name, func):
         self.name = name
@@ -45,8 +48,10 @@ class MobulaFunc:
         dev_id = None
         noncontiguous_list = []
         backend_vars = []
+        need_backend = False
         for a, p in zip(args_gen(), self.par_type):
             if p == IN or p == OUT:
+                need_backend = True
                 backend_tmp = glue.backend.get_var_backend(a)
                 if backend is not None and backend_tmp != backend:
                     raise ValueError("Don't use multiple backends in a call :-(")
@@ -66,14 +71,15 @@ class MobulaFunc:
                         dev_id = aid
 
             else:
-                ta = backend.convert_type(a, p) if hasattr(backend, 'convert_type') else p(a)
-                pa = self.convert_ctype(ta)
+                ta = backend.convert_type(a) if hasattr(backend, 'convert_type') else a
+                pa = self.convert_ctype(ta, p)
             args_new.append(pa)
 
-        assert backend is not None, ValueError("No parameter about backend:-(")
+        if need_backend:
+            assert backend is not None, ValueError("No parameter about backend:-(")
 
-        if hasattr(backend, 'sync_vars'):
-            backend.sync_vars(backend_vars)
+            if hasattr(backend, 'sync_vars'):
+                backend.sync_vars(backend_vars)
 
         if dev_id is not None:
             if func_lib.gpu_lib is None:
@@ -86,11 +92,19 @@ class MobulaFunc:
             source[:] = target
         return rtn
 
-    def convert_ctype(self, v):
-        if isinstance(v, float):
-            return ctypes.c_float(v)
-        elif isinstance(v, int):
-            return v
+    def convert_ctype(self, v, p):
+        if p == float:
+            return ctypes.c_float(p(v))
+        elif p == int:
+            return p(v)
+        elif isinstance(v, (list, tuple)) and isinstance(p, list):
+            # Accept int array or float array
+            dtype = p[0]
+            ctype = ctypes.c_float if dtype == float else ctypes.c_int
+            ca = CArray()
+            ca.size = len(v)
+            ca.data = ctypes.cast((ctype * len(v))(*v), ctypes.c_void_p)
+            return ca
         raise TypeError("Unsupported Type: {}".format(type(v)))
 
 def bind(functions):

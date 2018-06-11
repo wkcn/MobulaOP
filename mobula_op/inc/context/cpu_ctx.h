@@ -4,6 +4,7 @@
 #include <thread>
 #include <mutex>
 #include <cmath>
+#include <cstring>
 
 namespace mobula {
 
@@ -34,11 +35,38 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
 
 }
 
+template<typename T>
+T* xnew(const int size) {
+    return new T[size];
+}
+
+template<typename T>
+void xdel(T *p) {
+    delete []p;
+}
+
+template<typename T>
+T* MemcpyHostToDev(T *dst, const T *src, int size) {
+    if (dst == src) return dst;
+    return static_cast<T*>(memcpy(dst, src, size));
+}
+
+template<typename T>
+T* MemcpyDevToHost(T *dst, const T *src, int size) {
+    if (dst == src) return dst;
+    return static_cast<T*>(memcpy(dst, src, size));
+}
+
+template<typename T>
+T* MemcpyDevToDev(T *dst, const T *src, int size) {
+    if (dst == src) return dst;
+    return static_cast<T*>(memcpy(dst, src, size));
+}
+
 #if USING_OPENMP
 #include "openmp_ctx.h"
 #else
 #include "naive_ctx.h"
 #endif
-
 
 #endif
