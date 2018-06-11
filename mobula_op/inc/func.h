@@ -69,6 +69,16 @@ void dot(const DType *a, const DType *b, const int I, const int U, const int K, 
     KERNEL_RUN(dot_kernel<DType>, N)(N, a, b, U, K, M, out);
 }
 
+void print_carray(CArray<DType> ca) {
+    bool first = true;
+    for (int i = 0; i < ca.size; ++i) {
+        if (!first) std::cout << ", ";
+        first = false;
+        std::cout << ca.data[i];
+    }
+    std::cout << std::endl;
+}
+
 }
 
 #endif

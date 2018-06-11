@@ -92,6 +92,11 @@ def test_lib_continuous_np():
     tc = c[3:8, 1:6]
     assert (tc == (sa + sb)).all(), (tc, (sa + sb))
 
+'''
+def test_print_carray():
+    mobula_op.func.print_carray((1.0, 2.0, 3.0))
+'''
+
 if __name__ == '__main__':
     test_lib_add_mx()
     test_lib_add_np()

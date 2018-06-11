@@ -34,6 +34,7 @@ mul = functools.partial(binary_op, func.mul)
 div = functools.partial(binary_op, func.div)
 
 def dot(a, b, **kwargs):
+    assert a.ndim >= 2 and b.ndim >= 2
     U = a.shape[-1]
     assert b.shape[-2] == U
     bshape = b.shape

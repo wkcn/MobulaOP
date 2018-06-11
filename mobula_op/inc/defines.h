@@ -20,6 +20,12 @@ namespace mobula {
 
 typedef float DType;
 
+template<typename T = DType>
+struct CArray{
+    int size;
+    T* data;
+};
+
 // Allocate Memory
 template<typename T = DType>
 T* xnew(int size) {
