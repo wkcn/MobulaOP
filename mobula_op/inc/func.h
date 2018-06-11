@@ -95,6 +95,14 @@ void assign(CArray<DType> a, DType *out) {
     KERNEL_RUN(assign_kernel<DType>, N)(N, pa, out);
 }
 
+void sum(const int n, CArray<DType*> a, DType *out) {
+    const int N = a.size;
+    for (int i = 0; i < N; ++i) {
+        DType *e = a.data[i];
+        add(n, e, out, out);
+    }
+}
+
 }
 
 #endif

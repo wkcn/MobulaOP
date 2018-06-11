@@ -42,20 +42,16 @@ class MobulaFunc:
             while i < num_pars:
                 yield kwargs[self.par_name[i]]
                 i += 1
+
         # type check
         args_new = []
         backend = None
         dev_id = None
         noncontiguous_list = []
         backend_vars = []
-        need_backend = False
-        for a, p in zip(args_gen(), self.par_type):
+
+        def analyze_element(a, p, backend, backend_vars, noncontiguous_list):
             if p == IN or p == OUT:
-                need_backend = True
-                backend_tmp = glue.backend.get_var_backend(a)
-                if backend is not None and backend_tmp != backend:
-                    raise ValueError("Don't use multiple backends in a call :-(")
-                backend = backend_tmp
                 backend_vars.append(a)
                 pa = backend.get_pointer(a)
                 if isinstance(pa, (list, tuple)):
@@ -69,13 +65,47 @@ class MobulaFunc:
                         assert aid == dev_id, ValueError("Don't use multiple devices in a call :-(")
                     else:
                         dev_id = aid
-
             else:
                 ta = backend.convert_type(a) if hasattr(backend, 'convert_type') else a
                 pa = self.convert_ctype(ta, p)
-            args_new.append(pa)
+            return pa
 
-        if need_backend:
+        # Pre-Check
+        def check_backend(a, backend):
+            backend_tmp = glue.backend.get_var_backend(a)
+            if backend_tmp is not None and backend is not None and backend_tmp != backend:
+                raise ValueError("Don't use multiple backends in a call :-( %s vs %s" % (backend, backend_tmp))
+            return backend_tmp
+
+        for a, p in zip(args_gen(), self.par_type):
+            if isinstance(p, (list, tuple)):
+                for e in a:
+                    backend = check_backend(a, backend)
+            else:
+                backend = check_backend(a, backend)
+
+        extra_pars = [backend, backend_vars, noncontiguous_list]
+
+        for a, p in zip(args_gen(), self.par_type):
+            if isinstance(p, (list, tuple)):
+                ep = p[0]
+                pas = [analyze_element(e, ep, *extra_pars) for e in a]
+                if ep == int:
+                    ctype = ctypes.c_int
+                elif ep == float:
+                    ctype = ctypes.c_float
+                elif ep in [IN, OUT]:
+                    ctype = ctypes.c_void_p
+                # pas = [e.value for e in pas]
+                ca = CArray()
+                ca.size = len(pas)
+                ca.data = ctypes.cast((ctype * len(pas))(*pas), ctypes.c_void_p)
+                args_new.append(ca)
+            else:
+                pa = analyze_element(a, p, *extra_pars)
+                args_new.append(pa)
+
+        if backend is not None:
             assert backend is not None, ValueError("No parameter about backend:-(")
 
             if hasattr(backend, 'sync_vars'):
@@ -94,18 +124,12 @@ class MobulaFunc:
 
     def convert_ctype(self, v, p):
         if p == float:
-            return ctypes.c_float(p(v))
+            ctype = ctypes.c_float
         elif p == int:
-            return p(v)
-        elif isinstance(v, (list, tuple)) and isinstance(p, list):
-            # Accept int array or float array
-            dtype = p[0]
-            ctype = ctypes.c_float if dtype == float else ctypes.c_int
-            ca = CArray()
-            ca.size = len(v)
-            ca.data = ctypes.cast((ctype * len(v))(*v), ctypes.c_void_p)
-            return ca
-        raise TypeError("Unsupported Type: {}".format(type(v)))
+            ctype = ctypes.c_int
+        else:
+            raise TypeError("Unsupported Type: {}".format(type(v)))
+        return ctype(p(v))
 
 def bind(functions):
     for k, v in functions.items():

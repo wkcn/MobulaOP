@@ -105,6 +105,16 @@ def test_assign():
     mobula_op.func.assign(v.tolist(), out = e)
     assert_almost_equal(v, e)
 
+def test_sum():
+    dtype = np.float32
+    N, C, H, W = 2, 3, 4, 5
+    num = 5
+    data = [np.random.random(size = (N, C, H, W)).astype(dtype) for _ in range(num)]
+    target = np.sum(data, axis = 0)
+    out = np.empty((N, C, H, W), dtype = dtype)
+    mobula_op.func.sum(out.size, data, out)
+    assert_almost_equal(target, out)
+
 if __name__ == '__main__':
     test_lib_add_mx()
     test_lib_add_np()
