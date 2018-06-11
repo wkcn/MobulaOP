@@ -24,7 +24,7 @@ template <typename T>
 class ctx_pointer{
 
 public:
-    ctx_pointer(const int size = 0, T *host_pointer = nullptr):_size(size), _host_pointer(host_pointer), _dev_pointer(nullptr), _current_pointer(host_pointer), _ctx(CTX::HOST) {
+    ctx_pointer(const int data_size = 0, T *host_pointer = nullptr):_size(data_size), _host_pointer(host_pointer), _dev_pointer(nullptr), _current_pointer(host_pointer), _ctx(CTX::HOST) {
         _host_pointer_owner = false;
         _dev_pointer_owner = false;
     }
