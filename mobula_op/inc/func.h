@@ -2,6 +2,7 @@
 #define _MOBULA_FUNC_
 
 #include "defines.h"
+#include "context/context.h"
 
 namespace mobula {
 
@@ -35,6 +36,13 @@ MOBULA_KERNEL dot_kernel(const int n, const T *a, const T *b, const int U, const
         for (int u = 0; u < U; ++u) {
             out[index] += a[i * U + u] * b[(k * U + u) * M + m];
         }
+    });
+}
+
+template <typename T>
+MOBULA_KERNEL assign_kernel(const int n, const T *a, T *out) {
+    parfor(n, [&](int index) {
+        out[index] = a[index];
     });
 }
 
@@ -77,6 +85,14 @@ void print_carray(CArray<DType> ca) {
         std::cout << ca.data[i];
     }
     std::cout << std::endl;
+}
+
+void assign(CArray<DType> a, DType *out) {
+    const int N = a.size;
+    auto sp = ctx_pointer<DType>(N, a.data);
+    sp.set_ctx(CTX::DEVICE);
+    const DType *pa = sp.pointer();
+    KERNEL_RUN(assign_kernel<DType>, N)(N, pa, out);
 }
 
 }

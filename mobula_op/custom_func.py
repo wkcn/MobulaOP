@@ -9,6 +9,7 @@ functions = dict(
     abs = ('abs_', lambda n = int, a = IN, out = OUT : None),
     dot = ('dot', lambda a = IN, b = IN, I = int, U = int, K = int, M = int, out = OUT : None),
     print_carray = lambda data = [float] : None,
+    assign = lambda data = [float], out = OUT : None,
 
     roi_align_forward = lambda n = int,
         bottom_data = IN,

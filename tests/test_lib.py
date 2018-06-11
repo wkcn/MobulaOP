@@ -97,6 +97,14 @@ def test_print_carray():
     mobula_op.func.print_carray((1.0, 2.0, 3.0))
 '''
 
+def test_assign():
+    dtype = np.float32
+    N = 5
+    v = np.random.random(size = N).astype(dtype)
+    e = np.empty_like(v, dtype = dtype)
+    mobula_op.func.assign(v.tolist(), out = e)
+    assert_almost_equal(v, e)
+
 if __name__ == '__main__':
     test_lib_add_mx()
     test_lib_add_np()
