@@ -53,6 +53,20 @@ MOBULA_KERNEL assign_val_kernel(const int n, const T val, T *out) {
     });
 }
 
+template <typename T>
+MOBULA_KERNEL transpose_kernel(const int n, const T *a, const int ndim, const int *shape, const int *strides, T *out) {
+    parfor(n, [&](int index) {
+        int old_index = 0;
+        int r = index;
+        for (int i = ndim - 1; i >= 0; --i) {
+            int j = r % shape[i];
+            r /= shape[i];
+            old_index += j * strides[i];
+        }
+        out[index] = a[old_index];
+    });
+}
+
 
 }
 
@@ -113,6 +127,26 @@ void sum(const int n, CArray<DType*> a, DType *out) {
         DType *e = a.data[i];
         add(n, e, out, out);
     }
+}
+
+void transpose(const DType *a, CArray<int> shape, CArray<int> axes, DType *out) {
+    ctx_pointer<int> new_shape(shape.size);
+    ctx_pointer<int> new_strides(shape.size);
+    int *strides = new int[shape.size];
+    int n = 1;
+    for (int i = shape.size - 1; i >= 0; --i) {
+        strides[i] = n;
+        n *= shape[i];
+    }
+    for (int i = 0; i < axes.size; ++i) {
+        int j = axes[i];
+        new_shape[i] = shape[j];
+        new_strides[i] = strides[j];
+    }
+    new_shape.set_ctx(CTX::DEVICE);
+    new_strides.set_ctx(CTX::DEVICE);
+    KERNEL_RUN(transpose_kernel<DType>, n)(n, a, shape.size, new_shape.pointer(), new_strides.pointer(), out);
+    delete []strides;
 }
 
 }

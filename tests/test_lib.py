@@ -4,8 +4,9 @@ import mobula_op
 from nose.tools import nottest
 from mobula_op.test_utils import assert_almost_equal
 
+dtype = np.float32
+
 def test_lib_add_mx():
-    dtype = np.float32
     a = mx.nd.array([1,2,3], dtype = dtype)
     b = mx.nd.array([4,5,6], dtype = dtype)
     c = mx.nd.array([0,0,0], dtype = dtype)
@@ -13,7 +14,6 @@ def test_lib_add_mx():
     assert ((a + b).asnumpy() == c.asnumpy()).all(), c
 
 def test_lib_abs_np():
-    dtype = np.float32
     a = np.random.randint(-100, 100, size = (10, 10)).astype(dtype)
 
     c = np.zeros_like(a, dtype = dtype)
@@ -24,7 +24,6 @@ def test_lib_abs_np():
     assert (np.abs(a) == c).all(), c
 
 def test_binary_op():
-    dtype = np.float32
     N, C, H, W = 1, 3, 4, 4
     func = dict(
         add = lambda x, y : x + y,
@@ -47,7 +46,6 @@ def test_binary_op():
         assert_almost_equal(d, rc)
 
 def test_dot():
-    dtype = np.float32
     I, J, U = 3,4,5
     K, M = 6,7
     a = np.random.random((I, J, U)).astype(dtype)
@@ -57,7 +55,6 @@ def test_dot():
     assert_almost_equal(rc, c)
 
 def test_lib_continuous_mx():
-    dtype = np.float32
     shape = (10, 10)
     a = mx.nd.random.uniform(-100, 100, shape, dtype = dtype)
     b = mx.nd.random.uniform(-100, 100, shape, dtype = dtype)
@@ -74,7 +71,6 @@ def test_lib_continuous_mx():
     assert (c.asnumpy() == (sa + sb).asnumpy()).all(), (c, (sa + sb))
 
 def test_lib_continuous_np():
-    dtype = np.float32
     shape = (10, 10)
     a = np.random.randint(-100, 100, shape).astype(dtype)
     b = np.random.randint(-100, 100, shape).astype(dtype)
@@ -105,7 +101,6 @@ def test_print_carray():
 '''
 
 def test_assign_carray():
-    dtype = np.float32
     N = 5
     v = np.random.random(size = N).astype(dtype)
     e = np.empty_like(v, dtype = dtype)
@@ -113,15 +108,20 @@ def test_assign_carray():
     assert_almost_equal(v, e)
 
 def test_sum():
-    dtype = np.float32
     N, C, H, W = 2, 3, 4, 5
     num = 4
     data = [np.random.random(size = (N, C, H, W)).astype(dtype) for _ in range(num)]
-    data = [np.ones_like(p) for p in data]
     target = np.sum(data, axis = 0)
     out = np.empty((N, C, H, W), dtype = dtype)
     mobula_op.func.sum(out.size, data, out)
     assert_almost_equal(target, out)
+
+def test_transpose():
+    x = np.arange(2*3*4).reshape((2,3,4)).astype(dtype)
+    for axes in [(1,0,2), (0,1,2), (0,2,1), (1,2,0)]:
+        y = mobula_op.math.transpose(x, axes)
+        r = np.transpose(x, axes)
+        assert_almost_equal(y, r)
 
 if __name__ == '__main__':
     test_lib_add_mx()

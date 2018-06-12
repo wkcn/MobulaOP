@@ -12,6 +12,7 @@ functions = dict(
     assign_carray = lambda data = [float], out = OUT : None,
     assign_val = lambda n = int, val = float, out = OUT : None,
     sum = lambda n = int, data = [IN], out = OUT : None,
+    transpose = lambda data = IN, shape = [int], axes = [int], out = OUT : None,
 
     roi_align_forward = lambda n = int,
         bottom_data = IN,

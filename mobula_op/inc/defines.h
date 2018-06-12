@@ -24,8 +24,8 @@ template<typename T = DType>
 struct CArray{
     int size;
     T* data;
-    CArray<T>* to_device() {
-    }
+    T& operator[](int i) {return data[i];}
+    T& operator[](int i) const {return data[i];}
 };
 
 template<typename F, typename T = DType>

@@ -10,7 +10,7 @@ namespace mobula {
 #define CUDA_GET_BLOCKS(n) ((n) + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS
 
 #define MOBULA_KERNEL __global__ void
-#define MOBULA_DEVICE __device__
+#define MOBULA_DEVICE __device__ __host__
 #define KERNEL_RUN(a, n) (a)<<<CUDA_GET_BLOCKS(n), CUDA_NUM_THREADS>>>
 
 #define CUDA_CHECK(condition) \
@@ -60,7 +60,7 @@ T* MemcpyDevToDev(T *dst, const T *src, int size) {
 // parfor for cuda device should be called in cuda kernel.
 template <typename Func>
 MOBULA_DEVICE void parfor(const int n, Func F) {
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x;i < (n);i += blockDim.x * gridDim.x) {
+    for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < (n); i += blockDim.x * gridDim.x) {
         F(i);
     }
 }

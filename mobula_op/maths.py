@@ -50,3 +50,20 @@ def dot(a, b, **kwargs):
         assert out.shape == out_shape
     func.dot(a, b, I, U, K, M, out)
     return out
+
+def transpose(data, axes, **kwargs):
+    assert data.ndim == len(axes)
+    vis = [False for _ in range(data.ndim)]
+    for a in axes:
+        assert a >= 0
+        assert vis[a] == False
+        vis[a] = True
+    out_shape = [data.shape[i] for i in axes]
+    out = kwargs.get('out', None)
+    if out is None:
+        backend = glue.backend.get_var_backend(data)
+        out = backend.F.empty(out_shape, dtype = data.dtype)
+    else:
+        assert out.shape == out_shape
+    func.transpose(data, data.shape, axes, out)
+    return out

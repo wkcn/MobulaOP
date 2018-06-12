@@ -27,6 +27,7 @@ public:
     ctx_pointer(const int data_size = 0, T *host_pointer = nullptr):_size(data_size), _host_pointer(host_pointer), _dev_pointer(nullptr), _current_pointer(host_pointer), _ctx(CTX::HOST) {
         _host_pointer_owner = false;
         _dev_pointer_owner = false;
+        set_ctx(CTX::HOST, true);
     }
     ~ctx_pointer() {
         if (_host_pointer_owner) {
@@ -59,8 +60,8 @@ public:
     ctx_pointer<T>& copy() {
         return ctx_pointer<T>(*this);
     }
-    void set_ctx(CTX ctx) {
-        if (_ctx == ctx) return;
+    void set_ctx(CTX ctx, bool force = false) {
+        if (_ctx == ctx && !force) return;
         _ctx = ctx;
         if (_ctx == CTX::HOST) {
             sync_to_host();
