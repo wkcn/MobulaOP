@@ -121,7 +121,6 @@ def test_sum():
     target = np.sum(data, axis = 0)
     out = np.empty((N, C, H, W), dtype = dtype)
     mobula_op.func.sum(out.size, data, out)
-    print (target, out)
     assert_almost_equal(target, out)
 
 if __name__ == '__main__':

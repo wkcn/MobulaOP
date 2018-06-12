@@ -76,7 +76,8 @@ class MobulaFunc:
                     else:
                         dev_id = aid
             else:
-                pa = backend.convert_type(a) if hasattr(backend, 'convert_type') else a
+                ta = backend.convert_type(a) if hasattr(backend, 'convert_type') else a
+                pa = p(ta)
             return pa
 
         # Pre-Check
@@ -107,7 +108,6 @@ class MobulaFunc:
                     ctype = ctypes.c_void_p
                 ca = CArray()
                 ca.size = len(pas)
-                print (pas)
                 ca.data = ctypes.cast((ctype * len(pas))(*pas), ctypes.c_void_p)
                 args_new.append(ca)
             else:
