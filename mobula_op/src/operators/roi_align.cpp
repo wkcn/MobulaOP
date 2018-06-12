@@ -42,7 +42,7 @@ MOBULA_KERNEL RoIAlignForward(
     const int sampling_ratio,
     const T* bottom_rois,
     T* top_data) {
-  KERNEL_LOOP(index, nthreads) {
+  parfor(nthreads, [&](int index){
     // (n, c, ph, pw) is an element in the pooled output
     int pw = index % pooled_width;
     int ph = (index / pooled_width) % pooled_height;
@@ -100,7 +100,7 @@ MOBULA_KERNEL RoIAlignForward(
     output_val /= count;
 
     top_data[index] = output_val;
-  }
+  });
 }
 
 template <typename T>
@@ -117,7 +117,7 @@ MOBULA_KERNEL RoIAlignBackwardFeature(
     const int sampling_ratio,
     T* bottom_diff,
     const T* bottom_rois) {
-  KERNEL_LOOP(index, nthreads) {
+  parfor(nthreads, [&](int index){
     // (n, c, ph, pw) is an element in the pooled output
     int pw = index % pooled_width;
     int ph = (index / pooled_width) % pooled_height;
@@ -205,7 +205,7 @@ MOBULA_KERNEL RoIAlignBackwardFeature(
         } // if
       } // ix
     } // iy
-  } // KERNEL_LOOP
+  }); // parfor
 } // RoIAlignBackward
 
 } // namespace mobula

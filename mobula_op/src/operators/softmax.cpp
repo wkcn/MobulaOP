@@ -9,7 +9,7 @@ MOBULA_KERNEL SoftmaxForward(
     const int num_classes,
     const int inner_size,
     T *probs) {
-    KERNEL_LOOP(index, nthreads) {
+    parfor(nthreads, [&](int index){
         int j = get_middle_loop_offset(index, num_classes, inner_size);
         const T *data_i = data + j;
         T *probs_i = probs + j;
@@ -23,7 +23,7 @@ MOBULA_KERNEL SoftmaxForward(
         mobula_reduce(ADD_FUNC<T>, probs_i, num_classes, inner_size, &sum_val);
         // result
         mobula_map([&sum_val](const T &a){return a / sum_val;}, probs_i, num_classes, inner_size);
-    }
+    });
 }
 
 template <typename T>
@@ -34,14 +34,14 @@ MOBULA_KERNEL SoftmaxLossForward(
     const int num_classes,
     const int inner_size,
     T *losses) {
-    KERNEL_LOOP(index, nthreads) {
+    parfor(nthreads, [&](int index){
         int j = get_middle_loop_offset(index, num_classes, inner_size);
         const int label = static_cast<int>(labels[index]);
         if (label >= 0)
             losses[index] = - log(probs[j + label * inner_size] + FLT_MIN);
         else
             losses[index] = 0;
-    }
+    });
 }
 
 template <typename T>
@@ -54,7 +54,7 @@ MOBULA_KERNEL SoftmaxLossBackward(
     const T grad_scale,
     T *dX) {
 
-    KERNEL_LOOP(index, nthreads) {
+    parfor(nthreads, [&](int index){
         const int i = index / (num_classes * inner_size);
         const int j = (index / inner_size) % num_classes;
         const int k = index % inner_size;
@@ -64,7 +64,7 @@ MOBULA_KERNEL SoftmaxLossBackward(
             if (label == j) --grad;
             dX[index] += grad * grad_scale;
         }
-    }
+    });
 }
 
 } // namespace mobula

@@ -66,12 +66,6 @@ def test_lib_continuous_mx():
     c = mx.nd.empty((5, 5), dtype = dtype)
     sa = a[2:7, 3:8]
     sb = b[1:6, 4:9]
-    # [NOTICE] prepare data
-    '''
-    NDArray is an asynchronize computation object whose content may not be available.
-    [link](https://github.com/apache/incubator-mxnet/issues/2033)
-    '''
-    mx.nd.waitall()
     # sa and sb are both copies rather than views.
     assert sa.iscontiguous() == True
     assert sb.iscontiguous() == True
@@ -87,32 +81,47 @@ def test_lib_continuous_np():
     c = np.empty((10, 10), dtype = dtype)
     sa = a[2:7, 3:8]
     sb = b[1:6, 4:9]
+    assert a.flags.c_contiguous == True
+    assert b.flags.c_contiguous == True
+    assert c.flags.c_contiguous == True
+    assert sa.flags.c_contiguous == False
+    assert sb.flags.c_contiguous == False
+    rc = sa + sb
+    wc = np.empty((8-3, 6-1), dtype = dtype)
+    assert wc.flags.c_contiguous == True
+    mobula_op.func.add(wc.size, sa, sb, wc)
+    assert_almost_equal(wc, rc)
     sc = c[3:8, 1:6]
+    assert sc.flags.c_contiguous == False
     mobula_op.func.add(sc.size, sa, sb, sc)
     tc = c[3:8, 1:6]
-    assert (tc == (sa + sb)).all(), (tc, (sa + sb))
+    assert tc.flags.c_contiguous == False
+    assert_almost_equal(sc, rc)
+    assert_almost_equal(tc, rc)
 
 '''
 def test_print_carray():
     mobula_op.func.print_carray((1.0, 2.0, 3.0))
 '''
 
-def test_assign():
+def test_assign_carray():
     dtype = np.float32
     N = 5
     v = np.random.random(size = N).astype(dtype)
     e = np.empty_like(v, dtype = dtype)
-    mobula_op.func.assign(v.tolist(), out = e)
+    mobula_op.func.assign_carray(v.tolist(), out = e)
     assert_almost_equal(v, e)
 
 def test_sum():
     dtype = np.float32
     N, C, H, W = 2, 3, 4, 5
-    num = 5
+    num = 4
     data = [np.random.random(size = (N, C, H, W)).astype(dtype) for _ in range(num)]
+    data = [np.ones_like(p) for p in data]
     target = np.sum(data, axis = 0)
     out = np.empty((N, C, H, W), dtype = dtype)
     mobula_op.func.sum(out.size, data, out)
+    print (target, out)
     assert_almost_equal(target, out)
 
 if __name__ == '__main__':

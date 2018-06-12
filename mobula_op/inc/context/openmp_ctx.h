@@ -5,8 +5,6 @@
 
 namespace mobula {
 
-#define KERNEL_LOOP(i,n) _Pragma("omp parallel for") \
-                         for (int i = 0;i < (n);++i)
 #define KERNEL_RUN(a, n) a
 
 template <typename Func>
