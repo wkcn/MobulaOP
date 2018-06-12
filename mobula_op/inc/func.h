@@ -40,11 +40,19 @@ MOBULA_KERNEL dot_kernel(const int n, const T *a, const T *b, const int U, const
 }
 
 template <typename T>
-MOBULA_KERNEL assign_kernel(const int n, const T *a, T *out) {
+MOBULA_KERNEL assign_carray_kernel(const int n, const T *a, T *out) {
     parfor(n, [&](int index) {
         out[index] = a[index];
     });
 }
+
+template <typename T>
+MOBULA_KERNEL assign_val_kernel(const int n, const T val, T *out) {
+    parfor(n, [&](int i) {
+        out[i] = val;
+    });
+}
+
 
 }
 
@@ -86,12 +94,25 @@ void print_carray(CArray<DType> ca) {
     std::cout << std::endl;
 }
 
-void assign(CArray<DType> a, DType *out) {
+void assign_carray(CArray<DType> a, DType *out) {
     const int N = a.size;
     auto sp = ctx_pointer<DType>(N, a.data);
     sp.set_ctx(CTX::DEVICE);
     const DType *pa = sp.pointer();
-    KERNEL_RUN(assign_kernel<DType>, N)(N, pa, out);
+    KERNEL_RUN(assign_carray_kernel<DType>, N)(N, pa, out);
+}
+
+void assign_val(const int n, const int val, DType *out) {
+    KERNEL_RUN(assign_val_kernel<DType>, n)(n, val, out);
+}
+
+void sum(const int n, CArray<DType*> a, DType *out) {
+    const int num_vars = a.size;
+    assign_val(n, 0, out);
+    for (int i = 0; i < num_vars; ++i) {
+        DType *e = a.data[i];
+        add(n, e, out, out);
+    }
 }
 
 }
