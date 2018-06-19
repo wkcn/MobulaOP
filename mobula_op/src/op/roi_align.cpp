@@ -1,7 +1,7 @@
 /*
     Adapted from caffe2: github.com/caffe2/caffe2
 */
-#include "operators/roi_align.h"
+#include "op/roi_align.h"
 #include "bilinear.h"
 
 namespace mobula {

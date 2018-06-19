@@ -96,7 +96,7 @@ if config.USING_OPENMP:
 if config.USING_HIGH_LEVEL_WARNINGS:
     CFLAGS.add_string('-Werror -Wall -Wextra -pedantic -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-include-dirs -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wundef -fdiagnostics-show-option')
 
-SRCS = wildcard(['src', 'src/operators'], 'cpp')
+SRCS = wildcard(['src', 'src/op'], 'cpp')
 OBJS = change_ext(SRCS, 'cpp', 'o')
 
 CU_SRCS = change_ext(SRCS, 'cpp', 'cu')

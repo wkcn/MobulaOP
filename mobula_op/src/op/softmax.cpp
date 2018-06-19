@@ -1,4 +1,4 @@
-#include "operators/softmax.h"
+#include "op/softmax.h"
 
 namespace mobula {
 
