@@ -1,5 +1,6 @@
 from .register import register
 import mobula_op
+from mobula_op.const import req
 
 @register
 class ROIAlign:
@@ -8,23 +9,23 @@ class ROIAlign:
         self.spatial_scale = spatial_scale
         self.sampling_ratio = sampling_ratio
     def forward(self, data, rois):
-        if self.req[0] == 'null':
+        if self.req[0] == req.null:
             return
         out = self.y
-        if self.req[0] == 'add':
+        if self.req[0] == req.add:
             out_temp = self.F.empty_like(out)
             mobula_op.func.roi_align_forward(out.size, data, self.spatial_scale, data.shape[1], data.shape[2], data.shape[3], self.pooled_size[0], self.pooled_size[1], self.sampling_ratio, rois, out_temp)
             self.y[:] += out_temp
         else:
             mobula_op.func.roi_align_forward(out.size, data, self.spatial_scale, data.shape[1], data.shape[2], data.shape[3], self.pooled_size[0], self.pooled_size[1], self.sampling_ratio, rois, self.y)
     def backward(self, dy):
-        if self.req[0] == 'null':
+        if self.req[0] == req.null:
             return
-        if self.req[0] != 'add':
+        if self.req[0] != req.add:
             self.dX[0][:] = 0
         data, rois = self.X
         mobula_op.func.roi_align_backward(dy.size, dy, rois.shape[0], self.spatial_scale, data.shape[1], data.shape[2], data.shape[3], self.pooled_size[0], self.pooled_size[1], self.sampling_ratio, self.dX[0], rois)
-        if self.req[1] != 'null' and self.req[1] != 'add':
+        if self.req[1] not in [req.null, req.add]:
             self.dX[1][:] = 0
     def infer_shape(self, in_shape):
         dshape, rshape = in_shape

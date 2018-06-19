@@ -1,5 +1,6 @@
 from .register import register
 import mobula_op
+from mobula_op.const import req
 
 @register
 class SoftmaxLoss:
@@ -17,7 +18,7 @@ class SoftmaxLoss:
             mobula_op.func.softmax_loss_forward(probs = self.y, labels = label, num_classes = middle_size, outer_size = outer_size, inner_size = inner_size, losses = losses)
             self.Y[1][:] = losses.sum() / self.num_valid
     def backward(self, dy, *args):
-        assert self.req[0] in ['write', 'inplace']
+        assert self.req[0] not in [req.null, req.add]
         self.dX[0][:] = 0
         outer_size, middle_size, inner_size = mobula_op.func.get_3loop_size(self.x.shape, self.axis)
         mobula_op.func.softmax_loss_backward(probs = self.y, labels = self.X[1], num_classes = middle_size, outer_size = outer_size, inner_size = inner_size, dX = self.dx)
