@@ -86,12 +86,12 @@ using namespace mobula;
         KERNEL_RUN((binary_kernel<DType, decltype(_func)>), _n)(_n, _a, _b, _out, _func);\
     } \
 
-REGISTER_UNARY_FUNC(abs_, [](const DType &a){return abs(a);})
+REGISTER_UNARY_FUNC(abs_, []MOBULA_DEVICE(const DType &a){return abs(a);})
 
-REGISTER_BINARY_FUNC(add, [](const DType &a, const DType &b){return a + b;})
-REGISTER_BINARY_FUNC(sub, [](const DType &a, const DType &b){return a - b;})
-REGISTER_BINARY_FUNC(mul, [](const DType &a, const DType &b){return a * b;})
-REGISTER_BINARY_FUNC(div_, [](const DType &a, const DType &b){return a / b;})
+REGISTER_BINARY_FUNC(add, []MOBULA_DEVICE(const DType &a, const DType &b){return a + b;})
+REGISTER_BINARY_FUNC(sub, []MOBULA_DEVICE(const DType &a, const DType &b){return a - b;})
+REGISTER_BINARY_FUNC(mul, []MOBULA_DEVICE(const DType &a, const DType &b){return a * b;})
+REGISTER_BINARY_FUNC(div_, []MOBULA_DEVICE(const DType &a, const DType &b){return a / b;})
 
 void dot(const DType *a, const DType *b, const int I, const int U, const int K, const int M, DType *out) {
     const int N = I * K * M;
@@ -100,7 +100,7 @@ void dot(const DType *a, const DType *b, const int I, const int U, const int K, 
 
 void print_carray(CArray<DType> ca) {
     bool first = true;
-    for (int i = 0; i < ca.size; ++i) {
+    for (size_t i = 0; i < ca.size; ++i) {
         if (!first) std::cout << ", ";
         first = false;
         std::cout << ca.data[i];
@@ -134,11 +134,11 @@ void transpose(const DType *a, CArray<int> shape, CArray<int> axes, DType *out) 
     ctx_pointer<int> new_strides(shape.size);
     int *strides = new int[shape.size];
     int n = 1;
-    for (int i = shape.size - 1; i >= 0; --i) {
+    for (size_t i = shape.size; i-- > 0;) {
         strides[i] = n;
         n *= shape[i];
     }
-    for (int i = 0; i < axes.size; ++i) {
+    for (size_t i = 0; i < axes.size; ++i) {
         int j = axes[i];
         new_shape[i] = shape[j];
         new_strides[i] = strides[j];

@@ -9,13 +9,15 @@
 #include "context/cpu_ctx.h"
 #endif // USING_CUDA
 
+namespace mobula {
+
 enum class CTX {
     HOST,
     DEVICE
 };
 
 template<typename T>
-T* MemcpyHostToHost(T *dst, const T *src, int size) {
+T* MemcpyHostToHost(T *dst, const T *src, size_t size) {
     if (dst == src) return dst;
     return static_cast<T*>(memcpy(dst, src, size));
 }
@@ -24,7 +26,7 @@ template <typename T>
 class ctx_pointer{
 
 public:
-    ctx_pointer(const int data_size = 0, T *host_pointer = nullptr):_size(data_size), _host_pointer(host_pointer), _dev_pointer(nullptr), _current_pointer(host_pointer), _ctx(CTX::HOST) {
+    ctx_pointer(size_t data_size = 0, T *host_pointer = nullptr):_size(data_size), _host_pointer(host_pointer), _dev_pointer(nullptr), _current_pointer(host_pointer), _ctx(CTX::HOST) {
         _host_pointer_owner = false;
         _dev_pointer_owner = false;
         set_ctx(CTX::HOST, true);
@@ -37,7 +39,7 @@ public:
             xdel(_dev_pointer);
         }
     }
-    int size() const {
+    size_t size() const {
         return _size;
     }
     ctx_pointer(const ctx_pointer &p) {
@@ -109,7 +111,7 @@ private:
         _dev_pointer_owner = false;
         _dev_pointer = new_dev_pointer;
     }
-    void resize(int data_size) {
+    void resize(size_t data_size) {
         _size = data_size;
     }
     void sync_to_host() {
@@ -139,13 +141,15 @@ private:
         return _dev_pointer;
     }
 private:
-    int _size;
+    size_t _size;
     T *_host_pointer;
     T *_dev_pointer;
     T *_current_pointer;
     bool _host_pointer_owner, _dev_pointer_owner;
     CTX _ctx;
 };
+
+} // namespace mobula
 
 // C API
 extern "C" {

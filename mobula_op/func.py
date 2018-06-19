@@ -18,7 +18,7 @@ IN = lambda x : x
 OUT = lambda x : x
 
 class CArray(ctypes.Structure):
-    _fields_ = [('size', ctypes.c_int), ('data', ctypes.c_void_p)]
+    _fields_ = [('size', ctypes.c_size_t), ('data', ctypes.c_void_p)]
 
 class MobulaFunc:
     TYPE_TO_CTYPE = {int:ctypes.c_int, float:ctypes.c_float, IN:ctypes.c_void_p, OUT:ctypes.c_void_p, None:None}
@@ -68,17 +68,12 @@ class MobulaFunc:
                     else: # P == IN
                         temp_list.append(pa[1]) # hold a reference
                     pa = pa[0]
-                aid = backend.dev_id(a)
-
-                if aid is not None:
-                    if dev_id is not None:
-                        assert aid == dev_id, ValueError("Don't use multiple devices in a call :-(")
-                    else:
-                        dev_id = aid
+                dev_id = backend.dev_id(a)
             else:
                 ta = backend.convert_type(a) if hasattr(backend, 'convert_type') else a
                 pa = p(ta)
-            return pa
+                dev_id = None
+            return pa, dev_id
 
         # Pre-Check
         def check_backend(a, backend):
@@ -99,7 +94,17 @@ class MobulaFunc:
         for a, p in zip(args_gen(), self.par_type):
             if isinstance(p, (list, tuple)):
                 ep = p[0]
-                pas = [analyze_element(e, ep, *extra_pars) for e in a]
+                analysis = [analyze_element(e, ep, *extra_pars) for e in a]
+                pas = [a[0] for a in analysis]
+
+                for a in analysis:
+                    aid = a[1]
+                    if aid is not None:
+                        if dev_id is not None:
+                            assert aid == dev_id, ValueError("Don't use multiple devices in a call :-(")
+                        else:
+                            dev_id = aid
+
                 if ep == int:
                     ctype = ctypes.c_int
                 elif ep == float:
@@ -111,8 +116,14 @@ class MobulaFunc:
                 ca.data = ctypes.cast((ctype * len(pas))(*pas), ctypes.c_void_p)
                 args_new.append(ca)
             else:
-                pa = analyze_element(a, p, *extra_pars)
+                pa, aid = analyze_element(a, p, *extra_pars)
                 args_new.append(pa)
+
+                if aid is not None:
+                    if dev_id is not None:
+                        assert aid == dev_id, ValueError("Don't use multiple devices in a call :-(")
+                    else:
+                        dev_id = aid
 
         if backend is not None:
             assert backend is not None, ValueError("No parameter about backend:-(")

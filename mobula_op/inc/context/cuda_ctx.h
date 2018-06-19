@@ -10,7 +10,7 @@ namespace mobula {
 #define CUDA_GET_BLOCKS(n) ((n) + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS
 
 #define MOBULA_KERNEL __global__ void
-#define MOBULA_DEVICE __device__ __host__
+#define MOBULA_DEVICE __device__
 #define KERNEL_RUN(a, n) (a)<<<CUDA_GET_BLOCKS(n), CUDA_NUM_THREADS>>>
 
 #define CUDA_CHECK(condition) \
@@ -23,15 +23,15 @@ namespace mobula {
   } while (0)
 
 template <typename T>
-inline MOBULA_DEVICE T atomic_add(const T val, T* address);
+inline __device__ T atomic_add(const T val, T* address);
 
 template <>
-inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
+inline __device__ float atomic_add(const float val, float* address) {
   return atomicAdd(address, val);
 }
 
 template<typename T>
-T* xnew(const int size) {
+T* xnew(size_t size) {
 	T *p;
 	cudaMalloc((void **)&p, sizeof(T) * size);
 	return p;
@@ -43,18 +43,21 @@ void xdel(T *p) {
 }
 
 template<typename T>
-T* MemcpyHostToDev(T *dst, const T *src, int size) {
-    return cudaMemcpy(dst, host, size, cudaMemcpyHostToDevice);
+T* MemcpyHostToDev(T *dst, const T *src, size_t size) {
+    cudaMemcpy(dst, src, size, cudaMemcpyHostToDevice);
+    return dst;
 }
 
 template<typename T>
-T* MemcpyDevToHost(T *dst, const T *src, int size) {
-    return cudaMemcpy(dst, host, size, cudaMemcpyDeviceToHost);
+T* MemcpyDevToHost(T *dst, const T *src, size_t size) {
+    cudaMemcpy(dst, src, size, cudaMemcpyDeviceToHost);
+    return dst;
 }
 
 template<typename T>
-T* MemcpyDevToDev(T *dst, const T *src, int size) {
-    return cudaMemcpy(dst, host, size, cudaMemcpyDeviceToDevice);
+T* MemcpyDevToDev(T *dst, const T *src, size_t size) {
+    cudaMemcpy(dst, src, size, cudaMemcpyDeviceToDevice);
+    return dst;
 }
 
 // parfor for cuda device should be called in cuda kernel.

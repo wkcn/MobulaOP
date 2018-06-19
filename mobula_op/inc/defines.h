@@ -22,7 +22,7 @@ typedef float DType;
 
 template<typename T = DType>
 struct CArray{
-    int size;
+    size_t size;
     T* data;
     T& operator[](int i) {return data[i];}
     T& operator[](int i) const {return data[i];}

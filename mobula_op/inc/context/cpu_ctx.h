@@ -33,10 +33,8 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
 }
 #endif
 
-}
-
 template<typename T>
-T* xnew(const int size) {
+T* xnew(size_t size) {
     return new T[size];
 }
 
@@ -46,22 +44,24 @@ void xdel(T *p) {
 }
 
 template<typename T>
-T* MemcpyHostToDev(T *dst, const T *src, int size) {
+T* MemcpyHostToDev(T *dst, const T *src, size_t size) {
     if (dst == src) return dst;
     return static_cast<T*>(memcpy(dst, src, size));
 }
 
 template<typename T>
-T* MemcpyDevToHost(T *dst, const T *src, int size) {
+T* MemcpyDevToHost(T *dst, const T *src, size_t size) {
     if (dst == src) return dst;
     return static_cast<T*>(memcpy(dst, src, size));
 }
 
 template<typename T>
-T* MemcpyDevToDev(T *dst, const T *src, int size) {
+T* MemcpyDevToDev(T *dst, const T *src, size_t size) {
     if (dst == src) return dst;
     return static_cast<T*>(memcpy(dst, src, size));
 }
+
+} // namespace mobula
 
 #if USING_OPENMP
 #include "openmp_ctx.h"
