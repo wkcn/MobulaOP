@@ -57,7 +57,6 @@ functions = dict(
         num_classes = int,
         outer_size = int,
         inner_size = int,
-        grad_scale = float,
         dX = OUT : None,
 )
 func.bind(functions)

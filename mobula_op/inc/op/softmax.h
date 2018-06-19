@@ -29,7 +29,6 @@ void softmax_loss_backward(
     const int num_classes,
     const int outer_size,
     const int inner_size,
-    const DType grad_scale,
     DType *dX);
 
 }

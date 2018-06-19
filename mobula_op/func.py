@@ -10,8 +10,13 @@ class MobulaFuncLib:
         lib_path = os.path.join(os.path.dirname(__file__), 'build/mobula_op')
         cpu_lib_fname = "%s_cpu.so" % lib_path
         gpu_lib_fname = "%s_gpu.so" % lib_path
-        self.cpu_lib = ctypes.CDLL(cpu_lib_fname)
-        self.gpu_lib = ctypes.CDLL(gpu_lib_fname) if os.path.exists(gpu_lib_fname) else None
+        self.cpu_lib = self.load_dll(cpu_lib_fname)
+        self.gpu_lib = self.load_dll(gpu_lib_fname)
+    @staticmethod
+    def load_dll(dll_fname):
+        if os.path.exists(dll_fname):
+            return ctypes.CDLL(dll_fname)
+        return None
 
 func_lib = MobulaFuncLib()
 IN = lambda x : x
@@ -70,8 +75,7 @@ class MobulaFunc:
                     pa = pa[0]
                 dev_id = backend.dev_id(a)
             else:
-                ta = backend.convert_type(a) if hasattr(backend, 'convert_type') else a
-                pa = p(ta)
+                pa = p(a)
                 dev_id = None
             return pa, dev_id
 
