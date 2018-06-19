@@ -58,5 +58,10 @@ functions = dict(
         outer_size = int,
         inner_size = int,
         dX = OUT : None,
+
+    im2col = lambda data_im = IN, channels = int, height = int, width = int, kernel_h = int, kernel_w = int, pad_h = int, pad_w = int, stride_h = int, stride_w = int, dilation_h = int, dilation_w = int, data_col = OUT : None,
+
+    col2im = lambda data_col = IN, channels = int, height = int, width = int, kernel_h = int, kernel_w = int, pad_h = int, pad_w = int, stride_h = int, stride_w = int, dilation_h = int, dilation_w = int, data_im = OUT : None,
+
 )
 func.bind(functions)
