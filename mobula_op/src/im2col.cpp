@@ -75,7 +75,7 @@ MOBULA_KERNEL col2im_kernel(const int n, const T* data_col,
         }
       }
     }
-    data_im[index] += val;
+    data_im[index] = val;
   });
 }
 
@@ -107,7 +107,7 @@ void col2im(const DType *data_col, const int channels,
       stride_w + 1;
   int num_kernels = channels * height * width;
   KERNEL_RUN(col2im_kernel<DType>, num_kernels)(num_kernels, data_col,
-          height, width, channels, kernel_h, kernel_w,
+          channels, height, width, kernel_h, kernel_w,
           pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
           height_col, width_col, data_im);
 }

@@ -19,7 +19,7 @@ class FullyConnected:
             out = data @ weight.T + bias
         '''
         for r in self.req:
-            assert r in [req.write, req.inplace]
+            assert r != req.add
         if self.flatten and self.x.ndim != 2:
             x = self.x.reshape((self.x.shape[0], -1)) # (batch_size, input_dim)
         else:

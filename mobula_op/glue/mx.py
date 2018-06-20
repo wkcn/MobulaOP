@@ -12,7 +12,7 @@ def nd_iscontiguous(v):
     diffp = cp_end.value - cp.value
     return diffp == (v.size - 1) * 4
 
-mx.nd.empty_like = lambda x : mx.nd.empty(x.shape)
+mx.nd.empty_like = lambda x : mx.nd.empty(x.shape, dtype = np.float32)
 mx.nd.NDArray.iscontiguous = nd_iscontiguous
 
 def get_pointer(v):
