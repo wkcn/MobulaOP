@@ -3,9 +3,13 @@ import sys
 import functools
 import yaml
 from easydict import EasyDict as edict
+import threading
 import multiprocessing
-import multiprocessing.queues
 import hashlib
+try:
+    import Queue
+except ImportError:
+    import queue as Queue
 
 def save_code_hash(obj, fname):
     with open(fname, 'w') as f:
@@ -133,25 +137,20 @@ def file_is_latest(source, target):
         return False
     return os.path.exists(target)
 
-class ProcessQueue(multiprocessing.queues.Queue):
-    def __init__(self):
-        if sys.version_info[0] <= 2:
-            super(ProcessQueue, self).__init__()
-        else:
-            super(ProcessQueue, self).__init__(ctx = multiprocessing.get_context())
-
 def run_command_parallel(commands):
-    command_queue = ProcessQueue()
+    command_queue = Queue.Queue()
     for c in commands:
         command_queue.put(c)
     max_worker_num = min(config.MAX_BUILDING_WORKER_NUM, len(commands))
+    for _ in range(max_worker_num):
+        command_queue.put(None)
     def worker(command_queue):
         while not command_queue.empty():
             e = command_queue.get()
             if e is None:
                 break
             run_command(e)
-    workers = [multiprocessing.Process(target = worker, args = (command_queue,)) for _ in range(max_worker_num)]
+    workers = [threading.Thread(target = worker, args = (command_queue,)) for _ in range(max_worker_num)]
     for w in workers:
         w.daemon = True
     for w in workers:
