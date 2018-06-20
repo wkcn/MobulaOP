@@ -25,6 +25,8 @@ def get_in_data(*args, **kwargs):
     op = kwargs.pop('op')
     input_names = get_varnames(op.forward)
     num_inputs = len(input_names)
+    defaults = getargspec(op.forward).defaults
+    num_defaults = len(defaults) if defaults is not None else 0
     if num_inputs > 0:
         # define input variances in the forward function
         # And the input variances may be in args or kwargs
@@ -38,10 +40,18 @@ def get_in_data(*args, **kwargs):
                 assert input_names[i] not in kwargs
                 inputs[i] = a
             # the rest of parameters
-            for i in range(len(args), num_inputs):
+            for i in range(len(args), num_inputs - num_defaults):
                 name = input_names[i]
                 assert name in kwargs, "Variable %s not found" % name
                 inputs[i] = kwargs.pop(name)
+            num_valid_inputs = num_inputs - num_defaults
+            for i in range(num_inputs - num_defaults, num_inputs):
+                name = input_names[i]
+                if name not in kwargs:
+                    break
+                inputs[i] = kwargs.pop(name)
+                num_valid_inputs += 1
+            inputs = inputs[:num_valid_inputs]
             pars = [[], kwargs]
     else:
         # The input variances are in args.

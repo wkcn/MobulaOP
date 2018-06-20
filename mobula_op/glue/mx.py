@@ -108,15 +108,22 @@ class OpGen(object):
                 return ['output%d' % i for i in range(num_outputs)]
             def create_operator(self, ctx, shapes, dtypes):
                 return mx_op(*self._args, **self._kwargs)
+
+            mx_prop_dict = dict(
+                __init__ = __init__,
+                list_arguments = lambda self : get_varnames(op.forward),
+                list_outputs = lambda self : list_outputs(self, op.backward),
+                infer_shape = op.infer_shape,
+                create_operator = create_operator
+            )
+            optional_list = ['list_arguments', 'list_outputs']
+            for o in optional_list:
+                if hasattr(op, o):
+                    mx_prop_dict[o] = getattr(op, o)
+
             mx_prop = type('_%s_MX_OP_PROP' % op_name,
                 (mx.operator.CustomOpProp, op),
-                dict(
-                    __init__ = __init__,
-                    list_arguments = lambda self : get_varnames(op.forward),
-                    list_outputs = lambda self : list_outputs(self, op.backward),
-                    infer_shape = op.infer_shape,
-                    create_operator = create_operator
-                )
+                mx_prop_dict,
             )
             return mx_prop
 

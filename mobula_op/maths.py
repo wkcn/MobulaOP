@@ -3,8 +3,7 @@ import operator
 from . import func
 from . import glue
 
-def unary_op(f, a, **kwargs):
-    out = kwargs.get('out', None)
+def unary_op(f, a, out = None):
     if out is None:
         backend = glue.backend.get_var_backend(a)
         out = backend.F.empty_like(a, dtype = a.dtype)
@@ -13,11 +12,10 @@ def unary_op(f, a, **kwargs):
     f(a.size, a, out)
     return out
 
-def binary_op(f, a, b, **kwargs):
+def binary_op(f, a, b, out = None):
     assert type(a) == type(b)
     assert a.shape == b.shape
     # [TODO] broadcast
-    out = kwargs.get('out', None)
     if out is None:
         backend = glue.backend.get_var_backend(a)
         out = backend.F.empty_like(a, dtype = a.dtype)
@@ -33,7 +31,7 @@ sub = functools.partial(binary_op, func.sub)
 mul = functools.partial(binary_op, func.mul)
 div = functools.partial(binary_op, func.div)
 
-def dot(a, b, **kwargs):
+def dot(a, b, out = None):
     assert a.ndim >= 2 and b.ndim >= 2
     U = a.shape[-1]
     assert b.shape[-2] == U
@@ -41,7 +39,6 @@ def dot(a, b, **kwargs):
     M = bshape[-1]
     I = a.size / U
     K = b.size / (bshape[-1] * U)
-    out = kwargs.get('out', None)
     out_shape = a.shape[:-1] + b.shape[:-2] + (b.shape[-1], )
     if out is None:
         backend = glue.backend.get_var_backend(a)
@@ -51,7 +48,7 @@ def dot(a, b, **kwargs):
     func.dot(a, b, I, U, K, M, out)
     return out
 
-def transpose(data, axes, **kwargs):
+def transpose(data, axes, out = None):
     assert data.ndim == len(axes)
     vis = [False for _ in range(data.ndim)]
     for a in axes:
@@ -59,7 +56,6 @@ def transpose(data, axes, **kwargs):
         assert vis[a] == False
         vis[a] = True
     out_shape = [data.shape[i] for i in axes]
-    out = kwargs.get('out', None)
     if out is None:
         backend = glue.backend.get_var_backend(data)
         out = backend.F.empty(out_shape, dtype = data.dtype)

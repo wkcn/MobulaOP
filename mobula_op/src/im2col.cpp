@@ -111,3 +111,4 @@ void col2im(const DType *data_col, const int channels,
           pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
           height_col, width_col, data_im);
 }
+
