@@ -5,6 +5,7 @@
 #include <mutex>
 #include <cmath>
 #include <cstring>
+#include <algorithm>
 
 namespace mobula {
 
