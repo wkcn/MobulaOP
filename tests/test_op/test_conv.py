@@ -33,10 +33,9 @@ def check_conv(data, weight, bias, kernel, stride, dilate, pad, num_filter, no_b
 
     assert_almost_equal(out.asnumpy(), out_mx.asnumpy())
     for o, m in zip(our_data, mx_data):
-        assert_almost_equal(o.grad.asnumpy(), m.grad.asnumpy(), atol = 5e-4)
+        assert_almost_equal(o.grad.asnumpy(), m.grad.asnumpy(), atol = 2e-5)
 
 def test_forward():
-
     N, C, H, W = 2, 3, 10, 15
     K = 3
     num_filter = 2

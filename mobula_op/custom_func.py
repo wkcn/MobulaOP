@@ -7,7 +7,7 @@ functions = dict(
     mul = lambda n = int, a = IN, b = IN, out = OUT : None,
     div = ('div_', lambda n = int, a = IN, b = IN, out = OUT : None),
     abs = ('abs_', lambda n = int, a = IN, out = OUT : None),
-    dot = ('dot', lambda a = IN, b = IN, I = int, U = int, K = int, M = int, out = OUT : None),
+    dot_add = lambda a = IN, b = IN, I = int, U = int, K = int, M = int, out = OUT : None,
     print_carray = lambda data = [float] : None,
     assign_carray = lambda data = [float], out = OUT : None,
     assign_val = lambda n = int, val = float, out = OUT : None,

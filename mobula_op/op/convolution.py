@@ -11,18 +11,20 @@ class Convolution:
         assert len(dilate) == 2
         assert len(pad) == 2
         assert num_filter > 0
-        self.kernel = kernel
-        self.stride = stride
-        self.dilate = dilate
-        self.pad = pad
         self.num_filter = num_filter
         self.no_bias = no_bias
+
+        self.kernel_h, self.kernel_w = kernel
+        self.pad_h, self.pad_w = pad
+        self.dilation_h, self.dilation_w = dilate
+        self.stride_h, self.stride_w = stride
+
     def forward(self, data, weight, bias = None):
         '''
         data: (batch_size, channels, height, width)
-        weight: (num_filter, channels, kernel_h, kernel_w)
+        weight: (num_filter, channels, self.kernel_h, self.kernel_w)
         bias: (num_filter, )
-        data_col: (batch_size, channels * kernel_h * kernel_w, height_col * width_col) 
+        data_col: (batch_size, channels * self.kernel_h * self.kernel_w, height_col * width_col)
         out: (batch_size, num_filter, height_col, width_col)
         out = weight_reshape @ data_col + bias
         '''
@@ -30,24 +32,17 @@ class Convolution:
             assert r != req.add 
 
         batch_size, channels, height, width = data.shape
-
-        kernel_h, kernel_w = self.kernel
-        pad_h, pad_w = self.pad
-        dilation_h, dilation_w = self.dilate
-        stride_h, stride_w = self.stride
-
         height_col, width_col = self.y.shape[2:4]
-        num_kernels = channels * height_col * width_col
 
         if not hasattr(self, 'data_col'):
-            self.data_col = self.F.empty((batch_size, channels * kernel_h * kernel_w, height_col * width_col), dtype = np.float32)
-        mobula_op.func.im2col(data, batch_size * channels, height, width, kernel_h, kernel_w,
-                pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, self.data_col)
-        # weight_reshape: (num_filter, channels * kernel_h * kernel_w)
+            self.data_col = self.F.empty((batch_size, channels * self.kernel_h * self.kernel_w, height_col * width_col), dtype = np.float32)
+        mobula_op.func.im2col(data, batch_size * channels, height, width, self.kernel_h, self.kernel_w,
+                self.pad_h, self.pad_w, self.stride_h, self.stride_w, self.dilation_h, self.dilation_w, self.data_col)
+        # weight_reshape: (num_filter, channels * self.kernel_h * self.kernel_w)
         weight_reshape = weight.reshape((weight.shape[0], -1))
-        y_reshape = self.y.reshape((self.num_filter, batch_size, height_col * width_col))
-        mobula_op.math.dot(weight_reshape, self.data_col, out = y_reshape)
-        self.y[:] = self.F.transpose(y_reshape, (1, 0, 2)).reshape((batch_size, self.num_filter, height_col, width_col))
+        y_reshape = self.y.reshape((batch_size, self.num_filter, height_col * width_col))
+        for b in range(batch_size):
+            self.F.dot(weight_reshape, self.data_col[b], out = y_reshape[b])
 
         if not self.no_bias:
             self.y[:] += bias.reshape((1, self.num_filter, 1, 1)) 
@@ -59,34 +54,22 @@ class Convolution:
         dx, dw = self.dX[:2]
 
         batch_size, channels, height, width = data.shape
-
-        kernel_h, kernel_w = self.kernel
-        pad_h, pad_w = self.pad
-        dilation_h, dilation_w = self.dilate
-        stride_h, stride_w = self.stride
-
         height_col, width_col = self.y.shape[2:4]
-        num_kernels = channels * height_col * width_col
 
-        # dw
-        # data_col_transpose: batch_size * height_col * width_col, channels * kernel_h * kernel_w)
-        data_col_transpose = self.data_col.transpose((0, 2, 1)).reshape((-1, channels * kernel_h * kernel_w))
-        # dy_transpose: (num_filter, batch_size * height_col * width_col) 
-        dy_transpose = dy.transpose((1, 0, 2, 3)).reshape((self.num_filter, -1))
-        self.F.dot(dy_transpose, data_col_transpose, out = dw.reshape((self.num_filter, -1)))
-
-        # dx
-        # use self.data_col as buffer
-        # (batch_size, height_col, width_col, channels, kernel_h, kernel_w)
-        data_col_reshape = self.data_col.reshape((batch_size, height_col, width_col, channels, kernel_h, kernel_w))
-        mobula_op.math.tensordot(dy, weight, axes = ([1], [0]), out = data_col_reshape)
-
-        # (batch_size, channels * kernel_h * kernel_w, height_col * width_col)
-        data_col_transpose = data_col_reshape.reshape((batch_size, height_col * width_col, channels * kernel_h * kernel_w)).transpose((0, 2, 1))
-
-        mobula_op.func.col2im(data_col_transpose, batch_size * channels, height, width,
-                kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w,
-                dilation_h, dilation_w, dx)
+        dy_reshape = dy.reshape((batch_size, self.num_filter, -1))
+        dw_reshape = dw.reshape((self.num_filter, -1))
+        weight_reshape = weight.reshape((self.num_filter, -1))
+        for b in range(batch_size):
+            data_col_b = self.data_col[b]
+            dy_b = dy_reshape[b]
+            req_value = mobula_op.const.req.add if b > 0 else mobula_op.const.req.write
+            # dw
+            mobula_op.math.dot(dy_b, data_col_b.T, out = dw_reshape, req = req_value)
+            # dx
+            self.F.dot(weight_reshape.T, dy_b, out = data_col_b)
+        mobula_op.func.col2im(self.data_col, batch_size * channels, height, width,
+                self.kernel_h, self.kernel_w, self.pad_h, self.pad_w, self.stride_h, self.stride_w,
+                self.dilation_h, self.dilation_w, dx)
 
         if not self.no_bias:
             self.dX[2][:] = dy.sum((0, 2, 3)).reshape_like(self.dX[2][:])
@@ -95,22 +78,16 @@ class Convolution:
         assert len(in_shape[0]) == 4
         batch_size, channels, height, width = in_shape[0]
 
-        kernel_h, kernel_w = self.kernel
-        pad_h, pad_w = self.pad
-        dilation_h, dilation_w = self.dilate
-        stride_h, stride_w = self.stride
-
-        height_col = (height + 2 * pad_h -
-          (dilation_h * (kernel_h - 1) + 1)) // stride_h + 1
-        width_col = (width + 2 * pad_w -
-          (dilation_w * (kernel_w - 1) + 1)) // stride_w + 1
-        num_kernels = channels * height_col * width_col
+        height_col = (height + 2 * self.pad_h -
+          (self.dilation_h * (self.kernel_h - 1) + 1)) // self.stride_h + 1
+        width_col = (width + 2 * self.pad_w -
+          (self.dilation_w * (self.kernel_w - 1) + 1)) // self.stride_w + 1
 
         wshape = in_shape[1]
         assert wshape[0] == self.num_filter
         assert wshape[1] == channels
-        assert wshape[2] == kernel_h 
-        assert wshape[3] == kernel_w 
+        assert wshape[2] == self.kernel_h
+        assert wshape[3] == self.kernel_w
 
         if not self.no_bias:
             assert len(in_shape) == 3

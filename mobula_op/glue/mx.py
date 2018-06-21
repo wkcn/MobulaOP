@@ -12,7 +12,7 @@ def nd_iscontiguous(v):
     diffp = cp_end.value - cp.value
     return diffp == (v.size - 1) * 4
 
-mx.nd.empty_like = lambda x : mx.nd.empty(x.shape, dtype = np.float32)
+mx.nd.empty_like = lambda x : mx.nd.empty(x.shape, dtype = x.dtype)
 mx.nd.NDArray.iscontiguous = nd_iscontiguous
 
 def get_pointer(v):
@@ -107,7 +107,9 @@ class OpGen(object):
                     return ['output']
                 return ['output%d' % i for i in range(num_outputs)]
             def create_operator(self, ctx, shapes, dtypes):
-                return mx_op(*self._args, **self._kwargs)
+                with ctx:
+                    rtn = mx_op(*self._args, **self._kwargs)
+                return rtn
 
             mx_prop_dict = dict(
                 __init__ = __init__,

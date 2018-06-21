@@ -2,6 +2,7 @@ import functools
 import operator
 from . import func
 from . import glue
+from . import const
 
 def is_same_shape(a, b):
     return tuple(a) == tuple(b)
@@ -34,7 +35,7 @@ sub = functools.partial(binary_op, func.sub)
 mul = functools.partial(binary_op, func.mul)
 div = functools.partial(binary_op, func.div)
 
-def dot(a, b, out = None):
+def dot(a, b, out = None, req = const.req.write):
     '''
     dot(a, b)[i,j,k,m] = sum(a[i,j,:] * b[k,:,m])
     numpy.dot and mxnet.nd.dot are different.
@@ -51,10 +52,12 @@ def dot(a, b, out = None):
     out_shape = a.shape[:-1] + b.shape[:-2] + (b.shape[-1], )
     if out is None:
         backend = glue.backend.get_var_backend(a)
-        out = backend.F.empty(out_shape, dtype = a.dtype)
+        out = backend.F.zeros(out_shape, dtype = a.dtype)
     else:
         assert is_same_shape(out.shape, out_shape)
-    func.dot(a, b, I, U, K, M, out)
+        if req != const.req.add:
+            out[:] = 0
+    func.dot_add(a, b, I, U, K, M, out)
     return out
 
 def transpose(data, axes, out = None):
