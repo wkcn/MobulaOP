@@ -29,11 +29,11 @@ MOBULA_KERNEL binary_kernel(const int n, const T *a, const T *b, T *out, BINARY_
 template <typename T>
 MOBULA_KERNEL dot_add_kernel(const int n, const T *a, const T *b, const int U, const int K, const int M, T *out) {
     parfor(n, [&](int index) {
-        const int i = index / (K * M);
-        const int k = (index / M) % K;
-        const int m = index % M;
-        for (int u = 0; u < U; ++u) {
-            out[index] += a[i * U + u] * b[(k * U + u) * M + m];
+        const int i = index / (K * U);
+        const int k = (index / U) % K;
+        const int u = index % U;
+        for (int m = 0; m < M; ++m) {
+            out[(i * K + k) * M + m] += a[i * U + u] * b[(k * U + u) * M + m];
         }
     });
 }
@@ -93,7 +93,7 @@ REGISTER_BINARY_FUNC(mul, []MOBULA_DEVICE(const DType &a, const DType &b){return
 REGISTER_BINARY_FUNC(div_, []MOBULA_DEVICE(const DType &a, const DType &b){return a / b;})
 
 void dot_add(const DType *a, const DType *b, const int I, const int U, const int K, const int M, DType *out) {
-    const int N = I * K * M;
+    const int N = I * K * U;
     KERNEL_RUN(dot_add_kernel<DType>, N)(N, a, b, U, K, M, out);
 }
 
