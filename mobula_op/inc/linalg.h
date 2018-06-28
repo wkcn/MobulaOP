@@ -60,23 +60,39 @@ extern "C" {
 using namespace mobula;
 
 void linalg_gemm_ff(const DType *a, const DType *b, const int I, const int U, const int J, DType *out) {
+#if not USING_CBLAS
     const int N = I;
     KERNEL_RUN(linalg_gemm_ff_kernel<DType>, N)(N, a, b, U, J, out);
+#else
+    blas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, I, J, U, 1.0f, a, U, b, J, 1.0f, out, J);
+#endif
 }
 
 void linalg_gemm_ft(const DType *a, const DType *b, const int I, const int U, const int J, DType *out) {
+#if not USING_CBLAS
     const int N = I;
     KERNEL_RUN(linalg_gemm_ft_kernel<DType>, N)(N, a, b, U, J, out);
+#else
+    blas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, I, J, U, 1.0f, a, U, b, U, 1.0f, out, J);
+#endif
 }
 
 void linalg_gemm_tf(const DType *a, const DType *b, const int I, const int U, const int J, DType *out) {
+#if not USING_CBLAS
     const int N = U;
     KERNEL_RUN(linalg_gemm_tf_kernel<DType>, N)(N, a, b, I, J, out);
+#else
+    blas_sgemm(CblasRowMajor, CblasTrans, CblasNoTrans, I, J, U, 1.0f, a, I, b, J, 1.0f, out, J);
+#endif
 }
 
 void linalg_gemm_tt(const DType *a, const DType *b, const int I, const int U, const int J, DType *out) {
+#if not USING_CBLAS
     const int N = J;
     KERNEL_RUN(linalg_gemm_tt_kernel<DType>, N)(N, a, b, I, U, J, out);
+#else
+    blas_sgemm(CblasRowMajor, CblasTrans, CblasTrans, I, J, U, 1.0f, a, I, b, U, 1.0f, out, J);
+#endif
 }
 
 }

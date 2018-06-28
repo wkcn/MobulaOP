@@ -87,8 +87,10 @@ COMMON_FLAGS = Flags().add_definition('HOST_NUM_THREADS', host_num_threads)
 if config.USING_OPTIMIZATION:
     COMMON_FLAGS.add_string('-O3')
 
-CFLAGS = Flags('-std=c++11 -Iinc -fPIC').add_definition('USING_CUDA', 0).add_definition('USING_OPENMP', config.USING_OPENMP).add_string(COMMON_FLAGS)
+CFLAGS = Flags('-std=c++11 -Iinc -fPIC').add_definition('USING_CUDA', 0).add_definition('USING_OPENMP', config.USING_OPENMP).add_definition('USING_CBLAS', config.USING_CBLAS).add_string(COMMON_FLAGS)
 LDFLAGS = Flags('-lpthread -shared')
+if config.USING_CBLAS:
+    LDFLAGS.add_string('-lcblas')
 
 CU_FLAGS = Flags('-std=c++11 -Iinc -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC" --expt-extended-lambda').add_definition('USING_CUDA', 1).add_string(COMMON_FLAGS)
 CU_LDFLAGS = Flags('-lpthread -shared -Wno-deprecated-gpu-targets -L%s/lib64 -lcuda -lcudart -lcublas' % config.CUDA_DIR)

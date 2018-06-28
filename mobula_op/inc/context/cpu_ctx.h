@@ -7,6 +7,11 @@
 #include <cstring>
 #include <algorithm>
 
+#if USING_CBLAS
+#include <cblas.h>
+#define blas_sgemm cblas_sgemm
+#endif
+
 namespace mobula {
 
 #define MOBULA_KERNEL void
