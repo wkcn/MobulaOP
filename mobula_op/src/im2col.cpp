@@ -5,6 +5,11 @@
 #include "im2col.h"
 
 namespace mobula {
+
+inline MOBULA_DEVICE bool is_a_ge_zero_and_a_lt_b(int a, int b) {
+  return static_cast<unsigned>(a) < static_cast<unsigned>(b);
+}
+
 template <typename T>
 MOBULA_KERNEL im2col_kernel(const int n, const T* data_im,
     const int height, const int width, const int kernel_h, const int kernel_w,
@@ -13,28 +18,30 @@ MOBULA_KERNEL im2col_kernel(const int n, const T* data_im,
     const int dilation_h, const int dilation_w,
     const int height_col, const int width_col,
     T* data_col) {
+  const int channel_size = height * width;
+  // (channels, height_col, width_col)
   parfor(n, [&](int index) {
-    const int h_index = index / width_col;
-    const int h_col = h_index % height_col;
-    const int w_col = index % width_col;
-    const int c_im = h_index / height_col;
-    const int c_col = c_im * kernel_h * kernel_w;
-    const int h_offset = h_col * stride_h - pad_h;
-    const int w_offset = w_col * stride_w - pad_w;
-    T* data_col_ptr = data_col;
-    data_col_ptr += (c_col * height_col + h_col) * width_col + w_col;
-    const T* data_im_ptr = data_im;
-    data_im_ptr += (c_im * height + h_offset) * width + w_offset;
-    for (int i = 0; i < kernel_h; ++i) {
-      for (int j = 0; j < kernel_w; ++j) {
-        int h_im = h_offset + i * dilation_h;
-        int w_im = w_offset + j * dilation_w;
-        *data_col_ptr =
-            (h_im >= 0 && w_im >= 0 && h_im < height && w_im < width) ?
-            data_im_ptr[i * dilation_h * width + j * dilation_w] : static_cast<T>(0);
-        data_col_ptr += height_col * width_col;
-      }
-    }
+    /*
+    const int channel = index / (kernel_h * kernel_w * height_col * width_col);
+    const int kernel_row = (index / (kernel_w * height_col * width_col)) % kernel_h;
+    const int kernel_col = (index / (height_col * width_col)) % kernel_w;
+    const int output_row = (index / width_col) % height_col;
+    const int output_col = index % width_col;
+    */
+    int tmp_index = index;
+    const int output_col = tmp_index % width_col;
+    tmp_index /= width_col;
+    const int output_row = tmp_index % height_col;
+    tmp_index /= height_col;
+    const int kernel_col = tmp_index % kernel_w;
+    tmp_index /= kernel_w;
+    const int kernel_row = tmp_index % kernel_h;
+    tmp_index /= kernel_h;
+    const int channel = tmp_index;
+
+    const int input_row = -pad_h + kernel_row * dilation_h + stride_h * output_row;
+    const int input_col = -pad_w + kernel_col * dilation_w + stride_w * output_col;
+    data_col[index] = (is_a_ge_zero_and_a_lt_b(input_row, height) && is_a_ge_zero_and_a_lt_b(input_col, width)) ? data_im[channel * channel_size + input_row * width + input_col] : static_cast<T>(0);
   });
 }
 
@@ -92,7 +99,7 @@ void im2col(const DType *data_im, const int channels,
       (dilation_h * (kernel_h - 1) + 1)) / stride_h + 1;
   int width_col = (width + 2 * pad_w -
       (dilation_w * (kernel_w - 1) + 1)) / stride_w + 1;
-  int num_kernels = channels * height_col * width_col;
+  int num_kernels = channels * kernel_h * kernel_w * height_col * width_col;
   KERNEL_RUN(im2col_kernel<DType>, num_kernels)(num_kernels, data_im, height, width, kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, height_col, width_col, data_col); 
 }
 
