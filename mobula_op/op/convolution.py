@@ -24,7 +24,7 @@ class Convolution:
         data: (batch_size, channels, height, width)
         weight: (num_filter, channels, self.kernel_h, self.kernel_w)
         bias: (num_filter, )
-        data_col: (batch_size, channels * self.kernel_h * self.kernel_w, height_col * width_col)
+        data_col: (channels * self.kernel_h * self.kernel_w, height_col * width_col)
         out: (batch_size, num_filter, height_col, width_col)
         out = weight_reshape @ data_col + bias
         '''
@@ -34,15 +34,15 @@ class Convolution:
         batch_size, channels, height, width = data.shape
         height_col, width_col = self.y.shape[2:4]
 
-        if not hasattr(self, 'data_col'):
-            self.data_col = self.F.empty((batch_size, channels * self.kernel_h * self.kernel_w, height_col * width_col), dtype = np.float32)
-        mobula_op.func.im2col(data, batch_size * channels, height, width, self.kernel_h, self.kernel_w,
-                self.pad_h, self.pad_w, self.stride_h, self.stride_w, self.dilation_h, self.dilation_w, self.data_col)
         # weight_reshape: (num_filter, channels * self.kernel_h * self.kernel_w)
         weight_reshape = weight.reshape((weight.shape[0], -1))
         y_reshape = self.y.reshape((batch_size, self.num_filter, height_col * width_col))
+
+        data_col = self.F.empty((channels * self.kernel_h * self.kernel_w, height_col * width_col), dtype = np.float32)
         for b in range(batch_size):
-            self.F.dot(weight_reshape, self.data_col[b], out = y_reshape[b])
+            mobula_op.func.im2col(data[b], channels, height, width, self.kernel_h, self.kernel_w,
+                    self.pad_h, self.pad_w, self.stride_h, self.stride_w, self.dilation_h, self.dilation_w, data_col)
+            self.F.dot(weight_reshape, data_col, out = y_reshape[b])
 
         if not self.no_bias:
             self.y[:] += bias.reshape((1, self.num_filter, 1, 1)) 
@@ -59,17 +59,19 @@ class Convolution:
         dy_reshape = dy.reshape((batch_size, self.num_filter, -1))
         dw_reshape = dw.reshape((self.num_filter, -1))
         weight_reshape = weight.reshape((self.num_filter, -1))
+        data_col = self.F.empty((channels * self.kernel_h * self.kernel_w, height_col * width_col), dtype = np.float32)
         for b in range(batch_size):
-            data_col_b = self.data_col[b]
+            mobula_op.func.im2col(data[b], channels, height, width, self.kernel_h, self.kernel_w,
+                    self.pad_h, self.pad_w, self.stride_h, self.stride_w, self.dilation_h, self.dilation_w, data_col)
             dy_b = dy_reshape[b]
             req_value = mobula_op.const.req.add if b > 0 else mobula_op.const.req.write
             # dw
-            mobula_op.math.dot(dy_b, data_col_b.T, out = dw_reshape, req = req_value)
+            mobula_op.math.linalg_gemm(dy_b, data_col, tB = True, out = dw_reshape, req = req_value)
             # dx
-            self.F.dot(weight_reshape.T, dy_b, out = data_col_b)
-        mobula_op.func.col2im(self.data_col, batch_size * channels, height, width,
+            mobula_op.math.linalg_gemm(weight_reshape, dy_b, tA = True, out = data_col)
+            mobula_op.func.col2im(data_col, channels, height, width,
                 self.kernel_h, self.kernel_w, self.pad_h, self.pad_w, self.stride_h, self.stride_w,
-                self.dilation_h, self.dilation_w, dx)
+                self.dilation_h, self.dilation_w, dx[b])
 
         if not self.no_bias:
             self.dX[2][:] = dy.sum((0, 2, 3)).reshape_like(self.dX[2][:])

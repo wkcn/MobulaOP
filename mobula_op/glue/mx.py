@@ -14,6 +14,7 @@ def nd_iscontiguous(v):
 
 mx.nd.empty_like = lambda x : mx.nd.empty(x.shape, dtype = x.dtype)
 mx.nd.NDArray.iscontiguous = nd_iscontiguous
+mx.nd.NDArray.wait_to_write = lambda self : _LIB.MXNDArrayWaitToWrite(self.handle)
 
 def get_pointer(v):
     assert v.dtype == np.float32, TypeError('The type of mx.nd.NDArray should be float32')
@@ -32,9 +33,13 @@ def dev_id(a):
         return a.context.device_id if a.context.device_type == 'gpu' else None
     return None
 
-def sync_vars(variables):
+def wait_to_read(variables):
     for v in variables:
         v.wait_to_read()
+
+def wait_to_write(variables):
+    for v in variables:
+        v.wait_to_write()
 
 class OpGen(object):
     def __init__(self, op, name):

@@ -61,11 +61,17 @@ class MobulaFunc:
         dev_id = None
         noncontiguous_list = []
         temp_list = []
-        backend_vars = []
+        backend_inputs = []
+        backend_outputs = []
 
-        def analyze_element(a, p, backend, backend_vars, noncontiguous_list):
+        def analyze_element(a, p, backend, backend_inputs, backend_outputs, noncontiguous_list):
             if p == IN or p == OUT:
-                backend_vars.append(a)
+
+                if p == OUT:
+                    backend_outputs.append(a)
+                else:
+                    backend_inputs.append(a)
+
                 pa = backend.get_pointer(a)
                 if isinstance(pa, (list, tuple)):
                     if p == OUT:
@@ -93,7 +99,7 @@ class MobulaFunc:
             else:
                 backend = check_backend(a, backend)
 
-        extra_pars = [backend, backend_vars, noncontiguous_list]
+        extra_pars = [backend, backend_inputs, backend_outputs, noncontiguous_list]
 
         for a, p in zip(args_gen(), self.par_type):
             if isinstance(p, (list, tuple)):
@@ -131,9 +137,8 @@ class MobulaFunc:
 
         if backend is not None:
             assert backend is not None, ValueError("No parameter about backend:-(")
-
-            if hasattr(backend, 'sync_vars'):
-                backend.sync_vars(backend_vars)
+            backend.wait_to_read(backend_inputs)
+            backend.wait_to_write(backend_outputs)
 
         if dev_id is not None:
             if func_lib.gpu_lib is None:

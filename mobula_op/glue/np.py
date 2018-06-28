@@ -14,6 +14,12 @@ def get_pointer(v):
 def dev_id(a):
     return None
 
+def wait_to_read(variables):
+    pass
+
+def wait_to_write(variables):
+    pass
+
 class OpGen(object):
     def __init__(self, op, name):
         self.op = op

@@ -125,3 +125,25 @@ def tensordot(a, b, axes = 2, out = None):
 
     dot(a_transpose, b_transpose, out = out.reshape(a_transpose.shape[0], b_transpose.shape[1]))
     return out
+
+LINALG_GEMM_FUNC = [
+    [func.linalg_gemm_ff, func.linalg_gemm_ft],
+    [func.linalg_gemm_tf, func.linalg_gemm_tt]
+]
+
+def linalg_gemm(a, b, out = None, tA = False, tB = False, req = const.req.write):
+    assert a.ndim == 2 and b.ndim == 2
+    a_shape = a.shape[::-1] if tA else a.shape
+    b_shape = b.shape[::-1] if tB else b.shape
+    assert a_shape[-1] == b_shape[0]
+    I, U = a_shape
+    J = b_shape[-1]
+    out_shape = (I, J)
+    if out is None:
+        backend = glue.backend.get_var_backend(a)
+        out = backend.F.zeros(out_shape, dtype = a.dtype)
+    else:
+        assert is_same_shape(out.shape, out_shape)
+        if req != const.req.add:
+            out[:] = 0
+    LINALG_GEMM_FUNC[tA][tB](a, b, I, U, J, out)

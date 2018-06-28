@@ -63,5 +63,10 @@ functions = dict(
 
     col2im = lambda data_col = IN, channels = int, height = int, width = int, kernel_h = int, kernel_w = int, pad_h = int, pad_w = int, stride_h = int, stride_w = int, dilation_h = int, dilation_w = int, data_im = OUT : None,
 
+    linalg_gemm_ff = lambda a = IN, b = IN, I = int, U = int, J = int, out = OUT : None,
+    linalg_gemm_ft = lambda a = IN, b = IN, I = int, U = int, J = int, out = OUT : None,
+    linalg_gemm_tf = lambda a = IN, b = IN, I = int, U = int, J = int, out = OUT : None,
+    linalg_gemm_tt = lambda a = IN, b = IN, I = int, U = int, J = int, out = OUT : None,
+
 )
 func.bind(functions)

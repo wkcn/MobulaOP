@@ -38,6 +38,54 @@ MOBULA_KERNEL dot_add_kernel(const int n, const T *a, const T *b, const int U, c
     });
 }
 
+// out[i, j] = sum(a[i, :] * b[:, j])
+template <typename T>
+MOBULA_KERNEL linalg_gemm_ff_kernel(const int n, const T *a, const T *b, const int U, const int J, T *out) {
+    parfor(n, [&](int index) {
+        const int i = index / U;
+        const int u = index % U;
+        for (int j = 0; j < J; ++j) {
+            out[i * J + j] += a[i * U + u] * b[u * J + j];
+        }
+    });
+}
+
+// out[i, j] = sum(a[i, :] * b[j, :])
+template <typename T>
+MOBULA_KERNEL linalg_gemm_ft_kernel(const int n, const T *a, const T *b, const int U, const int J, T *out) {
+    parfor(n, [&](int index) {
+        const int i = index / J;
+        const int j = index % J;
+        for (int u = 0; u < U; ++u) {
+            out[i * J + j] += a[i * U + u] * b[j * U + u];
+        }
+    });
+}
+
+// out[i, j] = sum(a[:, i] * b[:, j])
+template <typename T>
+MOBULA_KERNEL linalg_gemm_tf_kernel(const int n, const T *a, const T *b, const int I, const int J, T *out) {
+    parfor(n, [&](int index) {
+        const int u = index / I;
+        const int i = index % I;
+        for (int j = 0; j < J; ++j) {
+            out[i * J + j] += a[u * I + i] * b[u * J + j];
+        }
+    });
+}
+
+// out[i, j] = sum(a[:, i] * b[j, :])
+template <typename T>
+MOBULA_KERNEL linalg_gemm_tt_kernel(const int n, const T *a, const T *b, const int I, const int U, const int J, T *out) {
+    parfor(n, [&](int index) {
+        const int j = index / U;
+        const int u = index % U;
+        for (int i = 0; i < I; ++i) {
+            out[i * J + j] += a[u * I + i] * b[j * U + u];
+        }
+    });
+}
+
 template <typename T>
 MOBULA_KERNEL assign_carray_kernel(const int n, const T *a, T *out) {
     parfor(n, [&](int index) {
@@ -95,6 +143,26 @@ REGISTER_BINARY_FUNC(div_, []MOBULA_DEVICE(const DType &a, const DType &b){retur
 void dot_add(const DType *a, const DType *b, const int I, const int U, const int K, const int M, DType *out) {
     const int N = I * K * U;
     KERNEL_RUN(dot_add_kernel<DType>, N)(N, a, b, U, K, M, out);
+}
+
+void linalg_gemm_ff(const DType *a, const DType *b, const int I, const int U, const int J, DType *out) {
+    const int N = I * U;
+    KERNEL_RUN(linalg_gemm_ff_kernel<DType>, N)(N, a, b, U, J, out);
+}
+
+void linalg_gemm_ft(const DType *a, const DType *b, const int I, const int U, const int J, DType *out) {
+    const int N = I * J;
+    KERNEL_RUN(linalg_gemm_ft_kernel<DType>, N)(N, a, b, U, J, out);
+}
+
+void linalg_gemm_tf(const DType *a, const DType *b, const int I, const int U, const int J, DType *out) {
+    const int N = U * I;
+    KERNEL_RUN(linalg_gemm_tf_kernel<DType>, N)(N, a, b, I, J, out);
+}
+
+void linalg_gemm_tt(const DType *a, const DType *b, const int I, const int U, const int J, DType *out) {
+    const int N = J * U;
+    KERNEL_RUN(linalg_gemm_tt_kernel<DType>, N)(N, a, b, I, U, J, out);
 }
 
 void print_carray(CArray<DType> ca) {
