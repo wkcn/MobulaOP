@@ -147,3 +147,4 @@ def linalg_gemm(a, b, out = None, tA = False, tB = False, req = const.req.write)
         if req != const.req.add:
             out[:] = 0
     LINALG_GEMM_FUNC[tA][tB](a, b, I, U, J, out)
+    return out
