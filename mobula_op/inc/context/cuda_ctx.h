@@ -12,8 +12,13 @@ static struct CUBLAS_INIT {
         cublasCreate(&CUBLAS_HANDLE);
     }
 } cublas_init_dummy;
-inline void blas_gemm(const int /*axis*/, const bool tA, const bool tB, const int M, const int N, const int K, const float alpha, const float *A, const int lda, const float *B, const int ldb, const float beta, float *C, const int ldc) {
-    cublasSgemm(CUBLAS_HANDLE, tB ? CUBLAS_OP_T: CUBLAS_OP_N, tA ? CUBLAS_OP_T : CUBLAS_OP_N, N, M, K, &alpha, B, ldb, A, lda, &beta, C, ldc);
+inline void blas_gemm(const int axis, const bool tA, const bool tB, const int M, const int N, const int K, const float alpha, const float *A, const int lda, const float *B, const int ldb, const float beta, float *C, const int ldc) {
+    if (axis == 0)
+        // row major
+        cublasSgemm(CUBLAS_HANDLE, tB ? CUBLAS_OP_T: CUBLAS_OP_N, tA ? CUBLAS_OP_T : CUBLAS_OP_N, N, M, K, &alpha, B, ldb, A, lda, &beta, C, ldc);
+    else
+        // column major
+        cublasSgemm(CUBLAS_HANDLE, tA ? CUBLAS_OP_T: CUBLAS_OP_N, tB ? CUBLAS_OP_T : CUBLAS_OP_N, M, N, K, &alpha, A, lda, B, ldb, &beta, C, ldc);
 }
 #endif
 
