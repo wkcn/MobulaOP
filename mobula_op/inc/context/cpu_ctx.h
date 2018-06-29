@@ -9,7 +9,9 @@
 
 #if USING_CBLAS
 #include <cblas.h>
-#define blas_sgemm cblas_sgemm
+inline void blas_gemm(const int axis, const bool tA, const bool tB, const int M, const int N, const int K, const float alpha, const float *A, const int lda, const float *B, const int ldb, const float beta, float *C, const int ldc) {
+    cblas_sgemm(axis == 0 ? CblasRowMajor : CblasColMajor, tA ? CblasTrans: CblasNoTrans, tB ? CblasTrans : CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+}
 #endif
 
 namespace mobula {

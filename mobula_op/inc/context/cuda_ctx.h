@@ -4,6 +4,19 @@
 #include <iostream>
 #include <cuda_runtime.h>
 
+#if USING_CBLAS
+#include <cublas_v2.h>
+static cublasHandle_t CUBLAS_HANDLE;
+static struct CUBLAS_INIT {
+    CUBLAS_INIT() {
+        cublasCreate(&CUBLAS_HANDLE);
+    }
+} cublas_init_dummy;
+inline void blas_gemm(const int /*axis*/, const bool tA, const bool tB, const int M, const int N, const int K, const float alpha, const float *A, const int lda, const float *B, const int ldb, const float beta, float *C, const int ldc) {
+    cublasSgemm(CUBLAS_HANDLE, tB ? CUBLAS_OP_T: CUBLAS_OP_N, tA ? CUBLAS_OP_T : CUBLAS_OP_N, N, M, K, &alpha, B, ldb, A, lda, &beta, C, ldc);
+}
+#endif
+
 namespace mobula {
 
 #define CUDA_NUM_THREADS 512
