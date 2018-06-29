@@ -100,7 +100,7 @@ if config.USING_OPENMP:
     LDFLAGS.add_string('-fopenmp')
 
 if config.USING_HIGH_LEVEL_WARNINGS:
-    CFLAGS.add_string('-Werror -Wall -Wextra -pedantic -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wmissing-include-dirs -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-promo -Wstrict-overflow=5 -Wundef -fdiagnostics-show-option')
+    CFLAGS.add_string('-Werror -Wall -Wextra -pedantic -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wmissing-include-dirs -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-promo -Wundef -fdiagnostics-show-option')
 
 SRCS = wildcard(['src', 'src/op'], 'cpp')
 OBJS = change_ext(SRCS, 'cpp', 'o')
