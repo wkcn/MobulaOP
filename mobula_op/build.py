@@ -91,5 +91,4 @@ def run_rule(name):
 
 if __name__ == '__main__':
     run_rule(sys.argv[1])
-    if code_hash_updated:
-        save_code_hash(code_hash, code_hash_filename)
+    build_exit()

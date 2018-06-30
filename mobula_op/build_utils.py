@@ -6,6 +6,7 @@ from easydict import EasyDict as edict
 import threading
 import multiprocessing
 import hashlib
+import re
 try:
     import Queue
 except ImportError:
@@ -39,6 +40,10 @@ if os.path.exists(code_hash_filename):
 else:
     code_hash_updated = True
 
+def build_exit():
+    if code_hash_updated:
+        save_code_hash(code_hash, code_hash_filename)
+
 class Flags:
     def __init__(self, s = ''):
         self.flags = s
@@ -52,6 +57,17 @@ class Flags:
         return self
     def __str__(self):
         return self.flags
+
+INCLUDE_FILE_REG = re.compile('#include(?:\s|\t)*(?:"|<)(?:\s|\t)*(.*?)(?:\s|\t)*(?:"|>)(?:\s|\t|\n|\r)*')
+def get_include_file(fname):
+    include_str = '#include'
+    res = []
+    for line in open(fname):
+        u = INCLUDE_FILE_REG.search(line)
+        if u is not None:
+            inc_fname = u.groups()[0]
+            res.append(inc_fname)
+    return res
 
 def wildcard(path, ext):
     if isinstance(path, list):
