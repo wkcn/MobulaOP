@@ -6,13 +6,18 @@ COMMON_FLAGS = Flags().add_definition('HOST_NUM_THREADS', host_num_threads)
 if config.USING_OPTIMIZATION:
     COMMON_FLAGS.add_string('-O3')
 COMMON_FLAGS.add_definition('USING_CBLAS', config.USING_CBLAS)
+INC_PATHS.append('./inc')
+for path in INC_PATHS:
+    p = os.path.relpath(path)
+    if len(p) > 0:
+        COMMON_FLAGS.add_string('-I{}'.format(p))
 
-CFLAGS = Flags('-std=c++11 -Iinc -fPIC').add_definition('USING_CUDA', 0).add_definition('USING_OPENMP', config.USING_OPENMP).add_string(COMMON_FLAGS)
+CFLAGS = Flags('-std=c++11 -fPIC').add_definition('USING_CUDA', 0).add_definition('USING_OPENMP', config.USING_OPENMP).add_string(COMMON_FLAGS)
 LDFLAGS = Flags('-lpthread -shared')
 if config.USING_CBLAS:
     LDFLAGS.add_string('-lopenblas')
 
-CU_FLAGS = Flags('-std=c++11 -Iinc -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC" --expt-extended-lambda').add_definition('USING_CUDA', 1).add_string(COMMON_FLAGS)
+CU_FLAGS = Flags('-std=c++11 -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC" --expt-extended-lambda').add_definition('USING_CUDA', 1).add_string(COMMON_FLAGS)
 CU_LDFLAGS = Flags('-lpthread -shared -Wno-deprecated-gpu-targets -L%s/lib64 -lcuda -lcudart -lcublas' % config.CUDA_DIR)
 
 if config.USING_OPENMP:
@@ -37,7 +42,7 @@ def source_to_o(build_path, it, compiler = config.CXX, cflags = CFLAGS):
         dir_name = os.path.dirname(obj)
         build_dir_name = os.path.join(build_path, dir_name)
         build_name = os.path.join(build_path, obj)
-        if file_is_latest(src, build_name):
+        if file_is_latest(src) and os.path.exists(build_name):
             continue
         updated = True
         if build_dir_name not in existed_dirs:

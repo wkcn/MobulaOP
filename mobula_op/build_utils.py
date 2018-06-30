@@ -12,6 +12,8 @@ try:
 except ImportError:
     import queue as Queue
 
+INC_PATHS = ['./']
+
 # Load Config File
 with open('./config.yaml') as fin:
     config = edict(yaml.load(fin))
@@ -36,13 +38,37 @@ code_hash = dict()
 code_hash_filename = os.path.join(config.BUILD_PATH, 'code.hash')
 if os.path.exists(code_hash_filename):
     code_hash = load_code_hash(code_hash_filename)
-    code_hash_updated = False
-else:
-    code_hash_updated = True
+code_hash_updated = False
+
+def save_dependant(obj, fname):
+    with open(fname, 'w') as f:
+        for k, v in obj.items():
+            if len(v) > 0:
+                s = '{} {}\n'.format(k, ','.join(v))
+                f.write(s)
+
+def load_dependant(fname):
+    data = dict()
+    try:
+        with open(fname, 'r') as f:
+            for line in f:
+                sp = line.strip().split(' ')
+                data[sp[0]] = sp[1].split(',')
+    except:
+        pass
+    return data
+
+dependant = dict()
+dependant_filename = os.path.join(config.BUILD_PATH, 'code.dependant')
+if os.path.exists(dependant_filename):
+    dependant = load_dependant(dependant_filename)
+dependant_updated = False
 
 def build_exit():
     if code_hash_updated:
         save_code_hash(code_hash, code_hash_filename)
+    if dependant_updated:
+        save_dependant(dependant, dependant_filename)
 
 class Flags:
     def __init__(self, s = ''):
@@ -58,7 +84,7 @@ class Flags:
     def __str__(self):
         return self.flags
 
-INCLUDE_FILE_REG = re.compile('#include(?:\s|\t)*(?:"|<)(?:\s|\t)*(.*?)(?:\s|\t)*(?:"|>)(?:\s|\t|\n|\r)*')
+INCLUDE_FILE_REG = re.compile('(?:\s|\t)*#include(?:\s|\t)*(?:"|<)(?:\s|\t)*(.*?)(?:\s|\t)*(?:"|>)(?:\s|\t|\n|\r)*')
 def get_include_file(fname):
     include_str = '#include'
     res = []
@@ -126,10 +152,51 @@ def file_changed(fname):
         return True
     return False
 
-def file_is_latest(source, target):
+def find_include(inc):
+    for path in INC_PATHS:
+        fname = os.path.relpath(os.path.join(path, inc))
+        if os.path.exists(fname):
+            return fname
+    return None
+
+def update_dependant(fname):
+    global dependant_updated
+    dependant_updated = True
+    inc_files = get_include_file(fname)
+    res = []
+    for inc in inc_files:
+        inc_fname = find_include(inc)
+        if inc_fname is not None:
+            res.append(inc_fname)
+    dependant[fname] = res
+
+def dependant_changed(fname):
+    if fname not in dependant:
+        update_dependant(fname)
+    includes = dependant[fname]
+    changed = False
+    for inc in includes:
+        inc_fname = find_include(inc)
+        if inc_fname is None or not file_is_latest(inc_fname):
+            changed = True
+    return changed
+
+FILE_CHECK_LIST = dict()
+
+def file_is_latest(source):
+    if source in FILE_CHECK_LIST:
+        t = FILE_CHECK_LIST[source]
+        assert t is not None, RuntimeError("Error: Cycle Reference {}".format(source))
+        return t
+    FILE_CHECK_LIST[source] = None
+    latest = True
     if file_changed(source):
-        return False
-    return os.path.exists(target)
+        latest = False
+        update_dependant(source)
+    if dependant_changed(source):
+        latest = False
+    FILE_CHECK_LIST[source] = latest
+    return latest
 
 def run_command_parallel(commands):
     command_queue = Queue.Queue()
