@@ -7,7 +7,7 @@ def nd_iscontiguous(v):
     cp = ctypes.c_void_p()
     cp_end = ctypes.c_void_p()
     _LIB.MXNDArrayGetData(v.handle, ctypes.byref(cp))
-    lastv = v.reshape(-1)[v.size - 1]
+    lastv = v.reshape((-1, ))[v.size - 1]
     _LIB.MXNDArrayGetData(lastv.handle, ctypes.byref(cp_end))
     diffp = cp_end.value - cp.value
     return diffp == (v.size - 1) * 4

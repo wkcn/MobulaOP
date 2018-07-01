@@ -4,9 +4,9 @@ dtypes = dict()
 glues = dict()
 
 def check_backend(b):
-    func_names = ['get_pointer', 'dev_id', 'OpGen']
+    func_names = ['get_pointer', 'dev_id', 'wait_to_read', 'wait_to_write', 'OpGen']
     for name in func_names:
-        assert hasattr(b, name)
+        assert hasattr(b, name), AttributeError('Attribute {} not found'.format(name))
     assert hasattr(b.OpGen, '__call__')
     assert hasattr(b.OpGen, 'register')
 
