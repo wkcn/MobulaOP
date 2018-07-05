@@ -5,13 +5,12 @@ import base64
 import ctypes
 import functools
 
+pars_encode = lambda x : base64.b64encode(pickle.dumps(x)).decode('utf-8')
+pars_decode = lambda x : pickle.loads(base64.b64decode(x.encode('utf-8')))
+
 if sys.version_info[0] >= 3:
-    pars_encode = lambda x : base64.b64encode(pickle.dumps(x)).decode('utf-8')
-    pars_decode = lambda x : pickle.loads(base64.b64decode(x.encode('utf-8')))
     getargspec = lambda func : inspect.getfullargspec(func)
 else:
-    pars_encode = lambda x : pickle.dumps(x)
-    pars_decode = lambda x : pickle.loads(x)
     getargspec = lambda func : inspect.getargspec(func)
 
 get_varnames = lambda func : getargspec(func).args[1:]
