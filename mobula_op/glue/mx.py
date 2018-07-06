@@ -49,12 +49,15 @@ class OpGen(object):
     def __call__(self, *args, **kwargs):
         inputs, pars = get_in_data(op = self.op, *args, **kwargs)
         op_type = self.name
-        name = pars[1].pop("name", None)
+        name = pars[1].pop('name', None)
+        input_type = pars[1].pop('__input_type__', None)
+        if input_type is None:
+            input_type = type(inputs[0])
         if op_type not in self.cache:
             # register operator
             self.cache[op_type] = True
             self.register()
-        if isinstance(inputs[0], mx.nd.NDArray):
+        if input_type is mx.nd.NDArray:
             return mx.nd.Custom(*inputs, mobula_pars = pars_encode(pars), op_type = op_type, name = name)
         return mx.sym.Custom(*inputs, mobula_pars = pars_encode(pars), op_type = op_type)
     def register(self):
@@ -123,7 +126,7 @@ class OpGen(object):
                 infer_shape = op.infer_shape,
                 create_operator = create_operator
             )
-            optional_list = ['list_arguments', 'list_outputs']
+            optional_list = ['list_arguments', 'list_outputs', 'infer_type']
             for o in optional_list:
                 if hasattr(op, o):
                     mx_prop_dict[o] = getattr(op, o)

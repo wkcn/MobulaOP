@@ -27,36 +27,32 @@ def get_in_data(*args, **kwargs):
     num_inputs = len(input_names)
     defaults = getargspec(op.forward).defaults
     num_defaults = len(defaults) if defaults is not None else 0
-    if num_inputs > 0:
-        # define input variances in the forward function
-        # And the input variances may be in args or kwargs
-        if len(args) > num_inputs:
-            inputs = args[:num_inputs]
-            pars = [args[num_inputs:], kwargs]
-        else:
-            # len(args) <= num_inputs
-            inputs = [None for _ in range(num_inputs)]
-            for i, a in enumerate(args):
-                assert input_names[i] not in kwargs
-                inputs[i] = a
-            # the rest of parameters
-            for i in range(len(args), num_inputs - num_defaults):
-                name = input_names[i]
-                assert name in kwargs, "Variable %s not found" % name
-                inputs[i] = kwargs.pop(name)
-            num_valid_inputs = num_inputs - num_defaults
-            for i in range(num_inputs - num_defaults, num_inputs):
-                name = input_names[i]
-                if name not in kwargs:
-                    break
-                inputs[i] = kwargs.pop(name)
-                num_valid_inputs += 1
-            inputs = inputs[:num_valid_inputs]
-            pars = [[], kwargs]
+    # define input variances in the forward function
+    # And the input variances may be in args or kwargs
+    if len(args) > num_inputs:
+        inputs = args[:num_inputs]
+        pars = [args[num_inputs:], kwargs]
     else:
-        # The input variances are in args.
-        # And the parameters are in kwargs.
-        raise NotImplementedError
+        # len(args) <= num_inputs
+        inputs = [None for _ in range(num_inputs)]
+        for i, a in enumerate(args):
+            assert input_names[i] not in kwargs
+            inputs[i] = a
+        # the rest of parameters
+        for i in range(len(args), num_inputs - num_defaults):
+            name = input_names[i]
+            assert name in kwargs, "Variable %s not found" % name
+            inputs[i] = kwargs.pop(name)
+        num_valid_inputs = num_inputs - num_defaults
+        for i in range(num_inputs - num_defaults, num_inputs):
+            name = input_names[i]
+            if name not in kwargs:
+                break
+            inputs[i] = kwargs.pop(name)
+            num_valid_inputs += 1
+        inputs = inputs[:num_valid_inputs]
+        pars = [[], kwargs]
+
     return inputs, pars
 
 def get_in_shape(in_data):
@@ -84,6 +80,15 @@ class MobulaOperator(object):
         new_kwargs = kwargs.copy()
         new_kwargs.update(self.attrs)
         return backend.op_gen(b, op = self.op, name = self.name)(*args, **new_kwargs)
+    def __getitem__(self, input_type):
+        b = backend.dtypes.get(input_type, None)
+        assert b is not None, ValueError('The backend of {} is not found'.format(input_type))
+        def wrapper(*args, **kwargs):
+            new_kwargs = kwargs.copy()
+            new_kwargs.update(self.attrs)
+            new_kwargs['__input_type__'] = input_type
+            return backend.op_gen(b, op = self.op, name = self.name)(*args, **new_kwargs)
+        return wrapper
 
 '''
 1. @register

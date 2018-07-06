@@ -1,7 +1,7 @@
 import importlib
 
-dtypes = dict()
-glues = dict()
+dtypes = dict() # input_type -> glue.{backend_name}
+glues = dict() # backend_name -> glue.{backend_name}
 
 def check_backend(b):
     func_names = ['get_pointer', 'dev_id', 'wait_to_read', 'wait_to_write', 'OpGen']
