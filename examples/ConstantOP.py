@@ -11,7 +11,7 @@ import numpy as np
 @mobula_op.operator.register(need_top_grad = False)
 class ConstantOP:
     def __init__(self, constant):
-        self.constant = mx.nd.array(constant)
+        self.constant = self.F.array(constant)
     def forward(self):
         return self.constant
     def backward(self, dy):
@@ -24,7 +24,7 @@ class ConstantOP:
 @mobula_op.operator.register(need_top_grad = False)
 class ConstantOP2:
     def __init__(self, constant):
-        self.constant = mx.nd.array(constant)
+        self.constant = self.F.array(constant)
         self.constant_buffer = dict()
     def forward(self, x):
         ctx = x.context

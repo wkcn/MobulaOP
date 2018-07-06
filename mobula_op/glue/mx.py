@@ -93,7 +93,7 @@ class OpGen(object):
                     backward = backward,
                     _forward = op.forward,
                     _backward = op.backward,
-                    F = property(lambda self : mx.nd)
+                    F = property(lambda self : mx.nd),
             )
             mx_op_dict.update(inputs_func)
             mx_op = type('_%s_MX_OP' % op_name,
@@ -124,7 +124,8 @@ class OpGen(object):
                 list_arguments = lambda self : get_varnames(op.forward),
                 list_outputs = lambda self : list_outputs(self, op.backward),
                 infer_shape = op.infer_shape,
-                create_operator = create_operator
+                create_operator = create_operator,
+                F = property(lambda self : mx.nd),
             )
             optional_list = ['list_arguments', 'list_outputs', 'infer_type']
             for o in optional_list:
