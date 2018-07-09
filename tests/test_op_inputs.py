@@ -15,23 +15,35 @@ class TestInputsOP:
         assert in_shape[0] == in_shape[1]
         return in_shape, [in_shape[0]]
 
-def test_op_inputs():
+@mobula_op.operator.register
+class TestInputsOP2:
+    def __init__(self):
+        pass
+    def forward(self, x, y):
+        return self.X[0] * self.X[1]
+    def backward(self, dy):
+        return dy * self.X[1], dy * self.X[0]
+    def infer_shape(self, in_shape):
+        assert in_shape[0] == in_shape[1]
+        return in_shape, [in_shape[0]]
+
+def check_op_inputs(test_op):
     a = mx.nd.array([1,2,3]) 
     b = mx.nd.array([4,5,6])
     a.attach_grad()
     b.attach_grad()
     with mx.autograd.record():
-        c = TestInputsOP(a, b)
+        c = test_op(a, b)
     dy = mx.nd.array([10,11,12])
     c.backward(dy)
     assert (a.grad.asnumpy() == (b * dy).asnumpy()).all(), a.grad
     assert (b.grad.asnumpy() == (a * dy).asnumpy()).all(), b.grad
     assert ((a * b).asnumpy() == c.asnumpy()).all()
 
-def test_op_inputs_np():
+def check_op_inputs_np(test_op):
     a = np.array([1,2,3])
     b = np.array([4,5,6])
-    op = TestInputsOP('np')
+    op = test_op('np')
 
     c = op(a, b)
     assert ((a * b) == c).all()
@@ -48,6 +60,10 @@ def test_op_inputs_np():
     assert (a_grad == (b * dy)).all(), a_grad
     assert (b_grad == (a * dy)).all(), b_grad
 
+def test_op_inputs():
+    for op in [TestInputsOP, TestInputsOP2]:
+        check_op_inputs(op)
+        check_op_inputs_np(op)
+
 if __name__ == '__main__':
     test_op_inputs()
-    test_op_inputs_np()

@@ -97,10 +97,11 @@ class OpGen(object):
                 self.req = req
             out = self._backward(*out_grad)
             if out is not None:
-                if type(out) != list:
+                if not isinstance(out, (list, tuple)):
                     out = [out]
-                for i in range(op.num_inputs):
-                    self.assign(in_grad[i], req[i], out[i])
+                num_inputs = len(get_varnames(self._forward))
+                for i in range(num_inputs):
+                    self.assign(in_grad[i], self.req[i], out[i])
             if len(in_grad) == 1:
                 return in_grad[0]
             return self.in_grad
