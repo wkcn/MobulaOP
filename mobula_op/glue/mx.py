@@ -118,6 +118,10 @@ class OpGen(object):
                 with ctx:
                     rtn = mx_op(*self._args, **self._kwargs)
                 return rtn
+            def infer_type(self, in_type, func):
+                num_outputs = getattr(self, 'num_outputs', len(get_varnames(func)))
+                dtype = in_type[0] if len(in_type) > 0 else np.float32
+                return in_type, [dtype] * num_outputs
 
             mx_prop_dict = dict(
                 __init__ = __init__,
@@ -125,6 +129,7 @@ class OpGen(object):
                 list_outputs = lambda self : list_outputs(self, op.backward),
                 infer_shape = op.infer_shape,
                 create_operator = create_operator,
+                infer_type = lambda self, in_type : infer_type(self, in_type, op.backward),
                 F = property(lambda self : mx.nd),
             )
             optional_list = ['list_arguments', 'list_outputs', 'infer_type']

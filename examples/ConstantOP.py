@@ -18,8 +18,6 @@ class ConstantOP:
         return []
     def infer_shape(self, in_shape):
         return [], [self.constant.shape]
-    def infer_type(self, dtypes):
-        return [], [np.float32]
 
 @mobula_op.operator.register(need_top_grad = False)
 class ConstantOP2:
@@ -33,8 +31,6 @@ class ConstantOP2:
         return [0]
     def infer_shape(self, in_shape):
         return in_shape, [self.constant.shape]
-    def infer_type(self, dtypes):
-        return dtypes, dtypes[0:1]
 
 if __name__ == '__main__':
     import mxnet as mx
