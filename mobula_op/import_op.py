@@ -26,6 +26,7 @@ def parse_parameters_list(plist):
     return rtn_type, func_name, pars_list
 
 STR2TYPE = {
+    'void': None,
     'int': int,
     'float': float,
     'IN': IN,
@@ -52,10 +53,12 @@ def get_functions_from_cpp(cpp_fname):
                 # Check Type
                 for ptype, pname in plist:
                     assert ptype in STR2TYPE, TypeError('Unsupported Type: {}'.format(ptype))
+                lib_path = os.path.splitext(cpp_fname)[0]
                 cfuncdef = CFuncDef(func_name = func_name,
                             arg_names = [t[1] for t in plist],
                             arg_types = [STR2TYPE[t[0]] for t in plist],
-                            rtn_type = STR2TYPE[rtn_type])
+                            rtn_type = STR2TYPE[rtn_type],
+                            lib_path = lib_path)
                 functions[func_name] = cfuncdef
 
     assert unmatched_brackets == 0, Exception('# unmatched brackets: {}'.format(unmatched_brackets))

@@ -6,19 +6,27 @@ import inspect
 from . import glue
 
 class MobulaFuncLib:
-    def __init__(self):
-        lib_path = os.path.join(os.path.dirname(__file__), 'build/mobula_op')
+    FUNC_LIB_CACHE = dict()
+    def __init__(self, lib_path = None, force = True):
+        if lib_path is None:
+            lib_path = os.path.join(os.path.dirname(__file__), 'build/mobula_op')
         cpu_lib_fname = "%s_cpu.so" % lib_path
         gpu_lib_fname = "%s_gpu.so" % lib_path
-        self.cpu_lib = self.load_dll(cpu_lib_fname)
-        self.gpu_lib = self.load_dll(gpu_lib_fname)
+        self.cpu_lib = self.load_dll(cpu_lib_fname, force)
+        self.gpu_lib = self.load_dll(gpu_lib_fname, force)
     @staticmethod
-    def load_dll(dll_fname):
+    def load_dll(dll_fname, force):
+        if dll_fname in MobulaFuncLib.FUNC_LIB_CACHE:
+            return MobulaFuncLib.FUNC_LIB_CACHE[dll_fname]
         if os.path.exists(dll_fname):
-            return ctypes.CDLL(dll_fname)
+            dll = ctypes.CDLL(dll_fname)
+            MobulaFuncLib.FUNC_LIB_CACHE[dll_fname] = dll
+            return dll
+        elif force:
+            raise IOError('{} not found'.format(dll_fname))
         return None
 
-default_func_lib = MobulaFuncLib()
+default_func_lib = MobulaFuncLib(force = False)
 IN = lambda x : x
 OUT = lambda x : x
 
@@ -26,12 +34,12 @@ class CArray(ctypes.Structure):
     _fields_ = [('size', ctypes.c_size_t), ('data', ctypes.c_void_p)]
 
 class CFuncDef:
-    def __init__(self, func_name, arg_names = [], arg_types = None, rtn_type = None, func_lib = None):
+    def __init__(self, func_name, arg_names = [], arg_types = None, rtn_type = None, lib_path = None):
         self.func_name = func_name
         self.arg_names = arg_names
         self.arg_types = arg_types
         self.rtn_type = rtn_type
-        self.func_lib = default_func_lib if func_lib is None else func_lib
+        self.func_lib = default_func_lib if lib_path is None else MobulaFuncLib(lib_path)
 
 TYPE_TO_CTYPE = {int:ctypes.c_int, float:ctypes.c_float, IN:ctypes.c_void_p, OUT:ctypes.c_void_p, None:None}
 
