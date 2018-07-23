@@ -25,8 +25,27 @@ OUT = lambda x : x
 class CArray(ctypes.Structure):
     _fields_ = [('size', ctypes.c_size_t), ('data', ctypes.c_void_p)]
 
+class CFuncDef:
+    def __init__(self, func_name, arg_names = [], arg_types = None, rtn_type = None):
+        self.func_name = func_name
+        self.arg_names = arg_names
+        self.arg_types = arg_types
+        self.rtn_type = rtn_type
+
+TYPE_TO_CTYPE = {int:ctypes.c_int, float:ctypes.c_float, IN:ctypes.c_void_p, OUT:ctypes.c_void_p, None:None}
+
+def type_to_ctype(p):
+    if isinstance(p, (list, tuple)):
+        return CArray
+    elif p in TYPE_TO_CTYPE:
+        return TYPE_TO_CTYPE[p]
+    else:
+        raise TypeError("Unsupported Type: {}".format(p))
+
+def types_to_ctypes(par_types):
+    return [type_to_ctype(p) for p in par_types]
+
 class MobulaFunc:
-    TYPE_TO_CTYPE = {int:ctypes.c_int, float:ctypes.c_float, IN:ctypes.c_void_p, OUT:ctypes.c_void_p, None:None}
     def __init__(self, name, func):
         self.name = name
         if isinstance(func, (list, tuple)):
@@ -34,16 +53,14 @@ class MobulaFunc:
             self.name_in_lib = alias
         else:
             self.name_in_lib = name
-        spec = glue.common.getargspec(func)
-        assert len(spec.args) == len(spec.defaults), ValueError('Function %s should specify type for each parameter')
-        self.par_type = spec.defaults
-        self.par_name = spec.args
+        self.par_name = func.arg_names
+        self.par_type = func.arg_types
         # register type
         for lib in [func_lib.cpu_lib, func_lib.gpu_lib]:
             if lib is not None:
                 libf = getattr(lib, self.name_in_lib)
-                libf.restype = self.type_to_ctype(func())
-                libf.argtypes = self.types_to_ctypes(self.par_type)
+                libf.restype = type_to_ctype(func.rtn_type)
+                libf.argtypes = types_to_ctypes(func.arg_types)
     def __call__(self, *args, **kwargs):
         def args_gen():
             i = 0
@@ -152,21 +169,22 @@ class MobulaFunc:
             source[:] = target
         return rtn
 
-    def type_to_ctype(self, p):
-        if isinstance(p, (list, tuple)):
-            return CArray
-        elif p in MobulaFunc.TYPE_TO_CTYPE:
-            return MobulaFunc.TYPE_TO_CTYPE[p]
-        else:
-            raise TypeError("Unsupported Type: {}".format(p))
-
-    def types_to_ctypes(self, par_types):
-        return [self.type_to_ctype(p) for p in par_types]
-
 def bind(functions):
-    for k, v in functions.items():
+    for k, func in functions.items():
         assert k not in globals(), "Duplicated function name %s" % k # function overload [todo]
-        globals()[k] = MobulaFunc(k, v)
+        alias = None
+        if isinstance(func, (list, tuple)):
+            alias, func = func
+        if not isinstance(func, CFuncDef):
+
+            spec = glue.common.getargspec(func)
+            assert len(spec.args) == len(spec.defaults), ValueError('Function %s should specify type for each parameter')
+            func = CFuncDef(func_name = k, arg_names = spec.args, arg_types = spec.defaults, rtn_type = func())
+
+        if alias is not None:
+            func = (alias, func)
+
+        globals()[k] = MobulaFunc(k, func)
 
 def get_3loop_size(shape, axis):
     # return: outer_size, middle_size, inner_size

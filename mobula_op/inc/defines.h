@@ -19,6 +19,8 @@
 namespace mobula {
 
 typedef float DType;
+typedef const DType * IN;
+typedef DType * OUT;
 
 template<typename T = DType>
 struct CArray{

@@ -84,7 +84,7 @@ class Flags:
     def __str__(self):
         return self.flags
 
-INCLUDE_FILE_REG = re.compile('(?:\s|\t)*#include(?:\s|\t)*(?:"|<)(?:\s|\t)*(.*?)(?:\s|\t)*(?:"|>)(?:\s|\t|\n|\r)*')
+INCLUDE_FILE_REG = re.compile('^\s*#include\s*(?:"|<)\s*(.*?)\s*(?:"|>)\s*')
 def get_include_file(fname):
     include_str = '#include'
     res = []
