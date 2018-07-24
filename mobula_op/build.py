@@ -93,7 +93,7 @@ def all_func():
 def cuda_func():
     build_path = os.path.join(config.BUILD_PATH, 'gpu')
     target_name = os.path.join(config.BUILD_PATH, '%s_gpu.so' % config.TARGET)
-    source_to_so_ctx(build_path, cu_srcs, target_name, 'cuda')
+    source_to_so_ctx(build_path, SRCS, target_name, 'cuda')
 
 def clean_func():
     rmdir(config.BUILD_PATH)
