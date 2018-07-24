@@ -98,10 +98,6 @@ def cuda_func():
 def clean_func():
     rmdir(config.BUILD_PATH)
 
-def single_func(func_path):
-    single_func_cpu(func_path)
-    single_func_gpu(func_path)
-
 RULES = dict(
     all = all_func,
     cuda = cuda_func,
