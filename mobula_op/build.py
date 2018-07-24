@@ -1,4 +1,7 @@
-from build_utils import *
+try:
+    from .build_utils import *
+except ModuleNotFoundError:
+    from build_utils import *
 
 num_cpu_core = multiprocessing.cpu_count()
 host_num_threads = config.HOST_NUM_THREADS if config.HOST_NUM_THREADS > 0 else num_cpu_core
@@ -6,9 +9,9 @@ COMMON_FLAGS = Flags().add_definition('HOST_NUM_THREADS', host_num_threads)
 if config.USING_OPTIMIZATION:
     COMMON_FLAGS.add_string('-O3')
 COMMON_FLAGS.add_definition('USING_CBLAS', config.USING_CBLAS)
-INC_PATHS.append('./inc')
+INC_PATHS.append('inc')
 for path in INC_PATHS:
-    p = os.path.relpath(path)
+    p = os.path.join(ENV_PATH, path)
     if len(p) > 0:
         COMMON_FLAGS.add_string('-I{}'.format(p))
 
@@ -26,9 +29,6 @@ if config.USING_OPENMP:
 
 if config.USING_HIGH_LEVEL_WARNINGS:
     CFLAGS.add_string('-Werror -Wall -Wextra -pedantic -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wmissing-include-dirs -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-promo -Wundef -fdiagnostics-show-option')
-
-SRCS = wildcard(['src', 'src/op'], 'cpp')
-CU_SRCS = change_ext(SRCS, 'cpp', 'cu')
 
 def source_to_o(build_path, it, compiler = config.CXX, cflags = CFLAGS):
     mkdir(build_path)
@@ -69,17 +69,27 @@ def source_to_so(build_path, srcs, target_name, compiler, cflags, ldflags):
         abs_objs = add_path(build_path, objs)
         o_to_so(target_name, abs_objs, compiler, ldflags)
 
+BUILD_FLAGS = dict(
+    cpu = (config.CXX, CFLAGS, LDFLAGS),
+    cuda = (config.NVCC, CU_FLAGS, CU_LDFLAGS)
+)
+
+def source_to_so_ctx(build_path, srcs, target_name, ctx_name):
+    assert ctx_name in BUILD_FLAGS, ValueError("The flags of ctx {} not found :-(".format(ctx_name))
+    source_to_so(build_path, srcs, target_name, *BUILD_FLAGS[ctx_name])
+
 def all_func():
     build_path = os.path.join(config.BUILD_PATH, 'cpu')
     target_name = os.path.join(config.BUILD_PATH, '%s_cpu.so' % config.TARGET)
-    source_to_so(build_path, SRCS, target_name, config.CXX, CFLAGS, LDFLAGS)
+    source_to_so_ctx(build_path, SRCS, target_name, 'cpu')
 
 def cuda_func():
     build_path = os.path.join(config.BUILD_PATH, 'gpu')
+    # preprocess
     cu_srcs = add_path(build_path, CU_SRCS)
     link(SRCS, cu_srcs)
     target_name = os.path.join(config.BUILD_PATH, '%s_gpu.so' % config.TARGET)
-    source_to_so(build_path, cu_srcs, target_name, config.NVCC, CU_FLAGS, CU_LDFLAGS)
+    source_to_so_ctx(build_path, cu_srcs, target_name, 'cuda')
 
 def clean_func():
     rmdir(config.BUILD_PATH)
@@ -98,5 +108,7 @@ def run_rule(name):
     RULES[name]()
 
 if __name__ == '__main__':
+    SRCS = wildcard(['src', 'src/op'], 'cpp')
+    CU_SRCS = change_ext(SRCS, 'cpp', 'cu')
     run_rule(sys.argv[1])
     build_exit()

@@ -13,7 +13,7 @@ class MobulaFuncLib:
         cpu_lib_fname = "%s_cpu.so" % lib_path
         gpu_lib_fname = "%s_gpu.so" % lib_path
         self.cpu_lib = self.load_dll(cpu_lib_fname, force)
-        self.gpu_lib = self.load_dll(gpu_lib_fname, force)
+        self.gpu_lib = self.load_dll(gpu_lib_fname, False)
     @staticmethod
     def load_dll(dll_fname, force):
         if dll_fname in MobulaFuncLib.FUNC_LIB_CACHE:

@@ -15,7 +15,9 @@ except ImportError:
 INC_PATHS = ['./']
 
 # Load Config File
-with open('./config.yaml') as fin:
+ENV_PATH = os.path.dirname(__file__)
+CONFIG_PATH = os.path.join(ENV_PATH, 'config.yaml')
+with open(CONFIG_PATH) as fin:
     config = edict(yaml.load(fin))
 
 def save_code_hash(obj, fname):
@@ -33,12 +35,6 @@ def load_code_hash(fname):
     except:
         pass
     return data
-
-code_hash = dict()
-code_hash_filename = os.path.join(config.BUILD_PATH, 'code.hash')
-if os.path.exists(code_hash_filename):
-    code_hash = load_code_hash(code_hash_filename)
-code_hash_updated = False
 
 def save_dependant(obj, fname):
     with open(fname, 'w') as f:
@@ -58,11 +54,25 @@ def load_dependant(fname):
         pass
     return data
 
-dependant = dict()
-dependant_filename = os.path.join(config.BUILD_PATH, 'code.dependant')
-if os.path.exists(dependant_filename):
-    dependant = load_dependant(dependant_filename)
-dependant_updated = False
+def update_build_path(build_path):
+    global code_hash, code_hash_filename, code_hash_updated
+    global dependant, dependant_filename, dependant_updated
+
+    config.BUILD_PATH = build_path
+
+    code_hash = dict()
+    code_hash_filename = os.path.join(config.BUILD_PATH, 'code.hash')
+    if os.path.exists(code_hash_filename):
+        code_hash = load_code_hash(code_hash_filename)
+    code_hash_updated = False
+
+    dependant = dict()
+    dependant_filename = os.path.join(config.BUILD_PATH, 'code.dependant')
+    if os.path.exists(dependant_filename):
+        dependant = load_dependant(dependant_filename)
+    dependant_updated = False
+
+update_build_path(os.path.join(ENV_PATH, config.BUILD_PATH))
 
 def build_exit():
     if code_hash_updated:
@@ -160,7 +170,7 @@ def file_changed(fname):
 
 def find_include(inc):
     for path in INC_PATHS:
-        fname = os.path.relpath(os.path.join(path, inc))
+        fname = os.path.relpath(os.path.join(ENV_PATH, path, inc), start = ENV_PATH)
         if os.path.exists(fname):
             return fname
     return None
