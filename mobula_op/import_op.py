@@ -1,8 +1,25 @@
 import os
+import sys
 import re
-import importlib
 from .func import IN, OUT, CFuncDef, bind
 from .build import config, update_build_path, source_to_so_ctx, build_exit, ENV_PATH
+
+def load_module_py2(name, pathname):
+    module = imp.load_source(name, pathname)
+    return module
+
+def load_module_py3(name, pathname):
+    spec = importlib.util.spec_from_file_location(name, pathname)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+if sys.version_info[0] >= 3:
+    import importlib
+    load_module = load_module_py3
+else:
+    import imp
+    load_module = load_module_py2
 
 def assert_file_exists(fname):
     assert os.path.exists(fname), IOError("{} not found".format(fname))
@@ -141,10 +158,8 @@ def import_op(path):
     # Get functions
     functions = get_functions_from_cpp(cpp_fname)
     bind(functions)
+
     # Create Operator
-    spec = importlib.util.spec_from_file_location(op_name, py_fname)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = load_module(op_name, py_fname)
     op = getattr(module, op_name)
     return op
-

@@ -66,7 +66,8 @@ class OpGen(object):
         def get_mx_op(op):
             def __init__(self, *args, **kwargs):
                 mx.operator.CustomOp.__init__(self)
-                op.__init__(self, *args, **kwargs)
+                if hasattr(op, '__init__'):
+                    op.__init__(self, *args, **kwargs)
             def forward(self, is_train, req, in_data, out_data, aux):
                 self.in_data = in_data
                 self.out_data = out_data
@@ -107,7 +108,8 @@ class OpGen(object):
             def __init__(self, mobula_pars):
                 self._args, self._kwargs = pars_decode(mobula_pars)
                 mx.operator.CustomOpProp.__init__(self, need_top_grad = self._kwargs.pop('need_top_grad', True))
-                op.__init__(self, *self._args, **self._kwargs)
+                if hasattr(op, '__init__'):
+                    op.__init__(self, *self._args, **self._kwargs)
             def list_outputs(self, func):
                 num_outputs = getattr(self, 'num_outputs', len(get_varnames(func)))
                 if num_outputs == 0:
