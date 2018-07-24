@@ -1,5 +1,6 @@
 import os
 import re
+import importlib
 from .func import IN, OUT, CFuncDef, bind
 from .build import config, update_build_path, source_to_so_ctx, build_exit, ENV_PATH
 
@@ -30,15 +31,41 @@ def get_so_path(fname):
     path, name = os.path.split(fname)
     return os.path.join(path, 'build', os.path.splitext(name)[0])
 
-def build_lib(cpp_fname):
+def build_lib(cpp_fname, code_buffer):
+
     cpp_path, cpp_basename = os.path.split(cpp_fname)
     build_path = os.path.join(cpp_path, 'build')
+
+    extra_code = '''
+#include "%s"
+extern "C" {
+using namespace mobula;
+
+%s
+}
+    ''' % (os.path.join('..', cpp_basename), code_buffer)
+
     # update_build_path(build_path)
     if not os.path.exists(build_path):
         os.mkdir(build_path)
     # build so for cpu
     target_name = get_so_path(cpp_fname) + '_cpu.so'
-    srcs = [cpp_fname]
+
+    cpp_fname_wrapper = os.path.join(build_path, os.path.splitext(cpp_basename)[0] + '_wrapper.cpp')
+
+    need_regenerate = True
+
+    if os.path.exists(cpp_fname_wrapper):
+        with open(cpp_fname_wrapper, 'r') as fin:
+            s = fin.read()
+            if s == extra_code:
+                need_regenerate = False
+
+    if need_regenerate:
+        with open(cpp_fname_wrapper, 'w') as fout:
+            fout.write(extra_code)
+
+    srcs = [cpp_fname_wrapper]
     for src in ['defines.cpp', 'context.cpp']:
         srcs.append(os.path.join(ENV_PATH, 'src', src))
     source_to_so_ctx(build_path, srcs, target_name, 'cpu')
@@ -52,14 +79,12 @@ STR2TYPE = {
 }
 
 def get_functions_from_cpp(cpp_fname):
-    # Build
-    build_lib(cpp_fname)
-    build_exit()
 
     unmatched_brackets = 0
     func_def = ''
     func_started = False
-    functions = dict()
+    functions_args = dict()
+    code_buffer = ''
     for line in open(cpp_fname):
         if not func_started:
             u = MOBULA_KERNEL_REG.search(line)
@@ -71,19 +96,38 @@ def get_functions_from_cpp(cpp_fname):
             func_def += line
             if unmatched_brackets == 0:
                 func_started = False
-                rtn_type, func_name, plist = parse_parameters_list(func_def)
+                rtn_type, kernel_name, plist = parse_parameters_list(func_def)
+                assert kernel_name.endswith('_kernel'), Exception('the postfix of a MOBULA_KERNEL name must be `_kernel`, e.g. addition_forward_kernel')
+                func_name = kernel_name[:-len('_kernel')]
                 # Check Type
                 for ptype, pname in plist:
                     assert ptype in STR2TYPE, TypeError('Unsupported Type: {}'.format(ptype))
+                # Generate function Code
+                str_plist = ', '.join(['{} {}'.format(ptype, pname) for ptype, pname in plist])
+                str_pname = ', '.join(['{}'.format(pname) for _, pname in plist])
+                code_buffer += '''
+void %s(%s){
+    KERNEL_RUN(%s, %s)(%s);
+}
+                ''' % (func_name, str_plist, kernel_name, plist[0][1], str_pname)
+                # Arguments
                 lib_path = get_so_path(cpp_fname)
-                cfuncdef = CFuncDef(func_name = func_name,
+                cfuncdef_args = dict(func_name = func_name,
                             arg_names = [t[1] for t in plist],
                             arg_types = [STR2TYPE[t[0]] for t in plist],
                             rtn_type = STR2TYPE[rtn_type],
                             lib_path = lib_path)
-                functions[func_name] = cfuncdef
+                functions_args[func_name] = cfuncdef_args
 
     assert unmatched_brackets == 0, Exception('# unmatched brackets: {}'.format(unmatched_brackets))
+
+    # Build
+    build_lib(cpp_fname, code_buffer)
+    build_exit()
+
+    # Load dynamic file
+    functions = dict([(name, CFuncDef(**kwargs)) for name, kwargs in functions_args.items()])
+
     return functions
 
 
@@ -93,5 +137,14 @@ def import_op(path):
     assert_file_exists(cpp_fname)
     py_fname = os.path.join(path, op_name + '.py')
     assert_file_exists(py_fname)
+
+    # Get functions
     functions = get_functions_from_cpp(cpp_fname)
     bind(functions)
+    # Create Operator
+    spec = importlib.util.spec_from_file_location(op_name, py_fname)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    op = getattr(module, op_name)
+    return op
+
