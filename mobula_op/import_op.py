@@ -1,29 +1,36 @@
 import os
 import re
 from .func import IN, OUT, CFuncDef, bind
+# from .build_utils import 
 
 def assert_file_exists(fname):
     assert os.path.exists(fname), IOError("{} not found".format(fname))
 
-MOBULA_KERNEL_REG = re.compile('^\s*MOBULA_KERNEL.*?')
-MOBULA_KERNEL_FUNC_REG = re.compile('^(?:\s)*MOBULA_KERNEL\s*(.*?)\s*\((.*?)\)(?:.*?)*')
+MOBULA_KERNEL_REG = re.compile(r'^\s*MOBULA_KERNEL.*?')
+MOBULA_KERNEL_FUNC_REG = re.compile(r'^\s*MOBULA_KERNEL\s*(.*?)\s*\((.*?)\)(?:.*?)*')
 
 def parse_parameters_list(plist):
     g = MOBULA_KERNEL_FUNC_REG.search(plist)
     head, plist = g.groups()
-    head_split = re.split('\s+', head)
-    plist_split = re.split('\s*,\s*', plist)
+    head_split = re.split(r'\s+', head)
+    plist_split = re.split(r'\s*,\s*', plist)
     func_name = head_split[-1]
     rtn_type = ' '.join(head_split[:-1])
     pars_list = []
     for p in plist_split:
-        r = re.split('\s+', p)
+        r = re.split(r'\s+', p)
         ptype = ' '.join(r[:-1])
         # remove const
-        ptype = re.split('\s*const\s*', ptype)[-1]
+        ptype = re.split(r'\s*const\s*', ptype)[-1]
         pname = r[-1]
         pars_list.append((ptype, pname))
     return rtn_type, func_name, pars_list
+
+def build_lib(cpp_fname):
+    cpp_path, cpp_basename = os.path.split(cpp_fname)
+    build_path = os.path.join(cpp_path, 'build')
+    if not os.path.exists(build_path):
+        os.mkdir(build_path)
 
 STR2TYPE = {
     'void': None,
@@ -54,6 +61,7 @@ def get_functions_from_cpp(cpp_fname):
                 for ptype, pname in plist:
                     assert ptype in STR2TYPE, TypeError('Unsupported Type: {}'.format(ptype))
                 lib_path = os.path.splitext(cpp_fname)[0]
+                build_lib(cpp_fname)
                 cfuncdef = CFuncDef(func_name = func_name,
                             arg_names = [t[1] for t in plist],
                             arg_types = [STR2TYPE[t[0]] for t in plist],

@@ -28,10 +28,7 @@ if config.USING_HIGH_LEVEL_WARNINGS:
     CFLAGS.add_string('-Werror -Wall -Wextra -pedantic -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wmissing-include-dirs -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-promo -Wundef -fdiagnostics-show-option')
 
 SRCS = wildcard(['src', 'src/op'], 'cpp')
-OBJS = change_ext(SRCS, 'cpp', 'o')
-
 CU_SRCS = change_ext(SRCS, 'cpp', 'cu')
-CU_OBJS = change_ext(CU_SRCS, 'cu', 'cu.o')
 
 def source_to_o(build_path, it, compiler = config.CXX, cflags = CFLAGS):
     mkdir(build_path)
@@ -66,24 +63,30 @@ def link(srcs, tars):
             existed_dirs.add(dir_name)
         run_command('ln -f %s %s' % (src, tar))
 
+def source_to_so(build_path, srcs, target_name, compiler, cflags, ldflags):
+    objs = change_exts(srcs, [('cpp', 'o'), ('cu', 'cu.o')])
+    if source_to_o(build_path, zip(srcs, objs)) or not os.path.exists(target_name):
+        abs_objs = add_path(build_path, objs)
+        o_to_so(target_name, abs_objs, compiler, ldflags)
+
 def all_func():
     build_path = os.path.join(config.BUILD_PATH, 'cpu')
     target_name = os.path.join(config.BUILD_PATH, '%s_cpu.so' % config.TARGET)
-    if source_to_o(build_path, zip(SRCS, OBJS)) or not os.path.exists(target_name):
-        objs = add_path(build_path, OBJS)
-        o_to_so(target_name, objs, config.CXX)
+    source_to_so(build_path, SRCS, target_name, config.CXX, CFLAGS, LDFLAGS)
 
 def cuda_func():
     build_path = os.path.join(config.BUILD_PATH, 'gpu')
     cu_srcs = add_path(build_path, CU_SRCS)
     link(SRCS, cu_srcs)
     target_name = os.path.join(config.BUILD_PATH, '%s_gpu.so' % config.TARGET)
-    if source_to_o(build_path, zip(cu_srcs, CU_OBJS), config.NVCC, CU_FLAGS) or not os.path.exists(target_name):
-        objs = add_path(build_path, CU_OBJS)
-        o_to_so(target_name, objs, config.NVCC, CU_LDFLAGS)
+    source_to_so(build_path, cu_srcs, target_name, config.NVCC, CU_FLAGS, CU_LDFLAGS)
 
 def clean_func():
     rmdir(config.BUILD_PATH)
+
+def single_func(func_path):
+    single_func_cpu(func_path)
+    single_func_gpu(func_path)
 
 RULES = dict(
     all = all_func,

@@ -84,7 +84,7 @@ class Flags:
     def __str__(self):
         return self.flags
 
-INCLUDE_FILE_REG = re.compile('^\s*#include\s*(?:"|<)\s*(.*?)\s*(?:"|>)\s*')
+INCLUDE_FILE_REG = re.compile(r'^\s*#include\s*(?:"|<)\s*(.*?)\s*(?:"|>)\s*')
 def get_include_file(fname):
     include_str = '#include'
     res = []
@@ -108,15 +108,21 @@ def wildcard(path, ext):
             res.append(os.path.join(path, name))
     return res
 
-def change_ext(lst, origin, target):
+def change_exts(lst, rules):
     res = []
+    mappings = dict(rules)
     for name in lst:
         sp = os.path.splitext(name)
-        if sp[1] == '.' + origin:
-            res.append(sp[0] + '.' + target)
-        else:
-            res.append(name)
+        if len(sp[1]) > 0 and sp[1][0] == '.':
+            ext = sp[1][1:]
+            if ext in mappings:
+                new_ext = mappings[ext]
+                name = sp[0] + '.' + new_ext
+        res.append(name)
     return res
+
+def change_ext(lst, origin, target):
+    return change_exts(lst, [(origin, target)])
 
 def run_command(command):
     print (command)
