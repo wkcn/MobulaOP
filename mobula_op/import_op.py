@@ -3,6 +3,7 @@ import sys
 import re
 from .func import IN, OUT, CFuncDef, bind
 from .build import config, update_build_path, source_to_so_ctx, build_exit, file_changed, ENV_PATH
+from .test_utils import list_gpus
 
 def load_module_py2(name, pathname):
     module = imp.load_source(name, pathname)
@@ -74,10 +75,16 @@ using namespace mobula;
         with open(cpp_wrapper_fname, 'w') as fout:
             fout.write(extra_code)
 
+    # Build CPU Lib
     srcs = [cpp_wrapper_fname]
     for src in ['defines.cpp', 'context.cpp']:
         srcs.append(os.path.join(ENV_PATH, 'src', src))
     source_to_so_ctx(build_path, srcs, target_name, 'cpu')
+
+    # Build GPU Lib
+    if len(list_gpus()) > 0:
+        target_name = get_so_path(cpp_fname) + '_gpu.so'
+        source_to_so_ctx(build_path, srcs, target_name, 'cuda')
 
 STR2TYPE = {
     'void': None,

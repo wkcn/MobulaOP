@@ -65,7 +65,7 @@ def link(srcs, tars):
 
 def source_to_so(build_path, srcs, target_name, compiler, cflags, ldflags):
     objs = change_exts(srcs, [('cpp', 'o'), ('cu', 'cu.o')])
-    if source_to_o(build_path, zip(srcs, objs)) or not os.path.exists(target_name):
+    if source_to_o(build_path, zip(srcs, objs), compiler, cflags) or not os.path.exists(target_name):
         abs_objs = add_path(build_path, objs)
         o_to_so(target_name, abs_objs, compiler, ldflags)
 
@@ -76,6 +76,13 @@ BUILD_FLAGS = dict(
 
 def source_to_so_ctx(build_path, srcs, target_name, ctx_name):
     assert ctx_name in BUILD_FLAGS, ValueError("The flags of ctx {} not found :-(".format(ctx_name))
+    if ctx_name == 'cuda':
+        # preprocess
+        cu_srcs = change_ext(srcs, 'cpp', 'cu')
+        cu_srcs = add_path(build_path, cu_srcs)
+        link(srcs, cu_srcs)
+        srcs = cu_srcs
+
     source_to_so(build_path, srcs, target_name, *BUILD_FLAGS[ctx_name])
 
 def all_func():
@@ -85,9 +92,6 @@ def all_func():
 
 def cuda_func():
     build_path = os.path.join(config.BUILD_PATH, 'gpu')
-    # preprocess
-    cu_srcs = add_path(build_path, CU_SRCS)
-    link(SRCS, cu_srcs)
     target_name = os.path.join(config.BUILD_PATH, '%s_gpu.so' % config.TARGET)
     source_to_so_ctx(build_path, cu_srcs, target_name, 'cuda')
 
@@ -109,6 +113,5 @@ def run_rule(name):
 
 if __name__ == '__main__':
     SRCS = wildcard(['src', 'src/op'], 'cpp')
-    CU_SRCS = change_ext(SRCS, 'cpp', 'cu')
     run_rule(sys.argv[1])
     build_exit()
