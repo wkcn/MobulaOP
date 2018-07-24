@@ -1,6 +1,6 @@
 try:
     from .build_utils import *
-except ModuleNotFoundError:
+except:
     from build_utils import *
 
 num_cpu_core = multiprocessing.cpu_count()
