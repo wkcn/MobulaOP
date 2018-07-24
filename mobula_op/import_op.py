@@ -2,7 +2,7 @@ import os
 import sys
 import re
 from .func import IN, OUT, CFuncDef, bind
-from .build import config, update_build_path, source_to_so_ctx, build_exit, ENV_PATH
+from .build import config, update_build_path, source_to_so_ctx, build_exit, file_changed, ENV_PATH
 
 def load_module_py2(name, pathname):
     module = imp.load_source(name, pathname)
@@ -68,21 +68,13 @@ using namespace mobula;
     # build so for cpu
     target_name = get_so_path(cpp_fname) + '_cpu.so'
 
-    cpp_fname_wrapper = os.path.join(build_path, os.path.splitext(cpp_basename)[0] + '_wrapper.cpp')
+    cpp_wrapper_fname = os.path.join(build_path, os.path.splitext(cpp_basename)[0] + '_wrapper.cpp')
 
-    need_regenerate = True
-
-    if os.path.exists(cpp_fname_wrapper):
-        with open(cpp_fname_wrapper, 'r') as fin:
-            s = fin.read()
-            if s == extra_code:
-                need_regenerate = False
-
-    if need_regenerate:
-        with open(cpp_fname_wrapper, 'w') as fout:
+    if not os.path.exists(cpp_wrapper_fname) or file_changed(cpp_fname):
+        with open(cpp_wrapper_fname, 'w') as fout:
             fout.write(extra_code)
 
-    srcs = [cpp_fname_wrapper]
+    srcs = [cpp_wrapper_fname]
     for src in ['defines.cpp', 'context.cpp']:
         srcs.append(os.path.join(ENV_PATH, 'src', src))
     source_to_so_ctx(build_path, srcs, target_name, 'cpu')

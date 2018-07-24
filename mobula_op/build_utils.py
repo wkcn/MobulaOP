@@ -149,7 +149,7 @@ def rmdir(dir_name):
         run_command(command)
 
 def get_file_hash(fname):
-    return str(os.path.getmtime(fname))
+    return str(int(os.path.getmtime(fname)))
     m = hashlib.md5()
     with open(fname, 'rb') as f:
         while True:
