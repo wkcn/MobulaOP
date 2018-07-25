@@ -19,8 +19,11 @@ def list_gpus():
     for cmd in nvidia_smi:
         try:
             re = subprocess.check_output([cmd, "-L"], universal_newlines=True)
-        except OSError:
+            break
+        except:
             pass
+    else:
+        return range(0)
     return range(len([i for i in re.split('\n') if 'GPU' in i]))
 
 FLT_MIN = 1.175494351e-38
