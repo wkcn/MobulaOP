@@ -15,6 +15,8 @@ else:
 
 get_varnames = lambda func : getargspec(func).args[1:]
 
+CUSTOM_OP_LIST = dict()
+
 def get_in_data(*args, **kwargs):
     '''
     return:
@@ -101,7 +103,10 @@ def register(op_name = None, **attrs):
     def decorator(op_name, op):
         if op_name is None:
             op_name = op.__name__
-        return MobulaOperator(op = op, name = op_name, **attrs)
+        op_inst = MobulaOperator(op = op, name = op_name, **attrs)
+        assert op_name not in CUSTOM_OP_LIST, ValueError('Duplicate operator name {}, please rename it'.format(op_name))
+        CUSTOM_OP_LIST[op_name] = op_inst
+        return op_inst
     if op_name is not None and type(op_name) != str:
         return decorator(None, op_name)
     return functools.partial(decorator, op_name)

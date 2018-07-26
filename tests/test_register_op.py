@@ -24,3 +24,7 @@ def test_register_op():
     c2 = FirstOP(a, b, par = dict(a = 3))
     assert_almost_equal(c1.asnumpy(), c2.asnumpy())
     assert_almost_equal((a + b).asnumpy(), c1.asnumpy())
+
+def test_custom_op():
+    assert 'FirstOP' in mobula_op.operator.CustomList()
+    assert mobula_op.operator.Custom('FirstOP') == FirstOP
