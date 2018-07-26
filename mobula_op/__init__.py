@@ -1,9 +1,11 @@
 from . import op
 operator = op
 from . import func
-from . import custom_func
-from . import maths as math
+function = func
 from .import_op import import_op
 
+# register built-in functions
+from . import custom_func
+from . import maths as math
 # register built-in operators
 from . import custom_op

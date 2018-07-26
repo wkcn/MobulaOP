@@ -23,7 +23,6 @@ def test_softmax_loss():
         y, loss = mobula_op.operator.SoftmaxLoss(data = data_mx, label = label_mx, axis = -1, compute_loss = True)
     assert_almost_equal(y.asnumpy(), ry.asnumpy())
     y.backward()
-    mx.nd.waitall()
 
     rlosses = np.zeros(n)
     dx = y.asnumpy()
