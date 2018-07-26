@@ -7,6 +7,8 @@ AdditionOP = mobula_op.import_op(op_path)
 import mxnet as mx
 
 def test_dynamic_import_op():
+    assert mobula_op.operator.AdditionOP == AdditionOP
+
     a = mx.nd.array([1,2,3])
     b = mx.nd.array([4,5,6])
 

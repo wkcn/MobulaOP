@@ -12,7 +12,7 @@ You can write the custom operators by Python/C++/C/CUDA without rebuilding deep 
 
 [Documentation](https://mobulaop.readthedocs.io/en/latest/)
 
-- Add an addition operator
+- Add an addition operator [[Code](examples/MyFirstOP.py)]
 
 ```python
 import mobula_op
@@ -34,7 +34,8 @@ c = MyFirstOP(a, b)
 print (c) # [5,7,9]
 ```
 
-- Use **custom operators** without rebuilding the source of deep learning framework
+- Use **custom operators** without rebuilding the source of deep learning framework [[Code](examples/RunROIAlign.py)]
+
 ```python
 # Use ROIAlign operator
 import mxnet as mx
@@ -53,10 +54,22 @@ with mx.autograd.record():
     # mx.nd.NDArray and mx.sym.Symbol are both available as the inputs.
     output = mobula_op.operator.ROIAlign(data = data, rois = rois, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
 
-output.backward()
-
-mx.nd.waitall()
 print (output.asnumpy(), data.grad.asnumpy())
+```
+
+- Import Custom C++ Operator Dynamically [[Code](examples/dynamic_import_op/dynamic_import_op.py)]
+
+```python
+import mobula_op
+# Import Custom Operator Dynamically
+mobula_op.import_op('./AdditionOP')
+import mxnet as mx
+
+a = mx.nd.array([1,2,3])
+b = mx.nd.array([4,5,6])
+c = mobula_op.operator.AdditionOP(a, b)
+
+print ('a + b = c \n {} + {} = {}'.format(a.asnumpy(), b.asnumpy(), c.asnumpy()))
 ```
 
 ## How to get it? 
