@@ -34,6 +34,7 @@ def register_backend(glue_name, types_name):
 # register backends
 register_backend('mx', ['mxnet.nd.NDArray', 'mxnet.sym.Symbol'])
 register_backend('np', ['numpy.ndarray'])
+register_backend('torch', ['torch.Tensor'])
 assert len(dtypes) > 0, RuntimeError("No supported backend :-(")
 
 # create generators cache

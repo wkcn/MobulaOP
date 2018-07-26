@@ -13,6 +13,13 @@ def test_lib_add_mx():
     mobula_op.func.add(a.size, a, b, c)
     assert ((a + b).asnumpy() == c.asnumpy()).all(), c
 
+def test_lib_add_np():
+    a = np.array([1,2,3], dtype = dtype)
+    b = np.array([4,5,6], dtype = dtype)
+    c = np.array([0,0,0], dtype = dtype)
+    mobula_op.func.add(a.size, a, b, c)
+    assert (a + b == c).all(), c
+
 def test_lib_abs_np():
     a = np.random.randint(-100, 100, size = (10, 10)).astype(dtype)
 
@@ -122,6 +129,17 @@ def test_transpose():
         y = mobula_op.math.transpose(x, axes)
         r = np.transpose(x, axes)
         assert_almost_equal(y, r)
+
+try:
+    import torch
+    def test_lib_add_torch():
+        a = torch.tensor([1,2,3], dtype = torch.float32)
+        b = torch.tensor([4,5,6], dtype = torch.float32)
+        c = torch.tensor([0,0,0], dtype = torch.float32)
+        mobula_op.func.add(a.numel(), a, b, c)
+        assert ((a + b).numpy() == c.numpy()).all(), c
+except:
+    pass
 
 if __name__ == '__main__':
     test_lib_add_mx()
