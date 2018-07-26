@@ -22,6 +22,3 @@ def test_dynamic_import_op():
     assert ((a + b).asnumpy() == c.asnumpy()).all()
     assert (a.grad.asnumpy() == dc.asnumpy()).all()
     assert (b.grad.asnumpy() == dc.asnumpy()).all()
-
-    print ('Okay :-)')
-    print ('a + b = c \n {} + {} = {}'.format(a.asnumpy(), b.asnumpy(), c.asnumpy()))

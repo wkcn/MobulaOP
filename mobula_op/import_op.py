@@ -1,9 +1,10 @@
 import os
 import sys
 import re
+import time
 from .func import IN, OUT, CFuncDef, bind
 from .build import config, update_build_path, source_to_so_ctx, build_exit, file_changed, ENV_PATH
-from .test_utils import list_gpus
+from .test_utils import list_gpus, get_git_hash
 
 def load_module_py2(name, pathname):
     module = imp.load_source(name, pathname)
@@ -21,9 +22,6 @@ if sys.version_info[0] >= 3:
 else:
     import imp
     load_module = load_module_py2
-
-def assert_file_exists(fname):
-    assert os.path.exists(fname), IOError("{} not found".format(fname))
 
 MOBULA_KERNEL_REG = re.compile(r'^\s*MOBULA_KERNEL.*?')
 MOBULA_KERNEL_FUNC_REG = re.compile(r'^\s*MOBULA_KERNEL\s*(.*?)\s*\((.*?)\)(?:.*?)*')
@@ -54,14 +52,22 @@ def build_lib(cpp_fname, code_buffer):
     cpp_path, cpp_basename = os.path.split(cpp_fname)
     build_path = os.path.join(cpp_path, 'build')
 
-    extra_code = '''
+    create_time = time.strftime('%a %Y-%m-%d %H:%M:%S %Z', time.localtime())
+    git_hash = get_git_hash()
+
+    extra_code = '''/*
+ * MobulaOP Wrapper generated from the source code %s
+ * Created by: MobulaOP %s
+ * Create Time: %s
+ *
+ * WARNING! All changes made in this file will be lost!
+ */
 #include "%s"
 extern "C" {
 using namespace mobula;
-
 %s
-}
-    ''' % (os.path.join('..', cpp_basename), code_buffer)
+
+}''' % (cpp_fname, git_hash, create_time, os.path.join('..', cpp_basename), code_buffer)
 
     # update_build_path(build_path)
     if not os.path.exists(build_path):
@@ -124,8 +130,7 @@ def get_functions_from_cpp(cpp_fname):
                 code_buffer += '''
 void %s(%s){
     KERNEL_RUN(%s, %s)(%s);
-}
-                ''' % (func_name, str_plist, kernel_name, plist[0][1], str_pname)
+}''' % (func_name, str_plist, kernel_name, plist[0][1], str_pname)
                 # Arguments
                 lib_path = get_so_path(cpp_fname)
                 cfuncdef_args = dict(func_name = func_name,
@@ -148,17 +153,23 @@ void %s(%s){
 
 
 def import_op(path):
+    found = False
     op_name = os.path.basename(path)
     cpp_fname = os.path.join(path, op_name + '.cpp')
-    assert_file_exists(cpp_fname)
+    if os.path.exists(cpp_fname):
+        found = True
+        # Get functions
+        functions = get_functions_from_cpp(cpp_fname)
+        bind(functions)
+
     py_fname = os.path.join(path, op_name + '.py')
-    assert_file_exists(py_fname)
+    if not os.path.exists(py_fname):
+        py_fname = os.path.join(path, '__init__.py')
 
-    # Get functions
-    functions = get_functions_from_cpp(cpp_fname)
-    bind(functions)
-
-    # Create Operator
-    module = load_module(op_name, py_fname)
-    op = getattr(module, op_name)
+    if os.path.exists(py_fname):
+        found = True
+        # Create Operator
+        module = load_module(op_name, py_fname)
+        op = getattr(module, op_name, None)
+    assert found, IOError("{}.cpp or {}.py or __init__.py not found in the path {}".format(op_name, op_name, path))
     return op
