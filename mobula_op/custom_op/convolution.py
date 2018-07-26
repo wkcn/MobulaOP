@@ -1,9 +1,8 @@
-from .register import register
 import mobula_op
 from mobula_op.const import req
 import numpy as np
 
-@register
+@mobula_op.op.register
 class Convolution:
     def __init__(self, kernel, stride = (1, 1), dilate = (1, 1), pad = (0, 0), num_filter = 0, no_bias = False):
         assert len(kernel) == 2

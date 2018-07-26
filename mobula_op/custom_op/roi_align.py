@@ -1,8 +1,7 @@
-from .register import register
 import mobula_op
 from mobula_op.const import req
 
-@register
+@mobula_op.op.register
 class ROIAlign:
     def __init__(self, pooled_size, spatial_scale, sampling_ratio):
         self.pooled_size = pooled_size

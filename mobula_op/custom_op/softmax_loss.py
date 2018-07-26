@@ -1,8 +1,7 @@
-from .register import register
 import mobula_op
 from mobula_op.const import req
 
-@register
+@mobula_op.op.register
 class SoftmaxLoss:
     def __init__(self, axis = -1, compute_loss = False):
         self.axis = axis

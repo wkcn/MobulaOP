@@ -27,4 +27,5 @@ def test_register_op():
 
 def test_custom_op():
     assert 'FirstOP' in mobula_op.operator.CustomList()
+    assert mobula_op.operator.FirstOP == FirstOP
     assert mobula_op.operator.Custom('FirstOP') == FirstOP

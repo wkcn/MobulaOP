@@ -1,10 +1,9 @@
-from .register import register
 import mobula_op
 from mobula_op.const import req
 import functools
 import operator
 
-@register
+@mobula_op.op.register
 class FullyConnected:
     def __init__(self, num_hidden, no_bias = False, flatten = True):
         self.num_hidden = num_hidden
