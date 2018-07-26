@@ -1,4 +1,6 @@
 # Use ROIAlign operator
+import sys
+sys.path.append('../') # Add MobulaOP path
 import mxnet as mx
 import numpy as np
 import mobula_op
