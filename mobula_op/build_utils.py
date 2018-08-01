@@ -96,7 +96,6 @@ class Flags:
 
 INCLUDE_FILE_REG = re.compile(r'^\s*#include\s*(?:"|<)\s*(.*?)\s*(?:"|>)\s*')
 def get_include_file(fname):
-    include_str = '#include'
     res = []
     for line in open(fname):
         u = INCLUDE_FILE_REG.search(line)

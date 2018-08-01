@@ -122,7 +122,7 @@ class MobulaFunc:
         for a, p in zip(args_gen(), self.par_type):
             if isinstance(p, (list, tuple)):
                 for e in a:
-                    backend = check_backend(a, backend)
+                    backend = check_backend(e, backend)
             else:
                 backend = check_backend(a, backend)
 
