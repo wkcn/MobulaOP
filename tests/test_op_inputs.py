@@ -1,6 +1,10 @@
 import mobula_op
 import mxnet as mx
 import numpy as np
+try:
+    import torch
+except ImportError:
+    torch = None
 
 @mobula_op.operator.register
 class TestInputsOP:
@@ -28,7 +32,7 @@ class TestInputsOP2:
         return in_shape, [in_shape[0]]
 
 def check_op_inputs(test_op):
-    a = mx.nd.array([1,2,3]) 
+    a = mx.nd.array([1,2,3])
     b = mx.nd.array([4,5,6])
     a.attach_grad()
     b.attach_grad()
@@ -60,10 +64,22 @@ def check_op_inputs_np(test_op):
     assert (a_grad == (b * dy)).all(), a_grad
     assert (b_grad == (a * dy)).all(), b_grad
 
+def check_op_inputs_torch(test_op):
+    a = torch.tensor([1,2,3], requires_grad = True)
+    b = torch.tensor([4,5,6], requires_grad = True)
+    c = test_op(a, b)
+    dy = torch.tensor([10,11,12])
+    c.backward(dy)
+    assert (a.grad == (b * dy)).all(), a.grad
+    assert (b.grad == (a * dy)).all(), b.grad
+    assert ((a * b) == c).all()
+
 def test_op_inputs():
     for op in [TestInputsOP, TestInputsOP2]:
         check_op_inputs(op)
         check_op_inputs_np(op)
+        if torch is not None:
+            check_op_inputs_torch(op)
 
 if __name__ == '__main__':
     test_op_inputs()
