@@ -59,7 +59,7 @@ class OpGen(object):
             if out is not None:
                 if type(out) != list:
                     out = [out]
-                for i, x in enumerate(out): 
+                for i, x in enumerate(out):
                     self.assign(self.out_data[i], self.req[i], x)
             # recover parameters
             for k, v in changed_pars.items():
