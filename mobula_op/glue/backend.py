@@ -52,10 +52,7 @@ def get_args_backend(*args, **kwargs):
         for a in kwargs.values():
             yield a
     for a in args_gen():
-        if type(a) == str:
-            t = glues.get(a, None)
-        else:
-            t = get_var_backend(a)
+        t = get_var_backend(a)
         if t is not None:
             if b is not None:
                 assert b == t, TypeError("Support only 1 backend in a call, now: [%s, %s]" % (str(b), str(t)))

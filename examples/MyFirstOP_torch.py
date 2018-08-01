@@ -15,9 +15,8 @@ class MyFirstOP:
 import torch
 a = torch.tensor([1,2,3], requires_grad = True)
 b = torch.tensor([4,5,6], requires_grad = True)
-c = MyFirstOP(a, b)
-# c = a + b
-print ('a + b = c \n {} + {} = {}'.format(a, b, c)) # [5, 7, 9]
+c = MyFirstOP(a, b) # c = a + b
+print ('a + b = c\n{} + {} = {}'.format(a, b, c)) # [5, 7, 9]
 
 d = c.sum()
 d.backward()

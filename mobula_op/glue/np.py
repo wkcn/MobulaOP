@@ -29,9 +29,8 @@ class OpGen(object):
         if self.name not in self.cache:
             # register operator
             self.cache[self.name] = self.register()
-        if args[0] == 'np':
-            args = args[1:]
-        return self.cache[self.name](*args, **kwargs)
+        kwargs.pop('__input_type__')
+        return self.cache[self.name]()
     def register(self): 
         def forward(self, *args, **kwargs):
             inputs, pars = get_in_data(op = self.op, *args, **kwargs)

@@ -42,7 +42,7 @@ def test_softmax_loss():
     # numpy
     n = 5
     num_classes = 7
-    op = mobula_op.operator.SoftmaxLoss('np')
+    op = mobula_op.operator.SoftmaxLoss[np.ndarray]()
     y_np = op(data = data_np, label = label_np, axis = -1)
     assert_almost_equal(y_np, ry.asnumpy())
     y_np, loss_np = op(data = data_np, label = label_np, axis = -1, compute_loss = True)

@@ -43,7 +43,7 @@ def check_op_inputs(test_op):
 def check_op_inputs_np(test_op):
     a = np.array([1,2,3])
     b = np.array([4,5,6])
-    op = test_op('np')
+    op = test_op[np.ndarray]()
 
     c = op(a, b)
     assert ((a * b) == c).all()
