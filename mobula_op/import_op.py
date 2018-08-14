@@ -166,6 +166,7 @@ def import_op(path):
     if not os.path.exists(py_fname):
         py_fname = os.path.join(path, '__init__.py')
 
+    op = None
     if os.path.exists(py_fname):
         found = True
         # Create Operator
