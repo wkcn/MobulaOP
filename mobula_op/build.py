@@ -61,7 +61,8 @@ def link(srcs, tars):
         if dir_name not in existed_dirs:
             mkdir(dir_name)
             existed_dirs.add(dir_name)
-        run_command('ln -f %s %s' % (src, tar))
+        if not os.path.exists(tar):
+            run_command('ln -f %s %s' % (src, tar))
 
 def source_to_so(build_path, srcs, target_name, compiler, cflags, ldflags):
     objs = change_exts(srcs, [('cpp', 'o'), ('cu', 'cu.o')])
@@ -79,7 +80,6 @@ def source_to_so_ctx(build_path, srcs, target_name, ctx_name):
     if ctx_name == 'cuda':
         # preprocess
         cu_srcs = change_ext(srcs, 'cpp', 'cu')
-        cu_srcs = add_path(build_path, cu_srcs)
         link(srcs, cu_srcs)
         srcs = cu_srcs
 

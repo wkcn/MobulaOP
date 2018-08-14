@@ -1,3 +1,5 @@
+import sys
+sys.path.append('../../') # Add MobulaOP Path
 import mobula_op
 # Import Custom Operator Dynamically
 AdditionOP = mobula_op.import_op('./AdditionOP')
