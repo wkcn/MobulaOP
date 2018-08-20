@@ -3,13 +3,15 @@ import ctypes
 from .common import *
 
 def get_pointer(v):
-    assert v.dtype == np.float32, TypeError('The type of np.ndarray should be float32 rather than %s' % v.dtype)
     def p(e):
         return e.ctypes.data_as(ctypes.c_void_p)
     if not v.flags.c_contiguous:
         c = np.ascontiguousarray(v)
         return p(c), c
     return p(v)
+
+def get_ctype(v):
+    return NPDTYPE2CTYPE(v.dtype)
 
 def dev_id(a):
     return None

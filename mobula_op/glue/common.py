@@ -130,3 +130,22 @@ OpGen:
     X,Y,dX,dY,x,y,dx,dy
     F
 '''
+try:
+    import numpy as np
+    NPDTYPE2CTYPE_MAP = dict()
+    pairs = [
+            (np.dtype('int'), ctypes.c_int),
+            (np.dtype('int16'), ctypes.c_int16),
+            (np.dtype('int32'), ctypes.c_int32),
+            (np.dtype('float32'), ctypes.c_float),
+            (np.dtype('float64'), ctypes.c_double),
+    ]
+    for dtype, ctype in pairs:
+        NPDTYPE2CTYPE_MAP[dtype] = ctype
+        NPDTYPE2CTYPE_MAP[dtype.type] = ctype
+    def NPDTYPE2CTYPE(dtype):
+        ctype = NPDTYPE2CTYPE_MAP.get(dtype, None)
+        assert ctype is not None, TypeError('Unknown Type: {}'.format(dtype))
+        return ctype
+except ImportError:
+    pass

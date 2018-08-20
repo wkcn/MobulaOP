@@ -26,6 +26,24 @@ else:
 MOBULA_KERNEL_REG = re.compile(r'^\s*MOBULA_KERNEL.*?')
 MOBULA_KERNEL_FUNC_REG = re.compile(r'^\s*MOBULA_KERNEL\s*(.*?)\s*\((.*?)\)(?:.*?)*')
 
+class TemplateFuncDLL:
+    def __init__(self, ctx, lib):
+        self.ctx = ctx
+        self.lib = lib
+        self.cache = dict()
+    def __getattr__(self, name):
+        return self.get_func(name)
+    def get_func(self, name):
+        if name in self.cache:
+            return self.cache[name]
+        pass
+
+class TemplateFuncLib:
+    def __init__(self):
+        self.mobula_func_lib = None
+        self.cpu_lib = TemplateFuncDLL('cpu', self)
+        self.gpu_lib = TemplateFuncDLL('gpu', self)
+
 def parse_parameters_list(plist):
     g = MOBULA_KERNEL_FUNC_REG.search(plist)
     head, plist = g.groups()

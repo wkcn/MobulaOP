@@ -17,16 +17,12 @@ mx.nd.NDArray.iscontiguous = nd_iscontiguous
 mx.nd.NDArray.wait_to_write = lambda self : _LIB.MXNDArrayWaitToWrite(self.handle)
 
 def get_pointer(v):
-    assert v.dtype == np.float32, TypeError('The type of mx.nd.NDArray should be float32')
     cp = ctypes.c_void_p() 
-    '''
-    if not v.iscontiguous():
-        c = mx.nd.array(v, dtype = v.dtype, ctx = v.context)
-        _LIB.MXNDArrayGetData(v.handle, ctypes.byref(cp))
-        return cp, c
-    '''
     _LIB.MXNDArrayGetData(v.handle, ctypes.byref(cp))
     return cp
+
+def get_ctype(v):
+    return NPDTYPE2CTYPE(v.dtype)
 
 def dev_id(a):
     if isinstance(a, mx.nd.NDArray):

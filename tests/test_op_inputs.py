@@ -65,10 +65,10 @@ def check_op_inputs_np(test_op):
     assert (b_grad == (a * dy)).all(), b_grad
 
 def check_op_inputs_torch(test_op):
-    a = torch.tensor([1,2,3], requires_grad = True)
-    b = torch.tensor([4,5,6], requires_grad = True)
+    a = torch.tensor([1.0,2.0,3.0], requires_grad = True)
+    b = torch.tensor([4.0,5.0,6.0], requires_grad = True)
     c = test_op(a, b)
-    dy = torch.tensor([10,11,12])
+    dy = torch.tensor([10.0,11.0,12.0])
     c.backward(dy)
     assert (a.grad == (b * dy)).all(), a.grad
     assert (b.grad == (a * dy)).all(), b.grad

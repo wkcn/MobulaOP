@@ -4,7 +4,7 @@ dtypes = dict() # input_type -> glue.{backend_name}
 glues = dict() # backend_name -> glue.{backend_name}
 
 def check_backend(b):
-    func_names = ['get_pointer', 'dev_id', 'wait_to_read', 'wait_to_write', 'OpGen']
+    func_names = ['get_pointer', 'get_ctype', 'dev_id', 'wait_to_read', 'wait_to_write', 'OpGen']
     for name in func_names:
         assert hasattr(b, name), AttributeError('Attribute {} not found'.format(name))
     assert hasattr(b.OpGen, '__call__')
@@ -34,7 +34,7 @@ def register_backend(glue_name, types_name):
 # register backends
 register_backend('mx', ['mxnet.nd.NDArray', 'mxnet.sym.Symbol'])
 register_backend('np', ['numpy.ndarray'])
-register_backend('torch', ['torch.Tensor'])
+register_backend('th', ['torch.Tensor'])
 assert len(dtypes) > 0, RuntimeError("No supported backend :-(")
 
 # create generators cache

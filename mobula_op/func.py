@@ -5,6 +5,15 @@ import sys
 import inspect
 from . import glue
 
+class DLLWrapper:
+    def __init__(self, dll_fname):
+        self.dll = ctypes.CDLL(dll_fname)
+    def get_function(self, name, argtypes):
+        # [TODO] Check Types
+        return getattr(self.dll, name)
+    def __getattr__(self, name):
+        return getattr(self.dll, name)
+
 class MobulaFuncLib:
     FUNC_LIB_CACHE = dict()
     def __init__(self, lib_path = None, force = True):
@@ -19,7 +28,7 @@ class MobulaFuncLib:
         if dll_fname in MobulaFuncLib.FUNC_LIB_CACHE:
             return MobulaFuncLib.FUNC_LIB_CACHE[dll_fname]
         if os.path.exists(dll_fname):
-            dll = ctypes.CDLL(dll_fname)
+            dll = DLLWrapper(dll_fname)
             MobulaFuncLib.FUNC_LIB_CACHE[dll_fname] = dll
             return dll
         elif force:
@@ -39,7 +48,12 @@ class CFuncDef:
         self.arg_names = arg_names
         self.arg_types = arg_types
         self.rtn_type = rtn_type
-        self.func_lib = default_func_lib if lib_path is None else MobulaFuncLib(lib_path)
+        if lib_path is None:
+            self.func_lib = default_func_lib
+        elif type(lib_path) == str:
+            self.func_lib = MobulaFuncLib(lib_path)
+        else:
+            self.func_lib = lib_path
 
 TYPE_TO_CTYPE = {int:ctypes.c_int, float:ctypes.c_float, IN:ctypes.c_void_p, OUT:ctypes.c_void_p, None:None}
 
@@ -90,9 +104,11 @@ class MobulaFunc:
         temp_list = []
         backend_inputs = []
         backend_outputs = []
+        argtypes = []
 
         def analyze_element(a, p, backend, backend_inputs, backend_outputs, noncontiguous_list):
             if p == IN or p == OUT:
+                # multiple-dim array
 
                 if p == OUT:
                     backend_outputs.append(a)
@@ -107,10 +123,12 @@ class MobulaFunc:
                         temp_list.append(pa[1]) # hold a reference
                     pa = pa[0]
                 dev_id = backend.dev_id(a)
+                ctype = backend.get_ctype(a)
             else:
                 pa = p(a)
                 dev_id = None
-            return pa, dev_id
+                ctype = p
+            return pa, dev_id, ctype
 
         # Pre-Check
         def check_backend(a, backend):
@@ -130,6 +148,7 @@ class MobulaFunc:
 
         for a, p in zip(args_gen(), self.par_type):
             if isinstance(p, (list, tuple)):
+                # List or Tuple Object
                 ep = p[0]
                 analysis = [analyze_element(e, ep, *extra_pars) for e in a]
                 pas = [a[0] for a in analysis]
@@ -152,9 +171,11 @@ class MobulaFunc:
                 ca.size = len(pas)
                 ca.data = ctypes.cast((ctype * len(pas))(*pas), ctypes.c_void_p)
                 args_new.append(ca)
+                argtypes.append([ctype])
             else:
-                pa, aid = analyze_element(a, p, *extra_pars)
+                pa, aid, ctype = analyze_element(a, p, *extra_pars)
                 args_new.append(pa)
+                argtypes.append(ctype)
 
                 if aid is not None:
                     if dev_id is not None:
@@ -171,10 +192,13 @@ class MobulaFunc:
             if self.func_lib.gpu_lib is None:
                 raise RuntimeError("Doesn't support GPU")
             self.func_lib.gpu_lib.set_device(dev_id)
-            rtn = getattr(self.func_lib.gpu_lib, self.name_in_lib)(*args_new)
+            lib = self.func_lib.gpu_lib
         else:
-            f = getattr(self.func_lib.cpu_lib, self.name_in_lib)
-            rtn = f(*args_new)
+            lib = self.func_lib.cpu_lib
+
+        func = lib.get_function(self.name_in_lib, argtypes)
+        rtn = func(*args_new)
+
         for source, target in noncontiguous_list:
             source[:] = target
         return rtn
