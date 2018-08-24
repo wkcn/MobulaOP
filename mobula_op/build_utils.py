@@ -11,6 +11,11 @@ try:
     import Queue
 except ImportError:
     import queue as Queue
+if not hasattr(Queue.Queue, 'clear'):
+    def _queue_clear(self):
+        with self.mutex:
+            self.queue.clear()
+    setattr(Queue.Queue, 'clear', _queue_clear)
 
 INC_PATHS = ['./']
 
@@ -135,7 +140,7 @@ def change_ext(lst, origin, target):
 
 def run_command(command):
     print (command)
-    os.system(command)
+    return os.system(command)
 
 def mkdir(dir_name):
     if not os.path.exists(dir_name):
@@ -213,19 +218,24 @@ def file_is_latest(source):
     FILE_CHECK_LIST[source] = latest
     return latest
 
-def run_command_parallel(commands):
+def run_command_parallel(commands, allow_error=False):
     command_queue = Queue.Queue()
     for c in commands:
         command_queue.put(c)
     max_worker_num = min(config.MAX_BUILDING_WORKER_NUM, len(commands))
     for _ in range(max_worker_num):
         command_queue.put(None)
+    error = False
     def worker(command_queue):
         while not command_queue.empty():
             e = command_queue.get()
             if e is None:
                 break
-            run_command(e)
+            rtn = run_command(e)
+            if rtn != 0:
+                # Error
+                command_queue.clear()
+                error = True
     workers = [threading.Thread(target = worker, args = (command_queue,)) for _ in range(max_worker_num)]
     for w in workers:
         w.daemon = True
@@ -233,6 +243,8 @@ def run_command_parallel(commands):
         w.start()
     for w in workers:
         w.join()
+    if error and not allow_error:
+        raise Exception('Run Command Error :-(')
 
 def add_path(path, files):
     return list(map(lambda x : os.path.join(path, x), files))
