@@ -220,13 +220,13 @@ def file_is_latest(source):
 
 def run_command_parallel(commands, allow_error=False):
     command_queue = Queue.Queue()
+    info_queue = Queue.Queue()
     for c in commands:
         command_queue.put(c)
     max_worker_num = min(config.MAX_BUILDING_WORKER_NUM, len(commands))
     for _ in range(max_worker_num):
         command_queue.put(None)
-    error = False
-    def worker(command_queue):
+    def worker(command_queue, info_queue):
         while not command_queue.empty():
             e = command_queue.get()
             if e is None:
@@ -235,16 +235,18 @@ def run_command_parallel(commands, allow_error=False):
             if rtn != 0:
                 # Error
                 command_queue.clear()
-                error = True
-    workers = [threading.Thread(target = worker, args = (command_queue,)) for _ in range(max_worker_num)]
+                info_queue.put(Exception('Error, terminated :-('))
+    workers = [threading.Thread(target = worker, args = (command_queue, info_queue)) for _ in range(max_worker_num)]
     for w in workers:
         w.daemon = True
     for w in workers:
         w.start()
     for w in workers:
         w.join()
-    if error and not allow_error:
-        raise Exception('Run Command Error :-(')
+    while not info_queue.empty():
+        info = info_queue.get()
+        if type(info) is Exception and not allow_error:
+            raise info
 
 def add_path(path, files):
     return list(map(lambda x : os.path.join(path, x), files))
