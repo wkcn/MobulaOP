@@ -1,6 +1,8 @@
 import mobula_op
 import mxnet as mx
 import numpy as np
+from mobula_op.test_utils import assert_almost_equal
+
 try:
     import torch
 except ImportError:
@@ -8,8 +10,6 @@ except ImportError:
 
 @mobula_op.operator.register
 class TestInputsOP:
-    def __init__(self):
-        pass
     def forward(self, x, y):
         self.y[:] = self.X[0] * self.X[1]
     def backward(self, dy): 
@@ -80,6 +80,28 @@ def test_op_inputs():
         check_op_inputs_np(op)
         if torch is not None:
             check_op_inputs_torch(op)
+
+@mobula_op.operator.register
+class AttrOP:
+    def __init__(self, value):
+        self.value = value
+    def forward(self, x):
+        self.y[:] = x + self.value
+    def backward(self, dy):
+        self.dx[:] = dy
+    def infer_shape(self, in_shape):
+        return in_shape, in_shape
+
+def test_attr_op():
+    dtype = np.float32
+    shape = (1, )
+    x_sym = mx.sym.Variable('x')
+    y_sym = AttrOP(x_sym, value = 3) + AttrOP(x_sym, value = 4)
+    exe = y_sym.simple_bind(ctx = mx.context.current_context(), x = shape)
+    exe.forward(x = mx.nd.array([0]))
+    res = exe.outputs[0]
+    gt = 3 + 4 + 0
+    assert_almost_equal(res.asscalar(), gt)
 
 if __name__ == '__main__':
     test_op_inputs()

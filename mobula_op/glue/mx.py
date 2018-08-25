@@ -61,9 +61,10 @@ class OpGen(object):
         op_name = self.name
         def get_mx_op(op):
             def __init__(self, *args, **kwargs):
+                self.__mx_prop__ = kwargs.pop('__mx_prop__')
                 mx.operator.CustomOp.__init__(self)
-                if hasattr(op, '__init__'):
-                    op.__init__(self, *args, **kwargs)
+            def __getattr__(self, name):
+                return self.__dict__.get(name, getattr(self.__mx_prop__, name))
             def forward(self, is_train, req, in_data, out_data, aux):
                 self.in_data = in_data
                 self.out_data = out_data
@@ -86,7 +87,8 @@ class OpGen(object):
                     for i in range(num_inputs):
                         self.assign(in_grad[i], req[i], out[i])
             mx_op_dict = dict(
-                    __init__ =  __init__,
+                    __init__ = __init__,
+                    __getattr__ = __getattr__,
                     forward = forward,
                     backward = backward,
                     _forward = op.forward,
@@ -115,6 +117,7 @@ class OpGen(object):
                 return ['output%d' % i for i in range(num_outputs)]
             def create_operator(self, ctx, shapes, dtypes):
                 with ctx:
+                    self._kwargs['__mx_prop__'] = self
                     rtn = mx_op(*self._args, **self._kwargs)
                 return rtn
             def infer_type(self, in_type, func):

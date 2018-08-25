@@ -108,7 +108,6 @@ class OpGen(object):
             return self.in_grad
 
         np_op_dict = dict(
-            __init__ = self.op.__init__,
             __call__ = forward,
             forward = forward,
             backward = backward,
@@ -119,6 +118,8 @@ class OpGen(object):
             F = property(lambda self : np),
             op = property(lambda dummy : self.op)
         )
+        if hasattr(self.op, '__init__'):
+            np_op_dict['__init__'] = self.op.__init__
         np_op_dict.update(inputs_func)
         np_op = type('_%s_NP_OP' % self.name,
                 (self.op, object),
