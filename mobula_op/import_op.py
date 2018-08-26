@@ -107,8 +107,11 @@ using namespace mobula;
 
     # Build GPU Lib
     if len(list_gpus()) > 0:
-        target_name = get_so_path(cpp_fname) + '_gpu.so'
-        source_to_so_ctx(build_path, srcs, target_name, 'cuda')
+        try:
+            target_name = get_so_path(cpp_fname) + '_gpu.so'
+            source_to_so_ctx(build_path, srcs, target_name, 'cuda')
+        except Exception as e:
+            print (e)
 
 STR2TYPE = {
     'void': None,

@@ -24,8 +24,11 @@ inline void blas_gemm(const int axis, const bool tA, const bool tB, const int M,
 
 namespace mobula {
 
-#define CUDA_NUM_THREADS 512
-#define CUDA_GET_BLOCKS(n) ((n) + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS
+const int CUDA_MAX_GRID_NUM = 65535;
+const int CUDA_NUM_THREADS = 512;
+inline int CUDA_GET_BLOCKS(const int n) {
+    return min(CUDA_MAX_GRID_NUM, n + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS;
+}
 
 #define MOBULA_KERNEL __global__ void
 #define MOBULA_DEVICE __device__
