@@ -1,6 +1,6 @@
 '''
 Notice:
-    ConstantOP doesn't support cross-device.
+    ConstantOP only support CPU.
     For supporting cross-device, please use ConstantOP2
 '''
 import sys
