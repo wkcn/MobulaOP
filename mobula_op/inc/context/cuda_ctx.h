@@ -25,14 +25,18 @@ inline void blas_gemm(const int axis, const bool tA, const bool tB, const int M,
 namespace mobula {
 
 const int CUDA_MAX_GRID_NUM = 65535;
-const int CUDA_NUM_THREADS = 512;
-inline int CUDA_GET_BLOCKS(const int n) {
-    return min(CUDA_MAX_GRID_NUM, n + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS;
+const int CUDA_MAX_NUM_THREADS = 512;
+inline int CUDA_GET_NUM_THREADS(const int n) {
+    return min(CUDA_MAX_NUM_THREADS, ((n + 31) / 32) * 32);
+}
+inline int CUDA_GET_BLOCKS(const int n, const int num_threads) {
+    return min(CUDA_MAX_GRID_NUM, n + num_threads - 1) / num_threads;
 }
 
 #define MOBULA_KERNEL __global__ void
 #define MOBULA_DEVICE __device__
-#define KERNEL_RUN(a, n) (a)<<<CUDA_GET_BLOCKS(n), CUDA_NUM_THREADS>>>
+#define KERNEL_RUN(a, n) const int __cuda_num_threads__ = CUDA_GET_NUM_THREADS(n);\
+                         (a)<<<CUDA_GET_BLOCKS(n, __cuda_num_threads__), __cuda_num_threads__>>>
 
 #define CUDA_CHECK(condition) \
   /* Code block avoids redefinition of cudaError_t error */ \
@@ -84,11 +88,25 @@ T* MemcpyDevToDev(T *dst, const T *src, size_t size) {
 // parfor for cuda device should be called in cuda kernel.
 template <typename Func>
 MOBULA_DEVICE void parfor(const int n, Func F) {
-    for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < (n); i += blockDim.x * gridDim.x) {
+    // [gridDim.x, blockDim.x]
+    const int num_threads = gridDim.x * blockDim.x;
+    const int kernel_id = blockIdx.x * blockDim.x + threadIdx.x; // kernel_id is in [0, num_threads)
+    const int avg_len = n / num_threads;
+    const int rest = n % num_threads;
+    // [start, end)
+    int start = avg_len * kernel_id;
+    if (rest > 0) {
+        if (kernel_id <= rest) {
+            start += kernel_id;
+        } else {
+            start += rest;
+        }
+    }
+    int end = start + avg_len + (kernel_id < rest);
+    for (int i = start; i < end; ++i) {
         F(i);
     }
 }
-
 
 }
 
