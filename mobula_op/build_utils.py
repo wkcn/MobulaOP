@@ -164,6 +164,7 @@ def get_file_hash(fname):
     return m.hexdigest()[:8]
 
 def file_changed(fname):
+    fname = os.path.abspath(fname)
     global code_hash_updated
     new_hash = get_file_hash(fname)
     if fname not in code_hash or new_hash != code_hash[fname]:
@@ -180,6 +181,7 @@ def find_include(inc):
     return None
 
 def update_dependant(fname):
+    fname = os.path.abspath(fname)
     global dependant_updated
     dependant_updated = True
     inc_files = get_include_file(fname)
@@ -187,23 +189,28 @@ def update_dependant(fname):
     for inc in inc_files:
         inc_fname = find_include(inc)
         if inc_fname is not None:
-            res.append(inc_fname)
+            abs_inc_fname = os.path.abspath(inc_fname)
+            res.append(abs_inc_fname)
     dependant[fname] = res
 
 def dependant_changed(fname):
+    fname = os.path.abspath(fname)
     if fname not in dependant:
         update_dependant(fname)
     includes = dependant[fname]
     changed = False
     for inc in includes:
         inc_fname = find_include(inc)
-        if inc_fname is None or not file_is_latest(inc_fname):
-            changed = True
+        if inc_fname is not None:
+            abs_inc_fname = os.path.abspath(inc_fname)
+            if not file_is_latest(abs_inc_fname):
+                changed = True
     return changed
 
 FILE_CHECK_LIST = dict()
 
 def file_is_latest(source):
+    source = os.path.abspath(source)
     if source in FILE_CHECK_LIST:
         t = FILE_CHECK_LIST[source]
         assert t is not None, RuntimeError("Error: Cycle Reference {}".format(source))
