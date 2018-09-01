@@ -5,7 +5,7 @@ function = func
 from .import_op import import_op
 
 # register built-in functions
-from . import custom_func
-from . import maths as math
+# from . import custom_func
+# from . import maths as math
 # register built-in operators
-from . import custom_op
+# from . import custom_op

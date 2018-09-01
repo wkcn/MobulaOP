@@ -2,9 +2,11 @@ import os
 import sys
 import re
 import time
-from .func import IN, OUT, CFuncDef, bind
+import ctypes
+from .func import CFuncDef, bind
 from .build import config, update_build_path, source_to_so_ctx, build_exit, file_changed, ENV_PATH
 from .test_utils import list_gpus, get_git_hash
+from .dtype import DType
 
 def load_module_py2(name, pathname):
     module = imp.load_source(name, pathname)
@@ -44,21 +46,52 @@ class TemplateFuncLib:
         self.cpu_lib = TemplateFuncDLL('cpu', self)
         self.gpu_lib = TemplateFuncDLL('gpu', self)
 
+def parse_parameter_decl(decl):
+    """Parse the code of parameter declaration
+
+    Parameters
+    ----------
+    decl : str
+        The code of parameter declaration
+
+    Returns
+    -------
+    Tuple
+        (DType Instance,  variable name)
+    """
+    num_star = decl.count('*')
+    assert num_star <= 1, Exception('Only support pass-by-value or pass-by-1-level-pointer, Error declaration: {}'.format(decl))
+    is_pointer = num_star > 0
+    if is_pointer:
+        decl = decl.replace('*', '')
+    sp = decl.split(' ')
+    if sp[0] == 'const':
+        is_const = True
+        sp = sp[1:]
+    else:
+        is_const = False
+    type_name = sp[0]
+    var_name = sp[1]
+
+    ctype_name = 'c_{}'.format(type_name)
+    assert hasattr(ctypes, ctype_name), Exception('Unknown type: {}'.format(type_name))
+    ctype = getattr(ctypes, ctype_name)
+
+    if is_pointer:
+        ctype = ctypes.POINTER(ctype)
+    return DType(ctype, is_const=is_const), var_name
+
 def parse_parameters_list(plist):
     g = MOBULA_KERNEL_FUNC_REG.search(plist)
     head, plist = g.groups()
     head_split = re.split(r'\s+', head)
     plist_split = re.split(r'\s*,\s*', plist)
     func_name = head_split[-1]
-    rtn_type = 'void'
+    rtn_type = None
     pars_list = []
-    for p in plist_split:
-        r = re.split(r'\s+', p)
-        ptype = ' '.join(r[:-1])
-        # remove const
-        ptype = re.split(r'\s*const\s*', ptype)[-1]
-        pname = r[-1]
-        pars_list.append((ptype, pname))
+    for decl in plist_split:
+        dtype, pname = parse_parameter_decl(decl)
+        pars_list.append((dtype, pname))
     return rtn_type, func_name, pars_list
 
 def get_so_path(fname):
@@ -110,14 +143,6 @@ using namespace mobula;
         target_name = get_so_path(cpp_fname) + '_gpu.so'
         source_to_so_ctx(build_path, srcs, target_name, 'cuda')
 
-STR2TYPE = {
-    'void': None,
-    'int': int,
-    'float': float,
-    'IN': IN,
-    'OUT': OUT
-}
-
 def get_functions_from_cpp(cpp_fname):
 
     unmatched_brackets = 0
@@ -139,11 +164,8 @@ def get_functions_from_cpp(cpp_fname):
                 rtn_type, kernel_name, plist = parse_parameters_list(func_def)
                 assert kernel_name.endswith('_kernel'), Exception('the postfix of a MOBULA_KERNEL name must be `_kernel`, e.g. addition_forward_kernel')
                 func_name = kernel_name[:-len('_kernel')]
-                # Check Type
-                for ptype, pname in plist:
-                    assert ptype in STR2TYPE, TypeError('Unsupported Type: {}'.format(ptype))
                 # Generate function Code
-                str_plist = ', '.join(['{} {}'.format(ptype, pname) for ptype, pname in plist])
+                str_plist = ', '.join(['{} {}'.format(dtype.cname, pname) for dtype, pname in plist])
                 str_pname = ', '.join(['{}'.format(pname) for _, pname in plist])
                 code_buffer += '''
 void %s(%s){
@@ -153,8 +175,8 @@ void %s(%s){
                 lib_path = get_so_path(cpp_fname)
                 cfuncdef_args = dict(func_name = func_name,
                             arg_names = [t[1] for t in plist],
-                            arg_types = [STR2TYPE[t[0]] for t in plist],
-                            rtn_type = STR2TYPE[rtn_type],
+                            arg_types = [t[0] for t in plist],
+                            rtn_type = rtn_type,
                             lib_path = lib_path)
                 functions_args[func_name] = cfuncdef_args
 

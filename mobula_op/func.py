@@ -4,6 +4,7 @@ import os
 import sys
 import inspect
 from . import glue
+from .dtype import DType
 
 class DLLWrapper:
     def __init__(self, dll_fname):
@@ -36,14 +37,12 @@ class MobulaFuncLib:
         return None
 
 default_func_lib = MobulaFuncLib(force = False)
-IN = lambda x : x
-OUT = lambda x : x
 
 class CArray(ctypes.Structure):
     _fields_ = [('size', ctypes.c_size_t), ('data', ctypes.c_void_p)]
 
 class CFuncDef:
-    def __init__(self, func_name, arg_names = [], arg_types = None, rtn_type = None, lib_path = None):
+    def __init__(self, func_name, arg_names=[], arg_types=None, rtn_type=None, lib_path=None):
         self.func_name = func_name
         self.arg_names = arg_names
         self.arg_types = arg_types
@@ -55,13 +54,13 @@ class CFuncDef:
         else:
             self.func_lib = lib_path
 
-TYPE_TO_CTYPE = {int:ctypes.c_int, float:ctypes.c_float, IN:ctypes.c_void_p, OUT:ctypes.c_void_p, None:None}
-
 def type_to_ctype(p):
     if isinstance(p, (list, tuple)):
         return CArray
-    elif p in TYPE_TO_CTYPE:
-        return TYPE_TO_CTYPE[p]
+    elif isinstance(p, DType):
+        return p.ctype
+    elif p is None:
+        return None
     else:
         raise TypeError("Unsupported Type: {}".format(p))
 
@@ -107,25 +106,26 @@ class MobulaFunc:
         argtypes = []
 
         def analyze_element(a, p, backend, backend_inputs, backend_outputs, noncontiguous_list):
-            if p == IN or p == OUT:
+            assert isinstance(p, DType)
+            if p.is_pointer:
                 # multiple-dim array
-
-                if p == OUT:
-                    backend_outputs.append(a)
-                else:
+                if p.is_const:
                     backend_inputs.append(a)
+                else:
+                    backend_outputs.append(a)
 
                 pa = backend.get_pointer(a)
                 if isinstance(pa, (list, tuple)):
-                    if p == OUT:
-                        noncontiguous_list.append((a, pa[1]))
-                    else: # P == IN
+                    if p.is_const:
                         temp_list.append(pa[1]) # hold a reference
+                    else:
+                        noncontiguous_list.append((a, pa[1]))
                     pa = pa[0]
                 dev_id = backend.dev_id(a)
                 ctype = backend.get_ctype(a)
+                pa = ctypes.cast(pa, ctypes.POINTER(ctype))
             else:
-                pa = p(a)
+                pa = a
                 dev_id = None
                 ctype = p
             return pa, dev_id, ctype
@@ -161,6 +161,7 @@ class MobulaFunc:
                         else:
                             dev_id = aid
 
+                print ("EPEP", ep)
                 if ep == int:
                     ctype = ctypes.c_int
                 elif ep == float:
@@ -213,7 +214,7 @@ def bind(functions):
 
             spec = glue.common.getargspec(func)
             assert len(spec.args) == len(spec.defaults), ValueError('Function %s should specify type for each parameter')
-            func = CFuncDef(func_name = k, arg_names = spec.args, arg_types = spec.defaults, rtn_type = func())
+            func = CFuncDef(func_name=k, arg_names=spec.args, arg_types=spec.defaults, rtn_type=func())
 
         if alias is not None:
             func = (alias, func)
