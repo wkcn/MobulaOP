@@ -3,6 +3,7 @@ import torch
 import ctypes
 
 def get_pointer(v):
+    assert v.dtype == torch.float32, TypeError('The type of torch.Tensor should be float32 rather than %s' % v.dtype)
     return v.data_ptr()
 
 THDTYPE2CTYPE_MAP = dict()
