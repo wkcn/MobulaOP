@@ -3,7 +3,6 @@ import ctypes
 from .common import *
 
 def get_pointer(v):
-    assert v.dtype == np.float32, TypeError('The type of np.ndarray should be float32 rather than %s' % v.dtype)
     def p(e):
         return e.ctypes.data_as(ctypes.c_void_p)
     if not v.flags.c_contiguous:
@@ -16,12 +15,6 @@ def get_ctype(v):
 
 def dev_id(a):
     return None
-
-def wait_to_read(variables):
-    pass
-
-def wait_to_write(variables):
-    pass
 
 class OpGen(object):
     def __init__(self, op, name):

@@ -1,7 +1,7 @@
 import ctypes
 
 class DType:
-    _DTYPE_LIST_ = dict() # () -> inst 
+    _DTYPE_LIST_ = dict() # () -> inst
     def __init__(self, ctype, is_const=False):
         self.ctype = ctype
         self.is_const = is_const
@@ -24,3 +24,8 @@ class DType:
         return self.cname
     def __call__(self, value):
         return self.ctype(value)
+
+class TemplateType:
+    def __init__(self, is_pointer, is_const):
+        self.is_pointer = is_pointer
+        self.is_const = is_const
