@@ -6,29 +6,37 @@ import inspect
 from . import glue
 from .dtype import DType
 
+def get_func_idcode(func_name, arg_types, arch):
+    arg_types_str = ','.join([e.cname for e in arg_types])
+    idcode = '{func_name}:{arg_types_str}:{arch}'.format(
+            func_name=func_name,
+            arg_types_str=arg_types_str,
+            arch=arch,
+            )
+    return idcode
+
 class CFuncDef:
     CFUNC_LIST = dict()
-    def __init__(self, func_name, arg_names=[], arg_types=None, rtn_type=None, loader=None):
+    def __init__(self, func_name, arg_names=[], arg_types=None, rtn_type=None, loader=None, loader_kwargs=None):
         self.func_name = func_name
         self.arg_names = arg_names
         self.arg_types = arg_types
         self.rtn_type = rtn_type
         self.loader = loader
+        self.loader_kwargs = loader_kwargs
     def __call__(self, arg_datas, arg_types, dev_id):
         if dev_id is not None:
             set_device(dev_id)
         arch = 'cpu' if dev_id is None else 'cuda'
-        arg_types_str = ','.join([e.__name__ for e in arg_types])
-        idcode = '{func_name}:{arg_types_str}:{arch}'.format(
-                func_name=self.func_name,
-                arg_types_str=arg_types_str,
-                arch=arch,
-                )
+        idcode = get_func_idcode(self.func_name, arg_types, arch)
         if idcode not in CFuncDef.CFUNC_LIST:
             # function loader
-            CFuncDef.CFUNC_LIST[idcode] = self.loader(self)
+            if self.loader_kwargs is None:
+                CFuncDef.CFUNC_LIST[idcode] = self.loader(self, arg_types, arch)
+            else:
+                CFuncDef.CFUNC_LIST[idcode] = self.loader(self, arg_types, arch, **self.loader_kwargs)
         func = CFuncDef.CFUNC_LIST[idcode]
-        return func(arg_datas)
+        return func(*arg_datas)
 
 class MobulaFunc:
     """An encapsulation for CFunction
@@ -105,7 +113,7 @@ class MobulaFunc:
             assert not isinstance(p, (list, tuple)), Exception('Not supported list or tuple as input variable now')
             pa, aid, ctype = analyze_element(a, p, *extra_pars)
             arg_datas.append(pa)
-            arg_types.append(ctype)
+            arg_types.append(DType(ctype, is_const=p.is_const))
 
             if aid is not None:
                 if dev_id is not None:
