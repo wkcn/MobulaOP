@@ -4,10 +4,10 @@ import re
 import time
 import ctypes
 import json
-from .func import CFuncDef, bind, get_func_idcode
-from .build import config, update_build_path, source_to_so_ctx, build_exit, file_changed, ENV_PATH
-from .test_utils import list_gpus, get_git_hash
-from .dtype import DType, TemplateType
+from ..func import CFuncDef, bind, get_func_idcode
+from ..build import config, update_build_path, source_to_so_ctx, build_exit, file_changed, ENV_PATH
+from ..test_utils import list_gpus, get_git_hash
+from ..dtype import DType, TemplateType
 from easydict import EasyDict as edict
 
 def load_module_py2(name, pathname):
@@ -251,7 +251,8 @@ def get_functions_from_cpp(cpp_fname):
     functions = dict([(name, CFuncDef(**kwargs)) for name, kwargs in function_args.items()])
     return functions
 
-def import_op(path):
+def load(module_name, path=''):
+    path = os.path.join(path, module_name)
     found = False
     op_name = os.path.basename(path)
     cpp_fname = os.path.join(path, op_name + '.cpp')
