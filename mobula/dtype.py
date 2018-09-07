@@ -13,6 +13,8 @@ class DType:
             # pointer
             self.is_pointer = True
             ctype_name = name[5:]
+            if ctype_name == 'long':
+                ctype_name = 'int64_t'
         else:
             ctype_name = name[2:]
         if self.is_const:
@@ -26,6 +28,7 @@ class DType:
         return self.ctype(value)
 
 class TemplateType:
-    def __init__(self, is_pointer, is_const):
+    def __init__(self, tname, is_pointer, is_const):
+        self.tname = tname
         self.is_pointer = is_pointer
         self.is_const = is_const

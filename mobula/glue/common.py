@@ -134,11 +134,12 @@ try:
     import numpy as np
     NPDTYPE2CTYPE_MAP = dict()
     pairs = [
-            (np.dtype('int'), ctypes.c_int),
+            (np.dtype('int8'), ctypes.c_int8),
             (np.dtype('int16'), ctypes.c_int16),
             (np.dtype('int32'), ctypes.c_int32),
+            (np.dtype('int64'), ctypes.c_int64), # alias: np.int
             (np.dtype('float32'), ctypes.c_float),
-            (np.dtype('float64'), ctypes.c_double),
+            (np.dtype('float64'), ctypes.c_double), # alias: np.float
     ]
     for dtype, ctype in pairs:
         NPDTYPE2CTYPE_MAP[dtype] = ctype

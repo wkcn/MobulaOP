@@ -85,6 +85,12 @@ def build_exit():
     if dependant_updated:
         save_dependant(dependant, dependant_filename)
 
+class build_context:
+    def __enter__(self):
+        pass
+    def __exit__(self, *dummy):
+        build_exit()
+
 class Flags:
     def __init__(self, s = ''):
         self.flags = s

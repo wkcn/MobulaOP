@@ -86,13 +86,15 @@ def source_to_so_ctx(build_path, srcs, target_name, ctx_name):
     source_to_so(build_path, srcs, target_name, *BUILD_FLAGS[ctx_name])
 
 def all_func():
+    # cpu
     build_path = os.path.join(config.BUILD_PATH, 'cpu')
     target_name = os.path.join(config.BUILD_PATH, '%s_cpu.so' % config.TARGET)
     source_to_so_ctx(build_path, SRCS, target_name, 'cpu')
 
 def cuda_func():
-    build_path = os.path.join(config.BUILD_PATH, 'gpu')
-    target_name = os.path.join(config.BUILD_PATH, '%s_gpu.so' % config.TARGET)
+    # cuda
+    build_path = os.path.join(config.BUILD_PATH, 'cuda')
+    target_name = os.path.join(config.BUILD_PATH, '%s_cuda.so' % config.TARGET)
     source_to_so_ctx(build_path, SRCS, target_name, 'cuda')
 
 def clean_func():
@@ -109,5 +111,5 @@ def run_rule(name):
 
 if __name__ == '__main__':
     SRCS = wildcard(['src', 'src/op'], 'cpp')
-    run_rule(sys.argv[1])
-    build_exit()
+    with build_context():
+        run_rule(sys.argv[1])

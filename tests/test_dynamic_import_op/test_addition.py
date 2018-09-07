@@ -5,7 +5,7 @@ AdditionOP = mobula.op.load('./AdditionOP', path=os.path.dirname(__file__))
 
 import mxnet as mx
 
-def test_dynamic_import_op():
+def test_addition():
     assert mobula.op.AdditionOP == AdditionOP
 
     a = mx.nd.array([1,2,3])

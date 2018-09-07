@@ -3,25 +3,52 @@ import functools
 import os
 import sys
 import inspect
+import hashlib
 from . import glue
-from .dtype import DType
+from .dtype import DType, TemplateType
 
 def get_func_idcode(func_name, arg_types, arch):
     arg_types_str = ','.join([e.cname for e in arg_types])
     idcode = '{func_name}:{arg_types_str}:{arch}'.format(
-            func_name=func_name,
+            func_name = func_name,
             arg_types_str=arg_types_str,
             arch=arch,
             )
     return idcode
 
+def get_idcode_hash(idcode):
+    sp = idcode.split(':')
+    func_name = sp[0]
+    md5 = hashlib.md5()
+    md5.update(idcode[len(func_name)+1:].encode('utf-8'))
+    return '{}_{}'.format(func_name, md5.hexdigest()[:8])
+
+def get_ctype_from_idcode(idcode):
+    sp = idcode.split(':')
+    arg_types_str = sp[1]
+    def get_ctype(s):
+        s = s.replace('const', '')
+        if s.count('*') == 1:
+            is_pointer = True
+            s = s.replace('*', '')
+        else:
+            is_pointer = False
+        s = s.strip()
+        ctype = getattr(ctypes, 'c_{}'.format(s), None)
+        assert ctype is not None, TypeError('Wrong IDcode {}'.format(idcode))
+        if is_pointer:
+            return ctypes.POINTER(ctype)
+        return ctype
+    return [get_ctype(s) for s in arg_types_str.split(',')]
+
 class CFuncDef:
     CFUNC_LIST = dict()
-    def __init__(self, func_name, arg_names=[], arg_types=None, rtn_type=None, loader=None, loader_kwargs=None):
+    def __init__(self, func_name, arg_names=[], arg_types=None, rtn_type=None, template_list=[], loader=None, loader_kwargs=None):
         self.func_name = func_name
         self.arg_names = arg_names
         self.arg_types = arg_types
         self.rtn_type = rtn_type
+        self.template_list = template_list
         self.loader = loader
         self.loader_kwargs = loader_kwargs
     def __call__(self, arg_datas, arg_types, dev_id):
@@ -81,7 +108,8 @@ class MobulaFunc:
             noncontiguous_list : list
                 the list of noncontiguous variables
             """
-            assert isinstance(p, DType)
+            template_mapping = dict()
+            assert isinstance(p, (DType, TemplateType)), TypeError('Unknown Data Type: {}'.format(type(p)))
             backend = glue.backend.get_var_backend(a)
             if p.is_pointer:
                 # multiple-dim array
@@ -99,10 +127,18 @@ class MobulaFunc:
                     pa = pa[0]
                 dev_id = backend.dev_id(a)
                 ctype = ctypes.POINTER(backend.get_ctype(a))
-                assert ctype == p.ctype, TypeError('Expected Type {} instead of {}'.format(p.ctype, ctype))
+
+                if isinstance(p, DType):
+                    expected_ctype = p.ctype
+                else:
+                    if p.tname in template_mapping:
+                        expected_ctype = template_mapping[p.tname]
+                    else:
+                        template_mapping[p.tname] = expected_ctype = ctype
+                assert ctype == expected_ctype, TypeError('Expected Type {} instead of {}'.format(expected_ctype, ctype))
                 pa = ctypes.cast(pa, ctype)
             else:
-                pa = a
+                pa = p.ctype(a)
                 dev_id = None
                 ctype = p.ctype
             return pa, dev_id, ctype
