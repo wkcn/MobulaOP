@@ -292,7 +292,7 @@ void %s(%s) {
                 code = '''
 void %s(%s) {
     KERNEL_RUN(%s, %s)(%s);
-}''' % (tp_idcode_hash, args_def, '{}_kernel'.format(func_name) + template_post, nthread, args_inst)
+}''' % (tp_idcode_hash, args_def, '({}_kernel{})'.format(func_name, template_post), nthread, args_inst)
                 tmap[tp_idcode] = code
 
             for code in tmap.values():

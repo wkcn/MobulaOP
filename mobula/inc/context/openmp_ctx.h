@@ -5,7 +5,7 @@
 
 namespace mobula {
 
-#define KERNEL_RUN(a, n) a
+#define KERNEL_RUN(a, n) (a)
 
 template <typename Func>
 MOBULA_DEVICE void parfor(const int n, Func F) {
