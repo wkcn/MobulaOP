@@ -250,6 +250,8 @@ def op_loader(cfunc, arg_types, arch, cpp_info):
             for func_name, ord_cfunc in cpp_info.function_args.items():
                 if len(ord_cfunc.template_list) > 0:
                     continue
+                func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types, arch)
+                func_idcode_hash = get_idcode_hash(func_idcode)
                 args_def = ', '.join(['{ctype} {name}'.format(
                         ctype=dtype.cname,
                         name=name
@@ -259,14 +261,13 @@ def op_loader(cfunc, arg_types, arch, cpp_info):
                 code_buffer += '''
 void %s(%s) {
     KERNEL_RUN(%s, %s)(%s);
-}''' % (func_name, args_def, '{}_kernel'.format(func_name), nthread, args_inst)
+}''' % (func_idcode_hash, args_def, '{}_kernel'.format(func_name), nthread, args_inst)
 
             # generate template functions code
             if use_template and idcode not in tmap:
                 # template function
                 func_name = cfunc.func_name
-                tp_idcode = get_func_idcode(func_name, arg_types, arch)
-                tp_idcode_hash = get_idcode_hash(tp_idcode)
+                func_idcode_hash = get_idcode_hash(idcode)
                 # Check Template Type Mapping
                 template_mapping = dict()
                 for rtype, dtype in zip(arg_types, cfunc.arg_types):
@@ -292,8 +293,8 @@ void %s(%s) {
                 code = '''
 void %s(%s) {
     KERNEL_RUN(%s, %s)(%s);
-}''' % (tp_idcode_hash, args_def, '({}_kernel{})'.format(func_name, template_post), nthread, args_inst)
-                tmap[tp_idcode] = code
+}''' % (func_idcode_hash, args_def, '({}_kernel{})'.format(func_name, template_post), nthread, args_inst)
+                tmap[func_idcode] = code
 
             for code in tmap.values():
                 code_buffer += code
@@ -310,17 +311,18 @@ void %s(%s) {
         # ordinary functions
         for func_name, ord_cfunc in cpp_info.function_args.items():
             if len(ord_cfunc.template_list) == 0:
-                func = getattr(cpp_info.dll, func_name, None)
-                assert func is not None, Exception('No function {} in DLL {}'.format(func_name, dll_fname))
-                idcode = get_func_idcode(func_name, ord_cfunc.arg_types, arch)
-                IMPORTED_FUNC_MAP[idcode] = func
+                func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types, arch)
+                func_idcode_hash = get_idcode_hash(func_idcode)
+                func = getattr(cpp_info.dll, func_idcode_hash, None)
+                assert func is not None, Exception('No function `{}` in DLL {}'.format(func_idcode, dll_fname))
+                IMPORTED_FUNC_MAP[func_idcode] = func
 
         # template functions
-        for tp_idcode in tmap.keys():
-            tp_idcode_hash = get_idcode_hash(tp_idcode)
-            func = getattr(cpp_info.dll, tp_idcode_hash, None)
-            assert func is not None, Exception('No function {} in DLL {}'.format(tp_idcode_hash, dll_fname))
-            IMPORTED_FUNC_MAP[tp_idcode] = func
+        for func_idcode in tmap.keys():
+            func_idcode_hash = get_idcode_hash(func_idcode)
+            func = getattr(cpp_info.dll, func_idcode_hash, None)
+            assert func is not None, Exception('No function `{}` in DLL {}'.format(func_idcode, dll_fname))
+            IMPORTED_FUNC_MAP[func_idcode] = func
 
     return IMPORTED_FUNC_MAP[idcode]
 
