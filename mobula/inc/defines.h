@@ -18,11 +18,7 @@
 
 namespace mobula {
 
-typedef float DType;
-typedef const DType* IN;
-typedef DType* OUT;
-
-template<typename T = DType>
+template<typename T>
 struct CArray{
     size_t size;
     T* data;
@@ -30,7 +26,7 @@ struct CArray{
     T& operator[](int i) const {return data[i];}
 };
 
-template<typename F, typename T = DType>
+template<typename F, typename T>
 inline MOBULA_DEVICE void mobula_map(F func, const T *data, const int n, const int stride = 1, T *out = nullptr) {
     if (out == nullptr) out = const_cast<T*>(data);
     for (int i = 0, j = 0; i < n; ++i, j += stride) {
@@ -38,7 +34,7 @@ inline MOBULA_DEVICE void mobula_map(F func, const T *data, const int n, const i
     }
 }
 
-template<typename F, typename T = DType>
+template<typename F, typename T>
 inline MOBULA_DEVICE void mobula_reduce(F func, const T *data, const int n, const int stride = 1, T *out = nullptr) {
     if (out == nullptr) out = const_cast<T*>(data);
     T &val = out[0];
@@ -55,11 +51,12 @@ inline MOBULA_DEVICE int get_middle_loop_offset(const int i, const int middle_si
     return outer_i * middle_size * inner_size + inner_i; // j
 }
 
-template<typename T = DType>
+template<typename T>
 MOBULA_DEVICE T ADD_FUNC(const T &a, const T &b) {
     return a + b;
 }
-template<typename T = DType>
+
+template<typename T>
 MOBULA_DEVICE T MAX_FUNC(const T &a, const T &b) {
     return a > b ? a : b;
 }

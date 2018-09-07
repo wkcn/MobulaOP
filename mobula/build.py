@@ -110,6 +110,6 @@ def run_rule(name):
     RULES[name]()
 
 if __name__ == '__main__':
-    SRCS = wildcard(['src', 'src/op'], 'cpp')
+    SRCS = wildcard(['src'], 'cpp')
     with build_context():
         run_rule(sys.argv[1])

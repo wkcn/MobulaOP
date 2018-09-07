@@ -10,6 +10,7 @@ using namespace mobula;
  * data_im: (channels, height, width)
  * data_col: (channels, kernel_h, kernel_w, height_col, width_col)
  */
+typedef float DType;
 void im2col(const DType *data_im, const int channels,
             const int height, const int width,
             const int kernel_h, const int kernel_w,
@@ -22,6 +23,8 @@ void im2col(const DType *data_im, const int channels,
  * data_col: (channels, kernel_h, kernel_w, height_col, width_col)
  * data_im: (channels, height, width)
  */
+
+typedef float DType;
 void col2im(const DType *data_col, const int channels,
             const int height, const int width, const int kernel_h, const int kernel_w,
             const int pad_h, const int pad_w, const int stride_h, const int stride_w,

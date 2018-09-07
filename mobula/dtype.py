@@ -27,8 +27,24 @@ class DType:
     def __call__(self, value):
         return self.ctype(value)
 
+class UnknownCType:
+    def __init__(self, tname):
+        self.tname = tname
+        self.is_const = False
+    def __call__(self, value):
+        return value
+
 class TemplateType:
     def __init__(self, tname, is_pointer, is_const):
         self.tname = tname
         self.is_pointer = is_pointer
         self.is_const = is_const
+    def __repr__(self):
+        return '<typename {const}{tname}{pointer}>'.format(
+                const = 'const ' if self.is_const else '',
+                tname = self.tname,
+                pointer = '*' if self.is_pointer else ''
+                )
+    @property
+    def ctype(self):
+        return UnknownCType(self.tname)

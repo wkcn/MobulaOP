@@ -11,8 +11,8 @@
 namespace mobula {
 
 #if HOST_NUM_THREADS > 1
-extern std::map<std::thread::id, std::pair<int, int> > MOBULA_KERNEL_INFOS;
-extern std::mutex MOBULA_KERNEL_MUTEX;
+static std::map<std::thread::id, std::pair<int, int> > MOBULA_KERNEL_INFOS;
+static std::mutex MOBULA_KERNEL_MUTEX;
 
 template<typename Func>
 class KernelRunner {

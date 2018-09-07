@@ -88,6 +88,7 @@ MOBULA_KERNEL col2im_kernel(const int n, const T* data_col,
 
 } // namespace mobula
 
+typedef float DType;
 void im2col(const DType *data_im, const int channels,
             const int height, const int width,
             const int kernel_h, const int kernel_w,
@@ -103,6 +104,7 @@ void im2col(const DType *data_im, const int channels,
   KERNEL_RUN(im2col_kernel<DType>, num_kernels)(num_kernels, data_im, height, width, kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, height_col, width_col, data_col); 
 }
 
+typedef float DType;
 void col2im(const DType *data_col, const int channels,
             const int height, const int width, const int kernel_h, const int kernel_w,
             const int pad_h, const int pad_w, const int stride_h, const int stride_w,
@@ -118,4 +120,3 @@ void col2im(const DType *data_col, const int channels,
           pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
           height_col, width_col, data_im);
 }
-

@@ -1,36 +1,13 @@
 /*
-    Adapted from caffe2: github.com/caffe2/caffe2
-*/
-#include "op/roi_align.h"
+ * Adapted from caffe2: github.com/caffe2/caffe2
+ */
+#include "mobula_op.h"
 #include "bilinear.h"
 
 namespace mobula {
 
-extern template MOBULA_DEVICE float bilinear_interpolate(
-    const float* bottom_data,
-    const int height,
-    const int width,
-    float y,
-    float x,
-    const int index);
-
-extern template MOBULA_DEVICE void bilinear_interpolate_gradient(
-    const int height,
-    const int width,
-    float y,
-    float x,
-    float& w1,
-    float& w2,
-    float& w3,
-    float& w4,
-    int& x_low,
-    int& x_high,
-    int& y_low,
-    int& y_high,
-    const int index);
-
 template <typename T>
-MOBULA_KERNEL RoIAlignForward(
+MOBULA_KERNEL roi_align_forward_kernel(
     const int nthreads,
     const T* bottom_data,
     const T spatial_scale,
@@ -104,10 +81,9 @@ MOBULA_KERNEL RoIAlignForward(
 }
 
 template <typename T>
-MOBULA_KERNEL RoIAlignBackwardFeature(
+MOBULA_KERNEL roi_align_backward_kernel(
     const int nthreads,
     const T* top_diff,
-    const int /*num_rois*/,
     const T spatial_scale,
     const int channels,
     const int height,
@@ -209,34 +185,3 @@ MOBULA_KERNEL RoIAlignBackwardFeature(
 } // RoIAlignBackward
 
 } // namespace mobula
-
-void roi_align_forward(
-    const int nthreads,
-    const DType* bottom_data,
-    const DType spatial_scale,
-    const int channels,
-    const int height,
-    const int width,
-    const int pooled_height,
-    const int pooled_width,
-    const int sampling_ratio,
-    const DType* bottom_rois,
-    DType* top_data) {
-    KERNEL_RUN(RoIAlignForward<DType>, nthreads)(nthreads, bottom_data, spatial_scale, channels, height, width, pooled_height, pooled_width, sampling_ratio, bottom_rois, top_data);
-}
-
-void roi_align_backward(
-    const int nthreads,
-    const DType* top_diff,
-    const int num_rois,
-    const DType spatial_scale,
-    const int channels,
-    const int height,
-    const int width,
-    const int pooled_height,
-    const int pooled_width,
-    const int sampling_ratio,
-    DType* bottom_diff,
-    const DType* bottom_rois) {
-    KERNEL_RUN(RoIAlignBackwardFeature<DType>, nthreads)(nthreads, top_diff, num_rois, spatial_scale, channels, height, width, pooled_height, pooled_width, sampling_ratio, bottom_diff, bottom_rois);
-}

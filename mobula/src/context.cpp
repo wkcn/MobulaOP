@@ -2,15 +2,6 @@
 
 namespace mobula{
 
-#if not USING_CUDA and HOST_NUM_THREADS > 1
-std::mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
-#if not USING_OPENMP
-std::map<std::thread::id, std::pair<int, int> > MOBULA_KERNEL_INFOS;
-std::mutex MOBULA_KERNEL_MUTEX;
-
-#endif // USING_OPENMP endif
-#endif // USING_CUDA endif
-
 }
 
 #if USING_CUDA

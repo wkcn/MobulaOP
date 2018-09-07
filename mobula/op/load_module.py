@@ -62,6 +62,7 @@ def parse_parameter_decl(decl):
     is_pointer = num_star > 0
     if is_pointer:
         decl = decl.replace('*', '')
+    decl = decl.strip()
     sp = decl.split(' ')
     if sp[0] == 'const':
         is_const = True
@@ -288,13 +289,13 @@ void %s(%s) {
 
                 nthread = cfunc.arg_names[0]
                 template_inst = [template_mapping[tname] for tname in cfunc.template_list]
-                args_inst = ', '.join(ord_cfunc.arg_names)
+                args_inst = ', '.join(cfunc.arg_names)
                 template_post = '<%s>' % (', '.join(template_inst))
                 code = '''
 void %s(%s) {
     KERNEL_RUN(%s, %s)(%s);
 }''' % (func_idcode_hash, args_def, '({}_kernel{})'.format(func_name, template_post), nthread, args_inst)
-                tmap[func_idcode] = code
+                tmap[idcode] = code
 
             for code in tmap.values():
                 code_buffer += code
@@ -348,6 +349,7 @@ def get_functions_from_cpp(cpp_fname):
             unmatched_brackets += line.count('(') - line.count(')')
             func_def += line
             if unmatched_brackets == 0:
+                func_def = func_def.replace('\n', '').replace('\r', '')
                 func_started = False
                 templates = None
                 rtn_type, kernel_name, par_list = parse_parameters_list(func_def)
@@ -385,10 +387,29 @@ def get_functions_from_cpp(cpp_fname):
     functions = dict([(name, CFuncDef(**kwargs)) for name, kwargs in function_args.items()])
     return functions
 
-def load(module_name, path=''):
+def load(module_name, path=None):
+    '''Load Operator Module
+
+    Parameters
+    ----------
+    module_name : str
+        The name of Operator Module
+    path : str
+        The path of Operator Module [default = current path]
+
+    Returns
+    -------
+    op : Operator Module if exists
+    '''
+    op_name = os.path.basename(module_name)
+    if path is None:
+        # Find Operator Module in custom directory first
+        custom_path = os.path.join(os.path.dirname(__file__), 'custom')
+        if os.path.exists(os.path.join(custom_path, op_name)):
+            path = custom_path
     path = os.path.join(path, module_name)
+
     found = False
-    op_name = os.path.basename(path)
     cpp_fname = os.path.join(path, op_name + '.cpp')
     if os.path.exists(cpp_fname):
         found = True

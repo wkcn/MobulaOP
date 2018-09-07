@@ -5,7 +5,7 @@ import sys
 import inspect
 import hashlib
 from . import glue
-from .dtype import DType, TemplateType
+from .dtype import DType, TemplateType, UnknownCType
 
 def get_func_idcode(func_name, arg_types, arch):
     arg_types_str = ','.join([e.cname for e in arg_types])
@@ -93,8 +93,9 @@ class MobulaFunc:
         backend_inputs = []
         backend_outputs = []
         arg_types = []
+        template_mapping = dict()
 
-        def analyze_element(a, p, backend_inputs, backend_outputs, noncontiguous_list):
+        def analyze_element(a, p, backend_inputs, backend_outputs, noncontiguous_list, template_mapping):
             """Analyze an element
 
             Parameters
@@ -108,7 +109,6 @@ class MobulaFunc:
             noncontiguous_list : list
                 the list of noncontiguous variables
             """
-            template_mapping = dict()
             assert isinstance(p, (DType, TemplateType)), TypeError('Unknown Data Type: {}'.format(type(p)))
             backend = glue.backend.get_var_backend(a)
             if p.is_pointer:
@@ -143,19 +143,31 @@ class MobulaFunc:
                 ctype = p.ctype
             return pa, dev_id, ctype
 
-        extra_pars = [backend_inputs, backend_outputs, noncontiguous_list]
+        extra_pars = [backend_inputs, backend_outputs, noncontiguous_list, template_mapping]
 
         for a, p in zip(args_gen(), self.par_type):
             assert not isinstance(p, (list, tuple)), Exception('Not supported list or tuple as input variable now')
             pa, aid, ctype = analyze_element(a, p, *extra_pars)
             arg_datas.append(pa)
-            arg_types.append(DType(ctype, is_const=p.is_const))
+            if isinstance(ctype, UnknownCType):
+                ctype.is_const = p.is_const
+                arg_types.append(ctype)
+            else:
+                arg_types.append(DType(ctype, is_const=p.is_const))
 
             if aid is not None:
                 if dev_id is not None:
                     assert aid == dev_id, ValueError("Don't use multiple devices in a call :-(")
                 else:
                     dev_id = aid
+
+        # try to know the unknown ctype
+        for i, a in enumerate(arg_types):
+            if isinstance(a, UnknownCType):
+                assert a.tname in template_mapping, Exception('Unknown template name: {}'.format(tname))
+                ctype = template_mapping[a.tname]._type_
+                arg_types[i] = DType(ctype, a.is_const)
+                arg_datas[i] = ctype(arg_datas[i])
 
         for var in backend_inputs:
             if hasattr(var, 'wait_to_read'):
