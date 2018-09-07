@@ -42,7 +42,6 @@ def get_ctype_from_idcode(idcode):
     return [get_ctype(s) for s in arg_types_str.split(',')]
 
 class CFuncDef:
-    CFUNC_LIST = dict()
     def __init__(self, func_name, arg_names=[], arg_types=None, rtn_type=None, template_list=[], loader=None, loader_kwargs=None):
         self.func_name = func_name
         self.arg_names = arg_names
@@ -55,14 +54,8 @@ class CFuncDef:
         if dev_id is not None:
             set_device(dev_id)
         arch = 'cpu' if dev_id is None else 'cuda'
-        idcode = get_func_idcode(self.func_name, arg_types, arch)
-        if idcode not in CFuncDef.CFUNC_LIST:
-            # function loader
-            if self.loader_kwargs is None:
-                CFuncDef.CFUNC_LIST[idcode] = self.loader(self, arg_types, arch)
-            else:
-                CFuncDef.CFUNC_LIST[idcode] = self.loader(self, arg_types, arch, **self.loader_kwargs)
-        func = CFuncDef.CFUNC_LIST[idcode]
+        # function loader
+        func = self.loader(self, arg_types, arch, **self.loader_kwargs)
         return func(*arg_datas)
 
 class MobulaFunc:
