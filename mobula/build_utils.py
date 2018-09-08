@@ -170,6 +170,7 @@ def get_file_hash(fname):
     return m.hexdigest()[:8]
 
 def file_changed(fname):
+    fname = os.path.abspath(fname)
     global code_hash_updated
     new_hash = get_file_hash(fname)
     if fname not in code_hash or new_hash != code_hash[fname]:
@@ -206,8 +207,10 @@ def dependant_changed(fname):
     changed = False
     for inc in includes:
         inc_fname = find_include(inc)
-        if inc_fname is None or not file_is_latest(inc_fname):
-            changed = True
+        if inc_fname is not None:
+            abs_inc_fname = os.path.abspath(inc_fname)
+            if not file_is_latest(abs_inc_fname):
+                changed = True
     return changed
 
 FILE_CHECK_LIST = dict()

@@ -32,7 +32,7 @@ class ConstantOP2:
         return in_shape, [self.constant.shape]
 
 def test_constant_op():
-    # ConstantOP only support mx.cpu()
+    # ConstantOP only supports mx.cpu()
     if mx.context.current_context() == mx.cpu():
         # NDArray
         a = mx.nd.array([1,2,3])
