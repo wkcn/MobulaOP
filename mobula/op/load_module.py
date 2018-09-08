@@ -185,9 +185,8 @@ using namespace mobula;
         source_to_so_ctx(build_path, srcs, target_name, 'cpu')
     elif ctx == 'cuda':
         # Build GPU Lib
-        if len(list_gpus()) > 0:
-            target_name = get_so_path(cpp_fname) + '_cuda.so'
-            source_to_so_ctx(build_path, srcs, target_name, 'cuda')
+        target_name = get_so_path(cpp_fname) + '_cuda.so'
+        source_to_so_ctx(build_path, srcs, target_name, 'cuda')
     else:
         raise Exception('unsupported context: {}'.format(ctx))
     return target_name

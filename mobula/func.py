@@ -40,6 +40,16 @@ def get_ctype_from_idcode(idcode):
         return ctype
     return [get_ctype(s) for s in arg_types_str.split(',')]
 
+cuda_lib_fname = os.path.join(os.path.dirname(__file__), 'build', 'mobula_op_cuda.so')
+if os.path.exists(cuda_lib_fname):
+    cuda_lib = ctypes.CDLL(cuda_lib_fname)
+else:
+    cuda_lib = None
+def set_device(dev_id):
+    if cuda_lib is None:
+        raise Exception('load mobula_op_cuda.so failed. Please `make cuda` for MobulaOP')
+    cuda_lib.set_device(dev_id)
+
 class CFuncDef:
     def __init__(self, func_name, arg_names=[], arg_types=None, rtn_type=None, template_list=[], loader=None, loader_kwargs=None):
         self.func_name = func_name
@@ -168,7 +178,6 @@ class MobulaFunc:
             if hasattr(var, 'wait_to_write'):
                 var.wait_to_write()
 
-        # [TODO] set_device for GPU
         rtn = self.func(arg_datas=arg_datas,
                         arg_types=arg_types,
                         dev_id=dev_id)
