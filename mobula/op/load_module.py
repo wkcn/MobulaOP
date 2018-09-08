@@ -388,7 +388,7 @@ def get_functions_from_cpp(cpp_fname):
     functions = dict([(name, CFuncDef(**kwargs)) for name, kwargs in function_args.items()])
     return functions
 
-def load(module_name, path=None):
+def load(module_name, path=''):
     '''Load Operator Module
 
     Parameters
@@ -403,7 +403,7 @@ def load(module_name, path=None):
     op : Operator Module if exists
     '''
     op_name = os.path.basename(module_name)
-    if path is None:
+    if len(path) > 0:
         # Find Operator Module in custom directory first
         custom_path = os.path.join(os.path.dirname(__file__), 'custom')
         if os.path.exists(os.path.join(custom_path, op_name)):

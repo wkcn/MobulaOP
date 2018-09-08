@@ -15,9 +15,9 @@ You can write the custom operators by Python/C++/C/CUDA without rebuilding deep 
 - Add an addition operator [[Code](examples/MyFirstOP.py)]
 
 ```python
-import mobula_op
+import mobula
 
-@mobula_op.operator.register
+@mobula.op.register
 class MyFirstOP:
     def forward(self, x, y):
         return x + y
@@ -57,7 +57,10 @@ print (c) # [5, 7, 9]
 # Use ROIAlign operator
 import mxnet as mx
 import numpy as np
-import mobula_op
+import mobula
+
+# Load ROIAlign Module
+mobula.op.load('ROIAlign')
 
 ctx = mx.cpu(0)
 dtype = np.float32
@@ -69,7 +72,7 @@ rois = mx.nd.array(np.array([[0, 1, 1, 3, 3]], dtype = dtype))
 data.attach_grad()
 with mx.autograd.record():
     # mx.nd.NDArray and mx.sym.Symbol are both available as the inputs.
-    output = mobula_op.operator.ROIAlign(data = data, rois = rois, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
+    output = mobula.op.ROIAlign(data = data, rois = rois, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
 
 print (output.asnumpy(), data.grad.asnumpy())
 ```
@@ -77,14 +80,14 @@ print (output.asnumpy(), data.grad.asnumpy())
 - Import Custom C++ Operator Dynamically [[Code](examples/dynamic_import_op/dynamic_import_op.py)]
 
 ```python
-import mobula_op
+import mobula
 # Import Custom Operator Dynamically
-mobula_op.import_op('./AdditionOP')
-import mxnet as mx
+mobula.op.load('./AdditionOP')
 
+import mxnet as mx
 a = mx.nd.array([1,2,3])
 b = mx.nd.array([4,5,6])
-c = mobula_op.operator.AdditionOP(a, b)
+c = mobula.op.AdditionOP(a, b)
 
 print ('a + b = c \n {} + {} = {}'.format(a.asnumpy(), b.asnumpy(), c.asnumpy()))
 ```

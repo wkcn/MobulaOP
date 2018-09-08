@@ -1,8 +1,8 @@
 import sys
 sys.path.append('../') # Add MobulaOP path
-import mobula_op
+import mobula
 
-@mobula_op.operator.register
+@mobula.op.register
 class MyFirstOP:
     def forward(self, x, y):
         return x + y

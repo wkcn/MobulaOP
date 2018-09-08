@@ -5,10 +5,11 @@ Notice:
 '''
 import sys
 sys.path.append('../') # Add MobulaOP path
-import mobula_op
+import mobula
 import numpy as np
 
-@mobula_op.operator.register(need_top_grad = False)
+# ConstantOP only supports CPU.
+@mobula.op.register(need_top_grad = False)
 class ConstantOP:
     def __init__(self, constant):
         self.constant = self.F.array(constant)
@@ -19,7 +20,7 @@ class ConstantOP:
     def infer_shape(self, in_shape):
         return [], [self.constant.shape]
 
-@mobula_op.operator.register(need_top_grad = False)
+@mobula.op.register(need_top_grad = False)
 class ConstantOP2:
     def __init__(self, constant):
         self.constant = self.F.array(constant)
