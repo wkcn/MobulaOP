@@ -112,8 +112,7 @@ def parse_parameters_list(plist):
     return rtn_type, func_name, pars_list
 
 # runtime
-# if a function has been loaded, it will appear in IMPORTED_FUNC_MAP
-IMPORTED_FUNC_MAP = dict() # idcode -> function
+CTX_FUNC_MAP = dict() # ctx -> dict(idcode -> function)
 # static
 TEMPLATE_INST_MAP = dict() # fname -> dict([(idcode, template_inst_code), ...])
 
@@ -152,7 +151,7 @@ def get_so_path(fname):
     path, name = os.path.split(fname)
     return os.path.join(path, 'build', os.path.splitext(name)[0])
 
-def build_lib(cpp_fname, code_buffer, arch):
+def build_lib(cpp_fname, code_buffer, ctx):
     cpp_path, cpp_basename = os.path.split(cpp_fname)
     build_path = os.path.join(cpp_path, 'build')
     create_time = time.strftime('%a %Y-%m-%d %H:%M:%S %Z', time.localtime())
@@ -181,19 +180,19 @@ using namespace mobula;
     srcs = [cpp_wrapper_fname]
     for src in ['defines.cpp', 'context.cpp']:
         srcs.append(os.path.join(ENV_PATH, 'src', src))
-    if arch == 'cpu':
+    if ctx == 'cpu':
         target_name = get_so_path(cpp_fname) + '_cpu.so'
         source_to_so_ctx(build_path, srcs, target_name, 'cpu')
-    elif arch == 'cuda':
+    elif ctx == 'cuda':
         # Build GPU Lib
         if len(list_gpus()) > 0:
             target_name = get_so_path(cpp_fname) + '_cuda.so'
             source_to_so_ctx(build_path, srcs, target_name, 'cuda')
     else:
-        raise Exception('unsupported architecture: {}'.format(arch))
+        raise Exception('unsupported context: {}'.format(ctx))
     return target_name
 
-def op_loader(cfunc, arg_types, arch, cpp_info):
+def op_loader(cfunc, arg_types, ctx, cpp_info):
     '''Import Operator Loader
     It's actual to load the operator
 
@@ -203,23 +202,26 @@ def op_loader(cfunc, arg_types, arch, cpp_info):
         the definition of function to call
     arg_types : list whose element is DType or TemplateType
         argument declaration list
-    arch : str
-        building architecture
+    ctx : str
+        building context
     cpp_info : CPPInfo
         related to cfunc
 
     Returns
     -------
-    IMPORTED_FUNC_MAP[idcode] : CFunction
+    CTX_FUNC_MAP[ctx][idcode] : CFunction
     '''
-    idcode = get_func_idcode(cfunc.func_name, arg_types, arch)
-    if idcode not in IMPORTED_FUNC_MAP:
+    idcode = get_func_idcode(cfunc.func_name, arg_types)
+    if ctx not in CTX_FUNC_MAP:
+        CTX_FUNC_MAP[ctx] = dict()
+    func_map = CTX_FUNC_MAP[ctx]
+    if idcode not in func_map:
         # load func
         cpp_fname = cpp_info.cpp_fname
         cpp_path, cpp_basename = os.path.split(cpp_fname)
         build_path = os.path.join(cpp_path, 'build')
 
-        dll_fname = get_so_path(cpp_fname) + '_{}.so'.format(arch)
+        dll_fname = get_so_path(cpp_fname) + '_{}.so'.format(ctx)
         use_template = len(cfunc.template_list) > 0
         if not os.path.exists(build_path):
             os.makedirs(build_path)
@@ -251,7 +253,7 @@ def op_loader(cfunc, arg_types, arch, cpp_info):
             for func_name, ord_cfunc in cpp_info.function_args.items():
                 if len(ord_cfunc.template_list) > 0:
                     continue
-                func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types, arch)
+                func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types)
                 func_idcode_hash = get_idcode_hash(func_idcode)
                 args_def = ', '.join(['{ctype} {name}'.format(
                         ctype=dtype.cname,
@@ -301,7 +303,7 @@ void %s(%s) {
                 code_buffer += code
 
             with build_context():
-                build_lib(cpp_fname, code_buffer, arch)
+                build_lib(cpp_fname, code_buffer, ctx)
             # update tmap
             save_js_map(template_inst_fname, tmap)
 
@@ -312,20 +314,20 @@ void %s(%s) {
         # ordinary functions
         for func_name, ord_cfunc in cpp_info.function_args.items():
             if len(ord_cfunc.template_list) == 0:
-                func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types, arch)
+                func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types)
                 func_idcode_hash = get_idcode_hash(func_idcode)
                 func = getattr(cpp_info.dll, func_idcode_hash, None)
                 assert func is not None, Exception('No function `{}` in DLL {}'.format(func_idcode, dll_fname))
-                IMPORTED_FUNC_MAP[func_idcode] = func
+                func_map[func_idcode] = func
 
         # template functions
         for func_idcode in tmap.keys():
             func_idcode_hash = get_idcode_hash(func_idcode)
             func = getattr(cpp_info.dll, func_idcode_hash, None)
             assert func is not None, Exception('No function `{}` in DLL {}'.format(func_idcode, dll_fname))
-            IMPORTED_FUNC_MAP[func_idcode] = func
+            func_map[func_idcode] = func
 
-    return IMPORTED_FUNC_MAP[idcode]
+    return func_map[idcode]
 
 def get_functions_from_cpp(cpp_fname):
     unmatched_brackets = 0

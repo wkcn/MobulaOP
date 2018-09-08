@@ -7,12 +7,11 @@ import hashlib
 from . import glue
 from .dtype import DType, TemplateType, UnknownCType
 
-def get_func_idcode(func_name, arg_types, arch):
+def get_func_idcode(func_name, arg_types):
     arg_types_str = ','.join([e.cname for e in arg_types])
-    idcode = '{func_name}:{arg_types_str}:{arch}'.format(
+    idcode = '{func_name}:{arg_types_str}'.format(
             func_name = func_name,
             arg_types_str=arg_types_str,
-            arch=arch,
             )
     return idcode
 
@@ -53,9 +52,9 @@ class CFuncDef:
     def __call__(self, arg_datas, arg_types, dev_id):
         if dev_id is not None:
             set_device(dev_id)
-        arch = 'cpu' if dev_id is None else 'cuda'
+        ctx = 'cpu' if dev_id is None else 'cuda'
         # function loader
-        func = self.loader(self, arg_types, arch, **self.loader_kwargs)
+        func = self.loader(self, arg_types, ctx, **self.loader_kwargs)
         return func(*arg_datas)
 
 class MobulaFunc:
