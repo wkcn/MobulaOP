@@ -16,7 +16,7 @@ def test_ctx_mxnet():
     try:
         import mxnet as mx
     except ImportError:
-        pass
+        return
     shape = (5, 5)
 
     a_np = np.random.random(shape)
@@ -40,7 +40,7 @@ def test_ctx_torch():
     try:
         import torch
     except ImportError:
-        pass
+        return
     shape = (5, 5)
 
     a_np = np.random.random(shape)
