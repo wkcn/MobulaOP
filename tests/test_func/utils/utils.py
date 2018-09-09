@@ -10,3 +10,16 @@ class mul_elemwise:
     def infer_shape(self, in_shape):
         assert in_shape[0] == in_shape[1]
         return in_shape, [in_shape[0]]
+
+@mobula.op.register
+class default_add_op:
+    def __init__(self, value):
+        self.value = value
+    def forward(self, a, b=None):
+        if b is None:
+            b = self.value
+        return a + b
+    def backward(self, dy):
+        return [dy, dy]
+    def infer_shape(self, in_shape):
+        return in_shape, [in_shape[0]]

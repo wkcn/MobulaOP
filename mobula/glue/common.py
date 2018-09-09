@@ -31,7 +31,7 @@ def get_in_data(*args, **kwargs):
     num_defaults = len(defaults) if defaults is not None else 0
     # define input variances in the forward function
     # And the input variances may be in args or kwargs
-    if len(args) > num_inputs:
+    if len(args) >= num_inputs:
         inputs = args[:num_inputs]
         pars = [args[num_inputs:], kwargs]
     else:

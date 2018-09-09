@@ -26,7 +26,7 @@ class OpGen(object):
             # register operator
             self.cache[self.name] = self.register()
         kwargs.pop('__input_type__')
-        return self.cache[self.name]()
+        return self.cache[self.name](*args, **kwargs)
     def register(self): 
         def forward(self, *args, **kwargs):
             inputs, pars = get_in_data(op = self.op, *args, **kwargs)
