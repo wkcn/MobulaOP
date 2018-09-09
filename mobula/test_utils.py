@@ -4,7 +4,18 @@ import numpy as np
 
 ENV_PATH = os.path.dirname(__file__)
 
+def asnumpy(data):
+    if isinstance(data, np.ndarray):
+        return data
+    if hasattr(data, 'asnumpy'):
+        return data.asnumpy()
+    if hasattr(data, 'numpy'):
+        return data.numpy()
+    raise TypeError('Unknown Type: {}'.format(type(data)))
+
 def assert_almost_equal(a, b, atol = 1e-5, rtol = 1e-8):
+    a = asnumpy(a)
+    b = asnumpy(b)
     assert np.allclose(a, b, atol = atol, rtol = rtol), np.max(np.abs(a - b))
 
 def list_gpus():

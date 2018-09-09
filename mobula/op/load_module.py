@@ -4,7 +4,7 @@ import re
 import time
 import ctypes
 import json
-from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash, get_ctype_from_idcode
+from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash
 from ..build import config, update_build_path, source_to_so_ctx, build_context, file_changed, ENV_PATH
 from ..test_utils import list_gpus, get_git_hash
 from ..dtype import DType, TemplateType
@@ -422,11 +422,8 @@ def load(module_name, path=''):
     if not os.path.exists(py_fname):
         py_fname = os.path.join(path, '__init__.py')
 
-    op = None
     if os.path.exists(py_fname):
         found = True
         # Create Operator
         module = load_module(op_name, py_fname)
-        op = getattr(module, op_name, None)
     assert found, IOError("{}.cpp or {}.py or __init__.py not found in the path {}".format(op_name, op_name, path))
-    return op

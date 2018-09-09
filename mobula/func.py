@@ -22,24 +22,6 @@ def get_idcode_hash(idcode):
     md5.update(idcode[len(func_name)+1:].encode('utf-8'))
     return '{}_{}'.format(func_name, md5.hexdigest()[:8])
 
-def get_ctype_from_idcode(idcode):
-    sp = idcode.split(':')
-    arg_types_str = sp[1]
-    def get_ctype(s):
-        s = s.replace('const', '')
-        if s.count('*') == 1:
-            is_pointer = True
-            s = s.replace('*', '')
-        else:
-            is_pointer = False
-        s = s.strip()
-        ctype = getattr(ctypes, 'c_{}'.format(s), None)
-        assert ctype is not None, TypeError('Wrong IDcode {}'.format(idcode))
-        if is_pointer:
-            return ctypes.POINTER(ctype)
-        return ctype
-    return [get_ctype(s) for s in arg_types_str.split(',')]
-
 cuda_lib_fname = os.path.join(os.path.dirname(__file__), 'build', 'mobula_op_cuda.so')
 if os.path.exists(cuda_lib_fname):
     cuda_lib = ctypes.CDLL(cuda_lib_fname)

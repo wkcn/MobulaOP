@@ -1,13 +1,12 @@
 import mobula
 # Import Custom Operator Dynamically
 import os
-AdditionOP = mobula.op.load('./AdditionOP', path=os.path.dirname(__file__))
+mobula.op.load('./AdditionOP', path=os.path.dirname(__file__))
+AdditionOP = mobula.op.AdditionOP
 
 import mxnet as mx
 
 def test_addition():
-    assert mobula.op.AdditionOP == AdditionOP
-
     a = mx.nd.array([1,2,3])
     b = mx.nd.array([4,5,6])
 

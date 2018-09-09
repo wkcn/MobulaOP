@@ -2,7 +2,8 @@ import sys
 sys.path.append('../../') # Add MobulaOP Path
 import mobula
 # Import Custom Operator Dynamically
-AdditionOP = mobula.op.load('./AdditionOP')
+mobula.op.load('./AdditionOP')
+AdditionOP = mobula.op.AdditionOP
 
 import mxnet as mx
 a = mx.nd.array([1,2,3])
