@@ -1,7 +1,9 @@
 import mxnet as mx
 import numpy as np
-import mobula_op
-from mobula_op.test_utils import assert_almost_equal
+import mobula
+from mobula.test_utils import assert_almost_equal
+
+mobula.op.load('ROIAlign')
 
 T = np.float32
 
@@ -180,7 +182,7 @@ def test_roi_align_sym():
     data_sym = mx.sym.Variable('data')
     rois_sym = mx.sym.Variable('rois')
 
-    output_sym = mobula_op.operator.ROIAlign(data = data_sym, rois = rois_sym, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
+    output_sym = mobula.op.ROIAlign(data = data_sym, rois = rois_sym, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
     output_sym = mx.sym.MakeLoss(output_sym)
 
     exe = output_sym.simple_bind(ctx = mx.context.current_context(), data = data.shape, rois = rois.shape)
@@ -201,7 +203,7 @@ def test_roi_align_nd():
 
     data.attach_grad()
     with mx.autograd.record():
-        output = mobula_op.operator.ROIAlign(data = data, rois = rois, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
+        output = mobula.op.ROIAlign(data = data, rois = rois, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
     output.backward()
     mx.nd.waitall()
 
@@ -227,7 +229,7 @@ def test_roi_align_value():
     data.attach_grad()
     rois.attach_grad()
     with mx.autograd.record():
-        output = mobula_op.operator.ROIAlign(data = data, rois = rois, pooled_size = pooled_size, spatial_scale = spatial_scale, sampling_ratio = sampling_ratio)
+        output = mobula.op.ROIAlign(data = data, rois = rois, pooled_size = pooled_size, spatial_scale = spatial_scale, sampling_ratio = sampling_ratio)
     dy = mx.nd.random.uniform(-1, 1, (R, C) + pooled_size, dtype = dtype)
     output.backward(dy)
     real_output, [dx, drois] = roialign_forward_backward(data.asnumpy(), rois.asnumpy(), pooled_size, spatial_scale, sampling_ratio, dy.asnumpy())

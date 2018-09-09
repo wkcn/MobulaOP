@@ -1,5 +1,3 @@
-import sys
-sys.path.append('../../../') # Add MobulaOP Path
 import mobula
 
 @mobula.op.register
