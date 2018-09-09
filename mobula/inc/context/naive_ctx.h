@@ -6,7 +6,6 @@
 #include <utility>
 #include <thread>
 #include <mutex>
-#include <future>
 
 namespace mobula {
 

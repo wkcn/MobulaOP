@@ -7,14 +7,14 @@
 #include <cstring>
 #include <algorithm>
 
+namespace mobula {
+
 #if USING_CBLAS
 #include <cblas.h>
 inline void blas_gemm(const int axis, const bool tA, const bool tB, const int M, const int N, const int K, const float alpha, const float *A, const int lda, const float *B, const int ldb, const float beta, float *C, const int ldc) {
     cblas_sgemm(axis == 0 ? CblasRowMajor : CblasColMajor, tA ? CblasTrans: CblasNoTrans, tB ? CblasTrans : CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
 }
 #endif
-
-namespace mobula {
 
 #define MOBULA_KERNEL void
 #define MOBULA_DEVICE
@@ -42,12 +42,12 @@ inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
 #endif
 
 template<typename T>
-T* xnew(size_t size) {
+T* new_array(size_t size) {
     return new T[size];
 }
 
 template<typename T>
-void xdel(T *p) {
+void del_array(T *p) {
     delete []p;
 }
 

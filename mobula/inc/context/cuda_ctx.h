@@ -4,6 +4,8 @@
 #include <iostream>
 #include <cuda_runtime.h>
 
+namespace mobula {
+
 #if USING_CBLAS
 #include <cublas_v2.h>
 static cublasHandle_t CUBLAS_HANDLE;
@@ -21,8 +23,6 @@ inline void blas_gemm(const int axis, const bool tA, const bool tB, const int M,
         cublasSgemm(CUBLAS_HANDLE, tA ? CUBLAS_OP_T: CUBLAS_OP_N, tB ? CUBLAS_OP_T : CUBLAS_OP_N, M, N, K, &alpha, A, lda, B, ldb, &beta, C, ldc);
 }
 #endif
-
-namespace mobula {
 
 const int CUDA_MAX_GRID_NUM = 65535;
 const int CUDA_MAX_NUM_THREADS = 512;
@@ -56,14 +56,14 @@ inline __device__ float atomic_add(const float val, float* address) {
 }
 
 template<typename T>
-T* xnew(size_t size) {
+T* new_array(size_t size) {
 	T *p;
 	cudaMalloc((void **)&p, sizeof(T) * size);
 	return p;
 }
 
 template<typename T>
-void xdel(T *p) {
+void del_array(T *p) {
 	cudaFree(p);
 }
 
