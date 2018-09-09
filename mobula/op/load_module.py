@@ -163,9 +163,11 @@ def build_lib(cpp_fname, code_buffer, ctx):
  *
  * WARNING! All changes made in this file will be lost!
  */
+#include "mobula_op.h"
+using namespace mobula;
+
 #include "%s"
 extern "C" {
-using namespace mobula;
 %s
 
 }''' % (cpp_fname, git_hash, create_time, os.path.join('..', cpp_basename), code_buffer)
