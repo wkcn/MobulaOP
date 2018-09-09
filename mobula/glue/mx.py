@@ -3,17 +3,7 @@ from mxnet.base import _LIB
 import numpy as np
 from .common import *
 
-def nd_iscontiguous(v):
-    cp = ctypes.c_void_p()
-    cp_end = ctypes.c_void_p()
-    _LIB.MXNDArrayGetData(v.handle, ctypes.byref(cp))
-    lastv = v.reshape((-1, ))[v.size - 1]
-    _LIB.MXNDArrayGetData(lastv.handle, ctypes.byref(cp_end))
-    diffp = cp_end.value - cp.value
-    return diffp == (v.size - 1) * 4
-
 mx.nd.empty_like = lambda x : mx.nd.empty(x.shape, dtype = x.dtype)
-mx.nd.NDArray.iscontiguous = nd_iscontiguous
 mx.nd.NDArray.wait_to_write = lambda self : _LIB.MXNDArrayWaitToWrite(self.handle)
 
 def get_pointer(v):

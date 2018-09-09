@@ -31,19 +31,6 @@ class OpGen(object):
         def forward(self, *args, **kwargs):
             inputs, pars = get_in_data(op = self.op, *args, **kwargs)
 
-            changed_pars = dict()
-            for k, v in pars[1].items():
-                changed = False
-                if hasattr(self, k):
-                    oldv = getattr(self, k)
-                    if oldv != v:
-                        changed = True
-                else:
-                    changed = True
-                if changed:
-                    setattr(self, k, v)
-                    changed_pars[k] = oldv
-
             self.in_data = inputs
             dtype = self.in_data[0].dtype
             self.req = ['write' for _ in range(len(self.in_data))]
@@ -56,12 +43,10 @@ class OpGen(object):
                     out = [out]
                 for i, x in enumerate(out):
                     self.assign(self.out_data[i], self.req[i], x)
-            # recover parameters
-            for k, v in changed_pars.items():
-                setattr(self, k, v)
             if len(self.out_data) == 1:
                 return self.out_data[0]
             return self.out_data
+
         def backward(self, out_grad = None, in_data = None, out_data = None, in_grad = None, req = None):
 
             if in_data is not None:
