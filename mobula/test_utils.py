@@ -46,7 +46,7 @@ def assert_file_exists(fname):
 def get_git_hash():
     try:
         line = open(os.path.join(ENV_PATH, '..', '.git/HEAD')).readline().strip()
-        ref = line[4:] if line[:4] == 'ref:' else line
+        ref = line[5:] if line[:4] == 'ref:' else line
         return open(os.path.join('.git', ref)).readline().strip()[:7]
     except:
         return 'custom'
