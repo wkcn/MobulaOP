@@ -10,6 +10,7 @@
 namespace mobula {
 
 #if HOST_NUM_THREADS > 1
+// global_thread_id -> (local_thread_id, num_threads)
 static std::map<std::thread::id, std::pair<int, int> > MOBULA_KERNEL_INFOS;
 static std::mutex MOBULA_KERNEL_MUTEX;
 
@@ -23,16 +24,11 @@ public:
         std::vector<std::thread> threads(nthreads);
         std::vector<std::thread::id> thread_ids;
         MOBULA_KERNEL_MUTEX.lock();
-        const int step = (_n + nthreads - 1) / nthreads;
-        int blockBegin = 0;
-        int blockEnd;
         for (int i = 0; i < nthreads; ++i) {
             threads[i] = std::thread(_func, args...);
             std::thread::id id = threads[i].get_id();
             thread_ids.push_back(id);
-            blockEnd = std::min(blockBegin + step, _n);
-            MOBULA_KERNEL_INFOS[id] = std::make_pair(blockBegin, blockEnd);
-            blockBegin = blockEnd;
+            MOBULA_KERNEL_INFOS[id] = std::make_pair(i, nthreads);
         }
         MOBULA_KERNEL_MUTEX.unlock();
         for (int i = 0;i < nthreads; ++i) {
@@ -50,14 +46,31 @@ private:
     int _n;
 };
 
+inline MOBULA_DEVICE void get_parfor_range(const int n, const int num_threads, const int thread_id, int *start, int *end) {
+    const int avg_len = n / num_threads;
+    const int rest = n % num_threads;
+    // [start, end)
+    *start = avg_len * thread_id;
+    if (rest > 0) {
+        if (thread_id <= rest) {
+            *start += thread_id;
+        } else {
+            *start += rest;
+        }
+    }
+    *end = *start + avg_len + (thread_id < rest);
+}
+
 template <typename Func>
 MOBULA_DEVICE void parfor(const int n, Func F) {
     MOBULA_KERNEL_MUTEX.lock();
-    const std::pair<int, int> MOBULA_KERNEL_INFO = MOBULA_KERNEL_INFOS[std::this_thread::get_id()];
+    const std::pair<int, int> kernel_info = MOBULA_KERNEL_INFOS[std::this_thread::get_id()];
     MOBULA_KERNEL_MUTEX.unlock();
-    const int MOBULA_KERNEL_START = MOBULA_KERNEL_INFO.first;
-    const int MOBULA_KERNEL_END = min(MOBULA_KERNEL_INFO.second, n);
-    for (int i = MOBULA_KERNEL_START; i < MOBULA_KERNEL_END; ++i) {
+    const int thread_id = kernel_info.first;
+    const int num_threads = kernel_info.second;
+    int start, end;
+    get_parfor_range(n, num_threads, thread_id, &start, &end);
+    for (int i = start; i < end; ++i) {
         F(i);
     }
 }

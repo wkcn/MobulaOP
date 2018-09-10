@@ -35,3 +35,17 @@ def test_default_value_op():
     assert_almost_equal(a+b, c)
     c = op(a) # a+b[default=value]
     assert_almost_equal(a+value, c)
+
+def test_thread():
+    n = 300
+    out_1 = np.empty(n // 1)
+    out_2 = np.empty(n // 2)
+    out_3 = np.empty(n // 3)
+    out_4 = np.empty(n * 2)
+    out_5 = np.empty(n * 3)
+    mobula.func.test_thread(n, out_1, out_2, out_3, out_4, out_5)
+    assert_almost_equal(np.arange(n // 1) * 1, out_1)
+    assert_almost_equal(np.arange(n // 2) * 2, out_2)
+    assert_almost_equal(np.arange(n // 3) * 3, out_3)
+    assert_almost_equal(np.arange(n * 2) * 2, out_4)
+    assert_almost_equal(np.arange(n * 3) * 3, out_5)

@@ -35,6 +35,7 @@ inline int CUDA_GET_BLOCKS(const int n, const int num_threads) {
 
 #define MOBULA_KERNEL __global__ void
 #define MOBULA_DEVICE __device__
+
 #define KERNEL_RUN(a, n) const int __cuda_num_threads__ = CUDA_GET_NUM_THREADS(n);\
                          (a)<<<CUDA_GET_BLOCKS(n, __cuda_num_threads__), __cuda_num_threads__>>>
 
@@ -85,24 +86,29 @@ T* MemcpyDevToDev(T *dst, const T *src, size_t size) {
     return dst;
 }
 
+inline MOBULA_DEVICE void get_parfor_range(const int n, const int num_threads, const int thread_id, int *start, int *end) {
+    const int avg_len = n / num_threads;
+    const int rest = n % num_threads;
+    // [start, end)
+    *start = avg_len * thread_id;
+    if (rest > 0) {
+        if (thread_id <= rest) {
+            *start += thread_id;
+        } else {
+            *start += rest;
+        }
+    }
+    *end = *start + avg_len + (thread_id < rest);
+}
+
 // parfor for cuda device should be called in cuda kernel.
 template <typename Func>
 MOBULA_DEVICE void parfor(const int n, Func F) {
     // [gridDim.x, blockDim.x]
     const int num_threads = gridDim.x * blockDim.x;
-    const int kernel_id = blockIdx.x * blockDim.x + threadIdx.x; // kernel_id is in [0, num_threads)
-    const int avg_len = n / num_threads;
-    const int rest = n % num_threads;
-    // [start, end)
-    int start = avg_len * kernel_id;
-    if (rest > 0) {
-        if (kernel_id <= rest) {
-            start += kernel_id;
-        } else {
-            start += rest;
-        }
-    }
-    int end = start + avg_len + (kernel_id < rest);
+    const int thread_id = blockIdx.x * blockDim.x + threadIdx.x;  // thread_id is in [0, num_threads)
+    int start, end;
+    get_parfor_range(n, num_threads, thread_id, &start, &end);
     for (int i = start; i < end; ++i) {
         F(i);
     }

@@ -8,4 +8,23 @@ MOBULA_KERNEL mul_elemwise_kernel(const int n, const T* a, const T* b, T* c) {
     });
 }
 
+template <typename T>
+MOBULA_KERNEL test_thread_kernel(const int n, T* out_1, T* out_2, T* out_3, T* out_4, T* out_5) {
+    parfor(n, [&](int i) {
+        out_1[i] = i;
+    });
+    parfor(n / 2, [&](int i) {
+        out_2[i] = i * 2;
+    });
+    parfor(n / 3, [&](int i) {
+        out_3[i] = i * 3;
+    });
+    parfor(n * 2, [&](int i) {
+        out_4[i] = i * 2;
+    });
+    parfor(n * 3, [&](int i) {
+        out_5[i] = i * 3;
+    });
+}
+
 }
