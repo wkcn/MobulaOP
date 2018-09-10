@@ -27,4 +27,11 @@ MOBULA_KERNEL test_thread_kernel(const int n, T* out_1, T* out_2, T* out_3, T* o
     });
 }
 
+template <typename T1, typename T2>
+MOBULA_KERNEL test_const_template_kernel(const int n, const T1 value, T2* out) {
+    parfor(n, [&](int i) {
+        out[i] = static_cast<T2>(value);
+    });
+}
+
 }

@@ -2,6 +2,7 @@ import mobula
 from mobula.test_utils import assert_almost_equal 
 import numpy as np
 import os
+import ctypes
 mobula.op.load('./utils', os.path.dirname(__file__))
 
 def test_non_c_contiguous():
@@ -49,3 +50,14 @@ def test_thread():
     assert_almost_equal(np.arange(n // 3) * 3, out_3)
     assert_almost_equal(np.arange(n * 2) * 2, out_4)
     assert_almost_equal(np.arange(n * 3) * 3, out_5)
+
+def test_const_template():
+    shape = (5, 5)
+    value = 3939
+    cs = [ctypes.c_int, ctypes.c_float, ctypes.c_double]
+    vs = [3, 9.9, 3.9]
+    for ctype, value in zip(cs, vs):
+        c_value = ctype(value)
+        a = np.empty(shape)
+        mobula.func.test_const_template(a.size, c_value, a)
+        assert_almost_equal(np.tile(value, shape), a)

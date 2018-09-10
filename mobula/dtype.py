@@ -31,8 +31,6 @@ class UnknownCType:
     def __init__(self, tname):
         self.tname = tname
         self.is_const = False
-    def __call__(self, value):
-        return value
 
 class TemplateType:
     def __init__(self, tname, is_pointer, is_const):
@@ -45,6 +43,3 @@ class TemplateType:
                 tname = self.tname,
                 pointer = '*' if self.is_pointer else ''
                 )
-    @property
-    def ctype(self):
-        return UnknownCType(self.tname)

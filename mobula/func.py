@@ -122,9 +122,13 @@ class MobulaFunc:
                 assert ctype == expected_ctype, TypeError('Expected Type {} instead of {}'.format(expected_ctype, ctype))
                 pa = ctypes.cast(pa, ctype)
             else:
-                pa = p.ctype(a)
                 dev_id = None
-                ctype = p.ctype
+                if isinstance(p, TemplateType):
+                    pa = a
+                    ctype = type(a) if hasattr(a, '_type_') else UnknownCType(p.tname)
+                else:
+                    pa = p.ctype(a)
+                    ctype = p.ctype
             return pa, dev_id, ctype
 
         extra_pars = [backend_inputs, backend_outputs, noncontiguous_list, template_mapping]
@@ -148,7 +152,7 @@ class MobulaFunc:
         # try to know the unknown ctype
         for i, a in enumerate(arg_types):
             if isinstance(a, UnknownCType):
-                assert a.tname in template_mapping, Exception('Unknown template name: {}'.format(tname))
+                assert a.tname in template_mapping, Exception('Unknown template name: {}'.format(a.tname))
                 ctype = template_mapping[a.tname]._type_
                 arg_types[i] = DType(ctype, a.is_const)
                 arg_datas[i] = ctype(arg_datas[i])
