@@ -20,7 +20,7 @@ LDFLAGS = Flags('-lpthread -shared')
 if config.USING_CBLAS:
     LDFLAGS.add_string('-lopenblas')
 
-CU_FLAGS = Flags('-std=c++11 -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC" --expt-extended-lambda').add_definition('USING_CUDA', 1).add_string(COMMON_FLAGS)
+CU_FLAGS = Flags('-std=c++11 -x cu -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC" --expt-extended-lambda').add_definition('USING_CUDA', 1).add_string(COMMON_FLAGS)
 CU_LDFLAGS = Flags('-lpthread -shared -Wno-deprecated-gpu-targets -L%s/lib64 -lcuda -lcudart -lcublas' % config.CUDA_DIR)
 
 if config.USING_OPENMP:
@@ -54,19 +54,12 @@ def o_to_so(target_name, objs, linker, ldflags = LDFLAGS):
     command = "%s %s %s -o %s" % (linker, ' '.join(objs), ldflags, target_name)
     run_command(command)
 
-def link(srcs, tars):
-    existed_dirs = set()
-    for src, tar in zip(srcs, tars):
-        dir_name = os.path.dirname(tar)
-        if dir_name not in existed_dirs:
-            mkdir(dir_name)
-            existed_dirs.add(dir_name)
-        if not os.path.exists(tar):
-            run_command('ln -f %s %s' % (src, tar))
+def source_to_so(build_path, srcs, target_name, compiler, cflags, ldflags, buildin_o=None):
+    objs = change_exts(srcs, [('cpp', 'o')])
 
-def source_to_so(build_path, srcs, target_name, compiler, cflags, ldflags):
-    objs = change_exts(srcs, [('cpp', 'o'), ('cu', 'cu.o')])
     if source_to_o(build_path, zip(srcs, objs), compiler, cflags) or not os.path.exists(target_name):
+        if buildin_o is not None:
+            objs.extend(buildin_o)
         abs_objs = add_path(build_path, objs)
         o_to_so(target_name, abs_objs, compiler, ldflags)
 
@@ -75,15 +68,17 @@ BUILD_FLAGS = dict(
     cuda = (config.NVCC, CU_FLAGS, CU_LDFLAGS)
 )
 
-def source_to_so_ctx(build_path, srcs, target_name, ctx_name):
-    assert ctx_name in BUILD_FLAGS, ValueError("The flags of ctx {} not found :-(".format(ctx_name))
-    if ctx_name == 'cuda':
-        # preprocess
-        cu_srcs = change_ext(srcs, 'cpp', 'cu')
-        link(srcs, cu_srcs)
-        srcs = cu_srcs
+def source_to_so_ctx(build_path, srcs, target_name, ctx_name, buildin_cpp=None):
+    assert ctx_name in BUILD_FLAGS, ValueError('Unsupported Context: {} -('.format(ctx_name))
 
-    source_to_so(build_path, srcs, target_name, *BUILD_FLAGS[ctx_name])
+    buildin_o = []
+    if buildin_cpp is not None:
+        buildin_path = os.path.join(ENV_PATH, config.BUILD_PATH, ctx_name)
+        buildin_o = [os.path.join(buildin_path, fname) for fname in change_exts(buildin_cpp, [('cpp', 'o')])]
+        for fname in buildin_o:
+            assert os.path.exists(fname), Exception('File {} not found, please rebuild MobulaOP :-('.format(fname))
+
+    source_to_so(build_path, srcs, target_name, *BUILD_FLAGS[ctx_name], buildin_o)
 
 def all_func():
     # cpu

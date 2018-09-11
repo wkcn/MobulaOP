@@ -121,7 +121,6 @@ def get_template_inst_fname(build_path, name):
     fpath = os.path.join(build_path, fname)
     return fpath
 
-# [discarded] build_index: idcode -> the dynamic library link file
 def load_js_map(fname):
     if os.path.exists(fname):
         return json.loads(open(fname).read())
@@ -180,17 +179,13 @@ extern "C" {
         fout.write(extra_code)
     # Build CPU Lib
     srcs = [cpp_wrapper_fname]
+    buildin_cpp = []
     for src in ['defines.cpp', 'context.cpp']:
-        srcs.append(os.path.join(ENV_PATH, 'src', src))
-    if ctx == 'cpu':
-        target_name = get_so_path(cpp_fname) + '_cpu.so'
-        source_to_so_ctx(build_path, srcs, target_name, 'cpu')
-    elif ctx == 'cuda':
-        # Build GPU Lib
-        target_name = get_so_path(cpp_fname) + '_cuda.so'
-        source_to_so_ctx(build_path, srcs, target_name, 'cuda')
-    else:
-        raise Exception('unsupported context: {}'.format(ctx))
+        buildin_cpp.append(os.path.join('src', src))
+
+    target_name = '{}_{}.so'.format(get_so_path(cpp_fname), ctx)
+    source_to_so_ctx(build_path, srcs, target_name, ctx, buildin_cpp)
+
     return target_name
 
 def op_loader(cfunc, arg_types, ctx, cpp_info):
