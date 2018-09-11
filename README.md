@@ -10,7 +10,9 @@ You can write the custom operators by Python/C++/C/CUDA without rebuilding deep 
 
 ## How to use it?
 
-[Documentation](https://mobulaop.readthedocs.io/en/latest/)
+[[中文教程](docs/tutorial-cn.md)]
+
+[[Documentation (Work In Progress)]()]
 
 - Add an addition operator [[Code](examples/MyFirstOP.py)]
 
@@ -100,6 +102,12 @@ git clone https://github.com/wkcn/MobulaOP
 # Enter the directory
 cd MobulaOP
 
+# Install Third-Party Library
+pip install -r requirements.txt
+
 # Build
 sh build.sh
+
+# Add MobulaOP into Enviroment Variable `PYTHONPATH`
+export PYTHONPATH=$PYTHONPATH:$(pwd)
 ```
