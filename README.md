@@ -6,7 +6,7 @@
 ## What is it?
 *MobulaOP* is a simple and flexible cross framework operators toolkit.
 
-You can write the custom operators by Python/C++/C/CUDA without rebuilding deep learning framework from source.
+You can write the custom operators by Python/C++/C/CUDA/HIP without rebuilding deep learning framework from source.
 
 ## How to use it?
 
