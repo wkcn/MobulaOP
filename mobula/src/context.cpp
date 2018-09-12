@@ -12,6 +12,14 @@ void set_device(const int device_id) {
         CUDA_CHECK(cudaSetDevice(device_id));
     }
 }
+#elif USING_HIP
+void set_device(const int device_id) {
+    int current_device;
+    HIP_CHECK(hipGetDevice(&current_device));
+    if (current_device != device_id) {
+        HIP_CHECK(hipSetDevice(device_id));
+    }
+}
 #else // USING_CUDA else
 void set_device(const int /*device_id*/) {
     throw "Doesn't support setting device on CPU mode";

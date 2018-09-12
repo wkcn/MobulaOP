@@ -6,6 +6,7 @@ import inspect
 import hashlib
 from . import glue
 from .dtype import DType, TemplateType, UnknownCType
+from .build_utils import config
 
 def get_func_idcode(func_name, arg_types):
     arg_types_str = ','.join([e.cname for e in arg_types])
@@ -23,14 +24,22 @@ def get_idcode_hash(idcode):
     return '{}_{}'.format(func_name, md5.hexdigest()[:8])
 
 cuda_lib_fname = os.path.join(os.path.dirname(__file__), 'build', 'mobula_op_cuda.so')
+gpu_lib_name = None
 if os.path.exists(cuda_lib_fname):
-    cuda_lib = ctypes.CDLL(cuda_lib_fname)
+    gpu_lib = ctypes.CDLL(cuda_lib_fname)
+    gpu_lib_name = 'cuda'
 else:
-    cuda_lib = None
+    hip_lib_fname = os.path.join(os.path.dirname(__file__), 'build', 'mobula_op_hip.so')
+    if os.path.exists(hip_lib_fname):
+        gpu_lib = ctypes.CDLL(hip_lib_fname)
+        gpu_lib_name = 'hip'
+    else:
+        gpu_lib = None
+
 def set_device(dev_id):
-    if cuda_lib is None:
-        raise Exception('load mobula_op_cuda.so failed. Please `make cuda` for MobulaOP')
-    cuda_lib.set_device(dev_id)
+    if gpu_lib is None:
+        raise Exception('Either mobula_op_cuda.so or mobula_op_hip.so not found. Please `make cuda` or `make hip` for MobulaOP')
+    gpu_lib.set_device(dev_id)
 
 class CFuncDef:
     def __init__(self, func_name, arg_names=[], arg_types=None, rtn_type=None, template_list=[], loader=None, loader_kwargs=None):
@@ -44,7 +53,7 @@ class CFuncDef:
     def __call__(self, arg_datas, arg_types, dev_id):
         if dev_id is not None:
             set_device(dev_id)
-        ctx = 'cpu' if dev_id is None else 'cuda'
+        ctx = 'cpu' if dev_id is None else gpu_lib_name
         # function loader
         func = self.loader(self, arg_types, ctx, **self.loader_kwargs)
         return func(*arg_datas)

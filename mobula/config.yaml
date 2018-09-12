@@ -10,4 +10,6 @@ USING_OPTIMIZATION: 1
 
 CXX: g++
 NVCC: nvcc
+HIPCC: hipcc
 CUDA_DIR: /opt/cuda
+HIP_DIR: /opt/rocm/hip

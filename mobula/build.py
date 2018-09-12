@@ -15,13 +15,16 @@ for path in INC_PATHS:
     if len(p) > 0:
         COMMON_FLAGS.add_string('-I{}'.format(p))
 
-CFLAGS = Flags('-std=c++11 -fPIC').add_definition('USING_CUDA', 0).add_definition('USING_OPENMP', config.USING_OPENMP).add_string(COMMON_FLAGS)
+CFLAGS = Flags('-std=c++11 -fPIC').add_definition('USING_CUDA', 0).add_definition('USING_HIP', 0).add_definition('USING_OPENMP', config.USING_OPENMP).add_string(COMMON_FLAGS)
 LDFLAGS = Flags('-lpthread -shared')
 if config.USING_CBLAS:
     LDFLAGS.add_string('-lopenblas')
 
-CU_FLAGS = Flags('-std=c++11 -x cu -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC" --expt-extended-lambda').add_definition('USING_CUDA', 1).add_string(COMMON_FLAGS)
+CU_FLAGS = Flags('-std=c++11 -x cu -Wno-deprecated-gpu-targets -dc --compiler-options "-fPIC" --expt-extended-lambda').add_definition('USING_CUDA', 1).add_definition('USING_HIP', 0).add_string(COMMON_FLAGS)
 CU_LDFLAGS = Flags('-lpthread -shared -Wno-deprecated-gpu-targets -L%s/lib64 -lcuda -lcudart -lcublas' % config.CUDA_DIR)
+
+HIP_FLAGS = Flags('-std=c++11 -Wno-deprecated-gpu-targets -Wno-deprecated-declarations -dc --compiler-options "-fPIC" --expt-extended-lambda').add_definition('USING_CUDA', 0).add_definition('USING_HIP', 1).add_string(COMMON_FLAGS)
+HIP_LDFLAGS = Flags('-lpthread -shared -Wno-deprecated-gpu-targets')
 
 if config.USING_OPENMP:
     CFLAGS.add_string('-fopenmp')
@@ -65,7 +68,8 @@ def source_to_so(build_path, srcs, target_name, compiler, cflags, ldflags, build
 
 BUILD_FLAGS = dict(
     cpu = (config.CXX, CFLAGS, LDFLAGS),
-    cuda = (config.NVCC, CU_FLAGS, CU_LDFLAGS)
+    cuda = (config.NVCC, CU_FLAGS, CU_LDFLAGS),
+    hip = (config.HIPCC, HIP_FLAGS, HIP_LDFLAGS)
 )
 
 def source_to_so_ctx(build_path, srcs, target_name, ctx_name, buildin_cpp=None):
@@ -88,10 +92,14 @@ def all_func():
     source_to_so_ctx(build_path, SRCS, target_name, 'cpu')
 
 def cuda_func():
-    # cuda
     build_path = os.path.join(config.BUILD_PATH, 'cuda')
     target_name = os.path.join(config.BUILD_PATH, '%s_cuda.so' % config.TARGET)
     source_to_so_ctx(build_path, SRCS, target_name, 'cuda')
+
+def hip_func():
+    build_path = os.path.join(config.BUILD_PATH, 'hip')
+    target_name = os.path.join(config.BUILD_PATH, '%s_hip.so' % config.TARGET)
+    source_to_so_ctx(build_path, SRCS, target_name, 'hip')
 
 def clean_func():
     rmdir(config.BUILD_PATH)
@@ -99,6 +107,7 @@ def clean_func():
 RULES = dict(
     all = all_func,
     cuda = cuda_func,
+    hip = hip_func,
     clean = clean_func,
 )
 
