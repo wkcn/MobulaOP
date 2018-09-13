@@ -169,15 +169,17 @@ using namespace mobula;
 extern "C" {
 %s
 
-}''' % (cpp_fname, git_hash, create_time, os.path.join('..', cpp_basename), code_buffer)
-    # update_build_path(build_path)
-    if not os.path.exists(build_path):
-        os.mkdir(build_path)
-    # build so for cpu
-    cpp_wrapper_fname = os.path.join(build_path, os.path.splitext(cpp_basename)[0] + '_wrapper.cpp')
+}''' % (cpp_fname, git_hash, create_time, os.path.join('../..', cpp_basename), code_buffer)
+
+    build_path_ctx = os.path.join(build_path, ctx)
+    if not os.path.exists(build_path_ctx):
+        os.mkdir(build_path_ctx)
+
+    # build so
+    cpp_wrapper_fname = os.path.join(build_path_ctx, os.path.splitext(cpp_basename)[0] + '_wrapper.cpp')
     with open(cpp_wrapper_fname, 'w') as fout:
         fout.write(extra_code)
-    # Build CPU Lib
+    # build lib
     srcs = [cpp_wrapper_fname]
     buildin_cpp = []
     for src in ['defines.cpp', 'context.cpp']:

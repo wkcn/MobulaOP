@@ -23,18 +23,13 @@ def get_idcode_hash(idcode):
     md5.update(idcode[len(func_name)+1:].encode('utf-8'))
     return '{}_{}'.format(func_name, md5.hexdigest()[:8])
 
-cuda_lib_fname = os.path.join(os.path.dirname(__file__), 'build', 'mobula_op_cuda.so')
-gpu_lib_name = None
-if os.path.exists(cuda_lib_fname):
-    gpu_lib = ctypes.CDLL(cuda_lib_fname)
-    gpu_lib_name = 'cuda'
-else:
-    hip_lib_fname = os.path.join(os.path.dirname(__file__), 'build', 'mobula_op_hip.so')
-    if os.path.exists(hip_lib_fname):
-        gpu_lib = ctypes.CDLL(hip_lib_fname)
-        gpu_lib_name = 'hip'
-    else:
-        gpu_lib = None
+gpu_ctx_name = None
+for gpu_ctx in ['cuda', 'hip']:
+    gpu_lib_fname = os.path.join(os.path.dirname(__file__), 'build', 'mobula_op_{}.so'.format(gpu_ctx))
+    if os.path.exists(gpu_lib_fname):
+        gpu_lib = ctypes.CDLL(gpu_lib_fname)
+        gpu_ctx_name = gpu_ctx
+        break
 
 def set_device(dev_id):
     if gpu_lib is None:
@@ -51,9 +46,11 @@ class CFuncDef:
         self.loader = loader
         self.loader_kwargs = loader_kwargs
     def __call__(self, arg_datas, arg_types, dev_id):
-        if dev_id is not None:
+        if dev_id is None:
+            ctx = 'cpu'
+        else:
             set_device(dev_id)
-        ctx = 'cpu' if dev_id is None else gpu_lib_name
+            ctx = gpu_ctx_name
         # function loader
         func = self.loader(self, arg_types, ctx, **self.loader_kwargs)
         return func(*arg_datas)
