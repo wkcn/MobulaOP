@@ -3,7 +3,7 @@ import sys
 import multiprocessing
 try:
     from .build_utils import *
-except ImportError:
+except:
     from build_utils import *
 
 NUM_CPU_CORE = multiprocessing.cpu_count()
