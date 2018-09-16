@@ -2,6 +2,7 @@
  * Adapted from MXNet: github.com/apache/incubator-mxnet
  */
 
+#include "defines.h"
 #include "im2col.h"
 
 namespace mobula {
@@ -86,8 +87,6 @@ MOBULA_KERNEL col2im_kernel(const int n, const T* data_col,
   });
 }
 
-} // namespace mobula
-
 typedef float DType;
 void im2col(const DType *data_im, const int channels,
             const int height, const int width,
@@ -120,3 +119,5 @@ void col2im(const DType *data_col, const int channels,
           pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
           height_col, width_col, data_im);
 }
+
+} // namespace mobula

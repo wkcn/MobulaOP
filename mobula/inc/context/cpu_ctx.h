@@ -1,5 +1,5 @@
-#ifndef _CPU_CTX_
-#define _CPU_CTX_
+#ifndef MOBULA_INC_CONTEXT_CPU_CTX_H_
+#define MOBULA_INC_CONTEXT_CPU_CTX_H_
 
 #include <thread>
 #include <mutex>
@@ -11,8 +11,15 @@ namespace mobula {
 
 #if USING_CBLAS
 #include <cblas.h>
-inline void blas_gemm(const int axis, const bool tA, const bool tB, const int M, const int N, const int K, const float alpha, const float *A, const int lda, const float *B, const int ldb, const float beta, float *C, const int ldc) {
-    cblas_sgemm(axis == 0 ? CblasRowMajor : CblasColMajor, tA ? CblasTrans: CblasNoTrans, tB ? CblasTrans : CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+inline void blas_gemm(const int axis, const bool tA, const bool tB,
+        const int M, const int N, const int K,
+        const float alpha, const float *A, const int lda,
+        const float *B, const int ldb, const float beta,
+        float *C, const int ldc) {
+    cblas_sgemm(axis == 0 ? CblasRowMajor : CblasColMajor,
+            tA ? CblasTrans: CblasNoTrans,
+            tB ? CblasTrans : CblasNoTrans,
+            M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
 }
 #endif
 
@@ -27,7 +34,8 @@ using std::abs;
 constexpr int NUM_MOBULA_ATOMIC_ADD_MUTEXES = HOST_NUM_THREADS * 8;
 static std::mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
 inline MOBULA_DEVICE float atomic_add(const float val, float* address) {
-    long id = (reinterpret_cast<long>(address) / sizeof(float)) % NUM_MOBULA_ATOMIC_ADD_MUTEXES;
+    long id = (reinterpret_cast<long>(address) /
+            sizeof(float)) % NUM_MOBULA_ATOMIC_ADD_MUTEXES;
     MOBULA_ATOMIC_ADD_MUTEXES[id].lock();
     *address += val;
     MOBULA_ATOMIC_ADD_MUTEXES[id].unlock();
@@ -69,12 +77,12 @@ T* MemcpyDevToDev(T *dst, const T *src, size_t size) {
     return static_cast<T*>(memcpy(dst, src, size));
 }
 
-} // namespace mobula
+}  // namespace mobula
 
 #if USING_OPENMP
-#include "openmp_ctx.h"
+#include "./openmp_ctx.h"
 #else
-#include "naive_ctx.h"
+#include "./naive_ctx.h"
 #endif
 
-#endif
+#endif  // MOBULA_INC_CONTEXT_CPU_CTX_H_

@@ -1,5 +1,5 @@
-#ifndef _CONTEXT_H_
-#define _CONTEXT_H_
+#ifndef MOBULA_INC_CONTEXT_CONTEXT_H_
+#define MOBULA_INC_CONTEXT_CONTEXT_H_
 
 #include <cstring>
 
@@ -9,17 +9,11 @@
 #include "context/hip_ctx.h"
 #else
 #include "context/cpu_ctx.h"
-#endif // USING_CUDA
-
-namespace mobula {
-
-} // namespace mobula
+#endif  // USING_CUDA
 
 // C API
 extern "C" {
-
 void set_device(const int device_id);
-
 }
 
-#endif
+#endif  // MOBULA_INC_CONTEXT_CONTEXT_H_

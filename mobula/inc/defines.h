@@ -1,5 +1,5 @@
-#ifndef _MOBULA_DEFINES_
-#define _MOBULA_DEFINES_
+#ifndef MOBULA_INC_DEFINES_H_
+#define MOBULA_INC_DEFINES_H_
 
 #include <iostream>
 #include <iomanip>
@@ -27,7 +27,8 @@ struct CArray{
 };
 
 template<typename F, typename T>
-inline MOBULA_DEVICE void mobula_map(F func, const T *data, const int n, const int stride = 1, T *out = nullptr) {
+inline MOBULA_DEVICE void mobula_map(F func, const T *data, const int n,
+        const int stride = 1, T *out = nullptr) {
     if (out == nullptr) out = const_cast<T*>(data);
     for (int i = 0, j = 0; i < n; ++i, j += stride) {
         out[j] = func(data[j]);
@@ -35,7 +36,8 @@ inline MOBULA_DEVICE void mobula_map(F func, const T *data, const int n, const i
 }
 
 template<typename F, typename T>
-inline MOBULA_DEVICE void mobula_reduce(F func, const T *data, const int n, const int stride = 1, T *out = nullptr) {
+inline MOBULA_DEVICE void mobula_reduce(F func, const T *data, const int n,
+        const int stride = 1, T *out = nullptr) {
     if (out == nullptr) out = const_cast<T*>(data);
     T &val = out[0];
     val = data[0];
@@ -44,11 +46,12 @@ inline MOBULA_DEVICE void mobula_reduce(F func, const T *data, const int n, cons
     }
 }
 
-inline MOBULA_DEVICE int get_middle_loop_offset(const int i, const int middle_size, const int inner_size) {
+inline MOBULA_DEVICE int get_middle_loop_offset(const int i,
+        const int middle_size, const int inner_size) {
     // &a[outer_size][0][inner_size] = &a[j]
     const int inner_i = i % inner_size;
     const int outer_i = i / inner_size;
-    return outer_i * middle_size * inner_size + inner_i; // j
+    return outer_i * middle_size * inner_size + inner_i;  // j
 }
 
 template<typename T>
@@ -61,6 +64,6 @@ MOBULA_DEVICE T MAX_FUNC(const T &a, const T &b) {
     return a > b ? a : b;
 }
 
-} // namespace mobula
+}  // namespace mobula
 
-#endif
+#endif  // MOBULA_INC_DEFINES_H_

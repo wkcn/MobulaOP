@@ -1,9 +1,10 @@
-#ifndef _NAIVE_CTX_
-#define _NAIVE_CTX_
+#ifndef MOBULA_INC_CONTEXT_NAIVE_CTX_H_
+#define MOBULA_INC_CONTEXT_NAIVE_CTX_H_
 
 #include <vector>
 #include <map>
 #include <utility>
+#include <algorithm>
 #include <thread>
 
 namespace mobula {
@@ -14,7 +15,8 @@ static thread_local int thread_local_i;
 static thread_local int thread_local_n;
 
 template<typename Func, typename ...Args>
-void thread_func_wrapper(Func func, const int i, const int nthreads, Args... args) {
+void thread_func_wrapper(Func func, const int i,
+        const int nthreads, Args... args) {
     thread_local_i = i;
     thread_local_n = nthreads;
     func(args...);
@@ -22,25 +24,27 @@ void thread_func_wrapper(Func func, const int i, const int nthreads, Args... arg
 
 template<typename Func>
 class KernelRunner {
-public:
-    KernelRunner(Func func, int n):func_(func), n_(n){};
-    template<typename ...Args>
-    void operator()(Args... args){
-        const int nthreads = std::min(n_, HOST_NUM_THREADS);
-        std::vector<std::thread> threads(nthreads);
-        for (int i = 0; i < nthreads; ++i) {
-            threads[i] = std::thread(thread_func_wrapper<Func, Args...>, func_, i, nthreads, args...);
-        }
-        for (int i = 0;i < nthreads; ++i) {
-            threads[i].join();
-        }
-    }
-private:
-    Func func_;
-    int n_;
+ public:
+     KernelRunner(Func func, int n):func_(func), n_(n) {}
+     template<typename ...Args>
+     void operator()(Args... args) {
+         const int nthreads = std::min(n_, HOST_NUM_THREADS);
+         std::vector<std::thread> threads(nthreads);
+         for (int i = 0; i < nthreads; ++i) {
+             threads[i] = std::thread(thread_func_wrapper<Func, Args...>,
+                     func_, i, nthreads, args...);
+         }
+         for (int i = 0; i < nthreads; ++i) {
+             threads[i].join();
+         }
+     }
+ private:
+     Func func_;
+     int n_;
 };
 
-inline MOBULA_DEVICE void get_parfor_range(const int n, const int num_threads, const int thread_id, int *start, int *end) {
+inline MOBULA_DEVICE void get_parfor_range(const int n, const int num_threads,
+        const int thread_id, int *start, int *end) {
     const int avg_len = n / num_threads;
     const int rest = n % num_threads;
     // [start, end)
@@ -64,9 +68,9 @@ MOBULA_DEVICE void parfor(const int n, Func F) {
     }
 }
 
-#define KERNEL_RUN(a, n) (KernelRunner<decltype(&(a))>(&(a), (n)))
+#define KERNEL_RUN(a, n) (mobula::KernelRunner<decltype(&(a))>(&(a), (n)))
 
-#else // HOST_NUM_THREADS > 1 else
+#else  // HOST_NUM_THREADS > 1 else
 
 template <typename Func>
 MOBULA_DEVICE void parfor(const int n, Func F) {
@@ -75,8 +79,8 @@ MOBULA_DEVICE void parfor(const int n, Func F) {
     }
 }
 
-#endif // HOST_NUM_THREADS > 1
+#endif  // HOST_NUM_THREADS > 1
 
-} // namespace mobula
+}  // namespace mobula
 
-#endif
+#endif  // MOBULA_INC_CONTEXT_NAIVE_CTX_H_

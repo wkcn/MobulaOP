@@ -1,5 +1,5 @@
-#ifndef _OPENMP_CTX_
-#define _OPENMP_CTX_
+#ifndef MOBULA_INC_CONTEXT_OPENMP_CTX_H_
+#define MOBULA_INC_CONTEXT_OPENMP_CTX_H_
 
 #include <omp.h>
 
@@ -15,6 +15,6 @@ MOBULA_DEVICE void parfor(const int n, Func F) {
     }
 }
 
-}
+}  // namespace mobula
 
-#endif
+#endif  // MOBULA_INC_CONTEXT_OPENMP_CTX_H_

@@ -1,8 +1,9 @@
-#ifndef _CUDA_CTX_H_
-#define _CUDA_CTX_H_
+#ifndef MOBULA_INC_CONTEXT_CUDA_CTX_H_
+#define MOBULA_INC_CONTEXT_CUDA_CTX_H_
 
-#include <iostream>
 #include <cuda_runtime.h>
+#include <iostream>
+#include <algorithm>
 
 namespace mobula {
 
@@ -14,23 +15,31 @@ static struct CUBLAS_INIT {
         cublasCreate(&CUBLAS_HANDLE);
     }
 } cublas_init_dummy;
-inline void blas_gemm(const int axis, const bool tA, const bool tB, const int M, const int N, const int K, const float alpha, const float *A, const int lda, const float *B, const int ldb, const float beta, float *C, const int ldc) {
+inline void blas_gemm(const int axis, const bool tA, const bool tB,
+        const int M, const int N, const int K,
+        const float alpha, const float *A, const int lda,
+        const float *B, const int ldb, const float beta,
+        float *C, const int ldc) {
     if (axis == 0)
         // row major
-        cublasSgemm(CUBLAS_HANDLE, tB ? CUBLAS_OP_T: CUBLAS_OP_N, tA ? CUBLAS_OP_T : CUBLAS_OP_N, N, M, K, &alpha, B, ldb, A, lda, &beta, C, ldc);
+        cublasSgemm(CUBLAS_HANDLE, tB ? CUBLAS_OP_T: CUBLAS_OP_N,
+                tA ? CUBLAS_OP_T : CUBLAS_OP_N,
+                N, M, K, &alpha, B, ldb, A, lda, &beta, C, ldc);
     else
         // column major
-        cublasSgemm(CUBLAS_HANDLE, tA ? CUBLAS_OP_T: CUBLAS_OP_N, tB ? CUBLAS_OP_T : CUBLAS_OP_N, M, N, K, &alpha, A, lda, B, ldb, &beta, C, ldc);
+        cublasSgemm(CUBLAS_HANDLE, tA ? CUBLAS_OP_T: CUBLAS_OP_N,
+                tB ? CUBLAS_OP_T : CUBLAS_OP_N,
+                M, N, K, &alpha, A, lda, B, ldb, &beta, C, ldc);
 }
 #endif
 
 const int CUDA_MAX_GRID_NUM = 65535;
 const int CUDA_MAX_NUM_THREADS = 512;
 inline int CUDA_GET_NUM_THREADS(const int n) {
-    return min(CUDA_MAX_NUM_THREADS, ((n + 31) / 32) * 32);
+    return std::min(CUDA_MAX_NUM_THREADS, ((n + 31) / 32) * 32);
 }
 inline int CUDA_GET_BLOCKS(const int n, const int num_threads) {
-    return min(CUDA_MAX_GRID_NUM, n + num_threads - 1) / num_threads;
+    return std::min(CUDA_MAX_GRID_NUM, n + num_threads - 1) / num_threads;
 }
 
 #define MOBULA_KERNEL __global__ void
@@ -58,14 +67,14 @@ inline __device__ float atomic_add(const float val, float* address) {
 
 template<typename T>
 T* new_array(size_t size) {
-	T *p;
-	cudaMalloc((void **)&p, sizeof(T) * size);
-	return p;
+    T *p;
+    cudaMalloc(reinterpret_cast<void **>(&p), sizeof(T) * size);
+    return p;
 }
 
 template<typename T>
 void del_array(T *p) {
-	cudaFree(p);
+    cudaFree(p);
 }
 
 template<typename T>
@@ -86,7 +95,8 @@ T* MemcpyDevToDev(T *dst, const T *src, size_t size) {
     return dst;
 }
 
-inline MOBULA_DEVICE void get_parfor_range(const int n, const int num_threads, const int thread_id, int *start, int *end) {
+inline MOBULA_DEVICE void get_parfor_range(const int n, const int num_threads,
+        const int thread_id, int *start, int *end) {
     const int avg_len = n / num_threads;
     const int rest = n % num_threads;
     // [start, end)
@@ -106,7 +116,8 @@ template <typename Func>
 MOBULA_DEVICE void parfor(const int n, Func F) {
     // [gridDim.x, blockDim.x]
     const int num_threads = gridDim.x * blockDim.x;
-    const int thread_id = blockIdx.x * blockDim.x + threadIdx.x;  // thread_id is in [0, num_threads)
+    // thread_id is in [0, num_threads)
+    const int thread_id = blockIdx.x * blockDim.x + threadIdx.x;
     int start, end;
     get_parfor_range(n, num_threads, thread_id, &start, &end);
     for (int i = start; i < end; ++i) {
@@ -114,6 +125,6 @@ MOBULA_DEVICE void parfor(const int n, Func F) {
     }
 }
 
-}
+}  // namespace mobula
 
-#endif
+#endif  // MOBULA_INC_CONTEXT_CUDA_CTX_H_
