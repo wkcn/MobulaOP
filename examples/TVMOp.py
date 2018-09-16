@@ -15,7 +15,7 @@ def get_tvm_add():
     B = tvm.placeholder(n, name='B', dtype='float32')
     C = tvm.compute((n,), lambda i: A[i] + B[i], name='C')
 
-    # build function (with parallel)
+    # build function (with parallel support)
     with tvm.target.create('llvm'):
         s = topi.generic.schedule_injective([C])
         func_cpu = tvm.build(s, [A, B, C])
