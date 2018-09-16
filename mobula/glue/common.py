@@ -5,15 +5,15 @@ import base64
 import ctypes
 import functools
 
-pars_encode = lambda x : base64.b64encode(pickle.dumps(x)).decode('utf-8')
-pars_decode = lambda x : pickle.loads(base64.b64decode(x.encode('utf-8')))
+pars_encode = lambda x: base64.b64encode(pickle.dumps(x)).decode('utf-8')
+pars_decode = lambda x: pickle.loads(base64.b64decode(x.encode('utf-8')))
 
 if sys.version_info[0] >= 3:
-    getargspec = lambda func : inspect.getfullargspec(func)
+    getargspec = inspect.getfullargspec
 else:
-    getargspec = lambda func : inspect.getargspec(func)
+    getargspec = inspect.getargspec
 
-get_varnames = lambda func : getargspec(func).args[1:]
+get_varnames = lambda func: getargspec(func).args[1:]
 
 CUSTOM_OP_LIST = dict()
 OP_MODULE_GLOBALS = None
@@ -64,7 +64,7 @@ def assign(self, dst, req, src):
     """Helper function for assigning into dst depending on requirements."""
     if req == 'null':
         return
-    elif req == 'write' or req == 'inplace':
+    if req in ('write', 'inplace'):
         dst[:] = src
     elif req == 'add':
         dst[:] += src
@@ -81,7 +81,7 @@ class MobulaOperator(object):
         assert b is not None, ValueError('No explict backend')
         new_kwargs = kwargs.copy()
         new_kwargs.update(self.attrs)
-        return backend.op_gen(b, op = self.op, name = self.name)(*args, **new_kwargs)
+        return backend.op_gen(b, op=self.op, name=self.name)(*args, **new_kwargs)
     def __getitem__(self, input_type):
         b = backend.dtypes.get(input_type, None)
         assert b is not None, ValueError('The backend of {} is not found'.format(input_type))
@@ -89,7 +89,7 @@ class MobulaOperator(object):
             new_kwargs = kwargs.copy()
             new_kwargs.update(self.attrs)
             new_kwargs['__input_type__'] = input_type
-            return backend.op_gen(b, op = self.op, name = self.name)(*args, **new_kwargs)
+            return backend.op_gen(b, op=self.op, name=self.name)(*args, **new_kwargs)
         return wrapper
 
 '''
@@ -100,12 +100,13 @@ class MobulaOperator(object):
 3. @register(a = 3)
    class XXX
 '''
-def register(op_name = None, **attrs):
+def register(op_name=None, **attrs):
     def decorator(op_name, op):
         if op_name is None:
             op_name = op.__name__
-        op_inst = MobulaOperator(op = op, name = op_name, **attrs)
-        assert op_name not in CUSTOM_OP_LIST, ValueError('Duplicate operator name {}, please rename it'.format(op_name))
+        op_inst = MobulaOperator(op=op, name=op_name, **attrs)
+        assert op_name not in CUSTOM_OP_LIST,\
+                ValueError('Duplicate operator name {}, please rename it'.format(op_name))
         CUSTOM_OP_LIST[op_name] = op_inst
         OP_MODULE_GLOBALS[op_name] = op_inst
         return op_inst
@@ -114,14 +115,14 @@ def register(op_name = None, **attrs):
     return functools.partial(decorator, op_name)
 
 inputs_func = dict(
-    X = property(lambda self : self.in_data),
-    Y = property(lambda self : self.out_data),
-    dX = property(lambda self : self.in_grad),
-    dY = property(lambda self : self.out_grad),
-    x = property(lambda self : self.in_data[0]),
-    y = property(lambda self : self.out_data[0]),
-    dx = property(lambda self : self.in_grad[0]),
-    dy = property(lambda self : self.out_grad[0]),
+    X=property(lambda self: self.in_data),
+    Y=property(lambda self: self.out_data),
+    dX=property(lambda self: self.in_grad),
+    dY=property(lambda self: self.out_grad),
+    x=property(lambda self: self.in_data[0]),
+    y=property(lambda self: self.out_data[0]),
+    dx=property(lambda self: self.in_grad[0]),
+    dy=property(lambda self: self.out_grad[0]),
 )
 '''
 OpGen:
@@ -134,12 +135,12 @@ try:
     import numpy as np
     NPDTYPE2CTYPE_MAP = dict()
     pairs = [
-            (np.dtype('int8'), ctypes.c_int8),
-            (np.dtype('int16'), ctypes.c_int16),
-            (np.dtype('int32'), ctypes.c_int32),
-            (np.dtype('int64'), ctypes.c_int64), # alias: np.int
-            (np.dtype('float32'), ctypes.c_float),
-            (np.dtype('float64'), ctypes.c_double), # alias: np.float
+        (np.dtype('int8'), ctypes.c_int8),
+        (np.dtype('int16'), ctypes.c_int16),
+        (np.dtype('int32'), ctypes.c_int32),
+        (np.dtype('int64'), ctypes.c_int64), # alias: np.int
+        (np.dtype('float32'), ctypes.c_float),
+        (np.dtype('float64'), ctypes.c_double), # alias: np.float
     ]
     for dtype, ctype in pairs:
         NPDTYPE2CTYPE_MAP[dtype] = ctype

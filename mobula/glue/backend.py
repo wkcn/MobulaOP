@@ -35,7 +35,7 @@ def register_backend(glue_name, types_name):
 register_backend('mx', ['mxnet.nd.NDArray', 'mxnet.sym.Symbol'])
 register_backend('np', ['numpy.ndarray'])
 register_backend('th', ['torch.Tensor'])
-assert len(dtypes) > 0, RuntimeError("No supported backend :-(")
+assert dtypes, RuntimeError("No supported backend :-(")
 
 # create generators cache
 for b in dtypes.values():
@@ -55,12 +55,14 @@ def get_args_backend(*args, **kwargs):
         t = get_var_backend(a)
         if t is not None:
             if b is not None:
-                assert b == t, TypeError("Support only 1 backend in a call, now: [%s, %s]" % (str(b), str(t)))
+                assert b == t,\
+                        TypeError("Support only 1 backend in a call, now: [%s, %s]"\
+                        % (str(b), str(t)))
             else:
                 b = t
     return b
 
 def op_gen(b, op, name):
     if name not in b.gen_cache:
-        b.gen_cache[name] = b.OpGen(op = op, name = name)
+        b.gen_cache[name] = b.OpGen(op=op, name=name)
     return b.gen_cache[name]

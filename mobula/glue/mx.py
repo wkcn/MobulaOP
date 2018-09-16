@@ -1,13 +1,15 @@
+import numpy as np
 import mxnet as mx
 from mxnet.base import _LIB
-import numpy as np
 from .common import *
 
-mx.nd.empty_like = lambda x : mx.nd.empty(x.shape, dtype = x.dtype)
-mx.nd.NDArray.wait_to_write = lambda self : _LIB.MXNDArrayWaitToWrite(self.handle)
+if not hasattr(mx.nd.NDArray, 'empty_like'):
+    mx.nd.empty_like = lambda x: mx.nd.empty(x.shape, dtype=x.dtype)
+if not hasattr(mx.nd.NDArray, 'wait_to_write'):
+    mx.nd.NDArray.wait_to_write = lambda self: _LIB.MXNDArrayWaitToWrite(self.handle)
 
 def get_pointer(v):
-    cp = ctypes.c_void_p() 
+    cp = ctypes.c_void_p()
     _LIB.MXNDArrayGetData(v.handle, ctypes.byref(cp))
     return cp
 
@@ -25,7 +27,7 @@ class OpGen(object):
         self.name = name
         self.cache = dict()
     def __call__(self, *args, **kwargs):
-        inputs, pars = get_in_data(op = self.op, *args, **kwargs)
+        inputs, pars = get_in_data(op=self.op, *args, **kwargs)
         op_type = self.name
         name = pars[1].pop('name', None)
         input_type = pars[1].pop('__input_type__', None)
@@ -36,8 +38,8 @@ class OpGen(object):
             self.cache[op_type] = True
             self.register()
         if input_type is mx.nd.NDArray:
-            return mx.nd.Custom(*inputs, mobula_pars = pars_encode(pars), op_type = op_type, name = name)
-        return mx.sym.Custom(*inputs, mobula_pars = pars_encode(pars), op_type = op_type)
+            return mx.nd.Custom(*inputs, mobula_pars=pars_encode(pars), op_type=op_type, name=name)
+        return mx.sym.Custom(*inputs, mobula_pars=pars_encode(pars), op_type=op_type)
     def register(self):
         op = self.op
         op_name = self.name
@@ -53,9 +55,9 @@ class OpGen(object):
                 self.req = req
                 out = self._forward(*in_data)
                 if out is not None:
-                    if type(out) != list:
+                    if not isinstance(out, (list, tuple)):
                         out = [out]
-                    for i, x in enumerate(out): 
+                    for i, x in enumerate(out):
                         self.assign(out_data[i], req[i], x)
             def backward(self, req, out_grad, in_data, out_data, in_grad, aux):
                 self.in_grad = in_grad
@@ -69,32 +71,32 @@ class OpGen(object):
                     for i in range(num_inputs):
                         self.assign(in_grad[i], req[i], out[i])
             mx_op_dict = dict(
-                    __init__ = __init__,
-                    __getattr__ = __getattr__,
-                    forward = forward,
-                    backward = backward,
-                    _forward = op.forward,
-                    _backward = op.backward,
-                    F = property(lambda self : mx.nd),
+                __init__=__init__,
+                __getattr__=__getattr__,
+                forward=forward,
+                backward=backward,
+                _forward=op.forward,
+                _backward=op.backward,
+                F=property(lambda self: mx.nd),
             )
             mx_op_dict.update(inputs_func)
             mx_op = type('_%s_MX_OP' % op_name,
-                (mx.operator.CustomOp, op),
-                mx_op_dict
-            )
+                         (mx.operator.CustomOp, op),
+                         mx_op_dict)
             return mx_op
 
         def get_mx_prop(op, mx_op):
             def __init__(self, mobula_pars):
                 self._args, self._kwargs = pars_decode(mobula_pars)
-                mx.operator.CustomOpProp.__init__(self, need_top_grad = self._kwargs.pop('need_top_grad', True))
+                mx.operator.CustomOpProp.__init__(\
+                        self, need_top_grad=self._kwargs.pop('need_top_grad', True))
                 if hasattr(op, '__init__'):
                     op.__init__(self, *self._args, **self._kwargs)
             def list_outputs(self, func):
                 num_outputs = getattr(self, 'num_outputs', len(get_varnames(func)))
                 if num_outputs == 0:
                     return []
-                elif num_outputs == 1:
+                if num_outputs == 1:
                     return ['output']
                 return ['output%d' % i for i in range(num_outputs)]
             def create_operator(self, ctx, shapes, dtypes):
@@ -104,17 +106,17 @@ class OpGen(object):
                 return rtn
             def infer_type(self, in_type, func):
                 num_outputs = getattr(self, 'num_outputs', len(get_varnames(func)))
-                dtype = in_type[0] if len(in_type) > 0 else np.float32
+                dtype = in_type[0] if in_type else np.float32
                 return in_type, [dtype] * num_outputs
 
             mx_prop_dict = dict(
-                __init__ = __init__,
-                list_arguments = lambda self : get_varnames(op.forward),
-                list_outputs = lambda self : list_outputs(self, op.backward),
-                infer_shape = op.infer_shape,
-                create_operator = create_operator,
-                infer_type = lambda self, in_type : infer_type(self, in_type, op.backward),
-                F = property(lambda self : mx.nd),
+                __init__=__init__,
+                list_arguments=lambda self: get_varnames(op.forward),
+                list_outputs=lambda self: list_outputs(self, op.backward),
+                infer_shape=op.infer_shape,
+                create_operator=create_operator,
+                infer_type=lambda self, in_type: infer_type(self, in_type, op.backward),
+                F=property(lambda self: mx.nd),
             )
             optional_list = ['list_arguments', 'list_outputs', 'infer_type']
             for o in optional_list:
@@ -122,9 +124,8 @@ class OpGen(object):
                     mx_prop_dict[o] = getattr(op, o)
 
             mx_prop = type('_%s_MX_OP_PROP' % op_name,
-                (mx.operator.CustomOpProp, op),
-                mx_prop_dict,
-            )
+                           (mx.operator.CustomOpProp, op),
+                           mx_prop_dict)
             return mx_prop
 
         mx_op = get_mx_op(op)

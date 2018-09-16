@@ -1,12 +1,9 @@
 import os
-import sys
-import functools
-import yaml
-from easydict import EasyDict as edict
 import threading
-import multiprocessing
 import hashlib
 import re
+import yaml
+from easydict import EasyDict as edict
 try:
     import Queue
 except ImportError:
@@ -44,7 +41,7 @@ def load_code_hash(fname):
 def save_dependant(obj, fname):
     with open(fname, 'w') as f:
         for k, v in obj.items():
-            if len(v) > 0:
+            if v:
                 s = '{} {}\n'.format(k, ','.join(v))
                 f.write(s)
 
@@ -92,7 +89,7 @@ class build_context:
         build_exit()
 
 class Flags:
-    def __init__(self, s = ''):
+    def __init__(self, s=''):
         self.flags = s
     def add_definition(self, key, value):
         if isinstance(value, bool):
@@ -116,7 +113,7 @@ def get_include_file(fname):
     return res
 
 def wildcard(path, ext):
-    if isinstance(path, list):
+    if isinstance(path, (list, tuple)):
         res = []
         for p in path:
             res.extend(wildcard(p, ext))
@@ -133,7 +130,7 @@ def change_exts(lst, rules):
     mappings = dict(rules)
     for name in lst:
         sp = os.path.splitext(name)
-        if len(sp[1]) > 0 and sp[1][0] == '.':
+        if sp[1] and sp[1][0] == '.':
             ext = sp[1][1:]
             if ext in mappings:
                 new_ext = mappings[ext]
@@ -145,12 +142,12 @@ def change_ext(lst, origin, target):
     return change_exts(lst, [(origin, target)])
 
 def run_command(command):
-    print (command)
+    print(command)
     return os.system(command)
 
 def mkdir(dir_name):
     if not os.path.exists(dir_name):
-        print ('mkdir -p %s' % dir_name)
+        print('mkdir -p %s' % dir_name)
         os.makedirs(dir_name)
 
 def rmdir(dir_name):
@@ -160,14 +157,14 @@ def rmdir(dir_name):
 
 def get_file_hash(fname):
     return str(int(os.path.getmtime(fname)))
-    m = hashlib.md5()
+    md5_inst = hashlib.md5()
     with open(fname, 'rb') as f:
         while True:
             data = f.read(1024)
             if not data:
                 break
-            m.update(data)
-    return m.hexdigest()[:8]
+            md5_inst.update(data)
+    return md5_inst.hexdigest()[:8]
 
 def file_changed(fname):
     fname = os.path.abspath(fname)
@@ -181,7 +178,7 @@ def file_changed(fname):
 
 def find_include(inc):
     for path in INC_PATHS:
-        fname = os.path.relpath(os.path.join(ENV_PATH, path, inc), start = ENV_PATH)
+        fname = os.path.relpath(os.path.join(ENV_PATH, path, inc), start=ENV_PATH)
         if os.path.exists(fname):
             return fname
     return None
@@ -249,7 +246,8 @@ def run_command_parallel(commands, allow_error=False):
                 # Error
                 command_queue.clear()
                 info_queue.put(Exception('Error, terminated :-('))
-    workers = [threading.Thread(target = worker, args = (command_queue, info_queue)) for _ in range(max_worker_num)]
+    workers = [threading.Thread(target=worker, args=(command_queue, info_queue))\
+            for _ in range(max_worker_num)]
     for w in workers:
         w.daemon = True
     for w in workers:
@@ -258,8 +256,8 @@ def run_command_parallel(commands, allow_error=False):
         w.join()
     while not info_queue.empty():
         info = info_queue.get()
-        if type(info) is Exception and not allow_error:
+        if isinstance(info, Exception) and not allow_error:
             raise info
 
 def add_path(path, files):
-    return list(map(lambda x : os.path.join(path, x), files))
+    return list(map(lambda x: os.path.join(path, x), files))

@@ -1,5 +1,5 @@
-import numpy as np
 import ctypes
+import numpy as np
 from .common import *
 
 def get_pointer(v):
@@ -27,19 +27,19 @@ class OpGen(object):
             self.cache[self.name] = self.register()
         kwargs.pop('__input_type__')
         return self.cache[self.name](*args, **kwargs)
-    def register(self): 
+    def register(self):
         def forward(self, *args, **kwargs):
-            inputs, pars = get_in_data(op = self.op, *args, **kwargs)
+            inputs, pars = get_in_data(op=self.op, *args, **kwargs)
 
             self.in_data = inputs
             dtype = self.in_data[0].dtype
-            self.req = ['write' for _ in range(len(self.in_data))]
+            self.req = ['write' for _ in self.in_data]
             in_shape = get_in_shape(self.in_data)
             out_shape = self.infer_shape(in_shape)[1]
-            self.out_data = [self.F.empty(s, dtype = dtype) for s in out_shape]
+            self.out_data = [self.F.empty(s, dtype=dtype) for s in out_shape]
             out = self._forward(*inputs)
             if out is not None:
-                if type(out) != list:
+                if not isinstance(out, (list, tuple)):
                     out = [out]
                 for i, x in enumerate(out):
                     self.assign(self.out_data[i], self.req[i], x)
@@ -47,7 +47,7 @@ class OpGen(object):
                 return self.out_data[0]
             return self.out_data
 
-        def backward(self, out_grad = None, in_data = None, out_data = None, in_grad = None, req = None):
+        def backward(self, out_grad=None, in_data=None, out_data=None, in_grad=None, req=None):
 
             if in_data is not None:
                 self.in_data = in_data
@@ -57,23 +57,24 @@ class OpGen(object):
             dtype = self.in_data[0].dtype
 
             if in_grad is None:
-                in_grad = [self.F.empty_like(d, dtype = dtype) for d in self.in_data]
+                in_grad = [self.F.empty_like(d, dtype=dtype) for d in self.in_data]
             else:
-                if type(in_grad) != list:
+                if not isinstance(in_grad, (list, tuple)):
                     in_grad = [in_grad]
             self.in_grad = in_grad
 
             if out_grad is None:
-                out_grad = [self.F.ones_like(d, dtype = dtype) for d in self.out_data]
+                out_grad = [self.F.ones_like(d, dtype=dtype) for d in self.out_data]
             else:
-                if type(out_grad) != list:
+                if not isinstance(out_grad, (list, tuple)):
                     out_grad = [out_grad]
             self.out_grad = out_grad
 
             if req is None:
-                self.req = ['write' for _ in range(len(self.in_data))]
+                self.req = ['write' for _ in self.in_data]
             else:
-                assert len(req) == len(self.in_data), ValueError('len(req) should be %d' % len(self.in_data))
+                assert len(req) == len(self.in_data),\
+                        ValueError('len(req) should be %d' % len(self.in_data))
                 self.req = req
             out = self._backward(*out_grad)
             if out is not None:
@@ -87,23 +88,22 @@ class OpGen(object):
             return self.in_grad
 
         np_op_dict = dict(
-            __call__ = forward,
-            forward = forward,
-            backward = backward,
-            _forward = self.op.forward,
-            _backward = self.op.backward,
-            infer_shape = self.op.infer_shape,
-            assign = assign,
-            F = property(lambda self : np),
-            op = property(lambda dummy : self.op)
+            __call__=forward,
+            forward=forward,
+            backward=backward,
+            _forward=self.op.forward,
+            _backward=self.op.backward,
+            infer_shape=self.op.infer_shape,
+            assign=assign,
+            F=property(lambda self: np),
+            op=property(lambda dummy: self.op)
         )
         if hasattr(self.op, '__init__'):
             np_op_dict['__init__'] = self.op.__init__
         np_op_dict.update(inputs_func)
         np_op = type('_%s_NP_OP' % self.name,
-                (self.op, object),
-                np_op_dict
-        )
+                     (self.op, object),
+                     np_op_dict)
         return np_op
 
 F = np

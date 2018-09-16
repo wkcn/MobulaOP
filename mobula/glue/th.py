@@ -1,6 +1,6 @@
-from .common import *
-import torch
 import ctypes
+import torch
+from .common import *
 
 def get_pointer(v):
     return v.data_ptr()
@@ -31,7 +31,7 @@ class OpGen(object):
         if self.name not in self.cache:
             # register operator
             self.cache[self.name] = self.register()
-        inputs, pars = get_in_data(op = self.op, *args, **kwargs)
+        inputs, pars = get_in_data(op=self.op, *args, **kwargs)
         return self.cache[self.name](*pars[0], **pars[1])(*inputs)
     def register(self):
         op = self.op
@@ -41,14 +41,14 @@ class OpGen(object):
             def forward(ctx, self, *args, **kwargs):
                 ctx.self = self
                 self.in_data = args
-                self.req = ['write' for _ in range(len(self.in_data))]
+                self.req = ['write' for _ in self.in_data]
                 in_shape = get_in_shape(self.in_data)
                 out_shape = self.infer_shape(in_shape)[1]
-                dtype = self.in_data[0].dtype if len(self.in_data) > 0 else torch.float32
-                self.out_data = [self.F.empty(s, dtype = dtype) for s in out_shape]
+                dtype = self.in_data[0].dtype if self.in_data else torch.float32
+                self.out_data = [self.F.empty(s, dtype=dtype) for s in out_shape]
                 out = self._forward(*args, **kwargs)
                 if out is not None:
-                    if type(out) != list:
+                    if not isinstance(out, (list, tuple)):
                         out = [out]
                     for i, x in enumerate(out):
                         self.assign(self.out_data[i], self.req[i], x)
@@ -58,8 +58,9 @@ class OpGen(object):
 
             def backward(ctx, *args, **kwargs):
                 self = ctx.self
-                dtype = self.in_data[0].dtype if len(self.in_data) > 0 else torch.float32
-                self.in_grad = [self.F.empty_like(d, dtype = dtype) if d.grad is None else d.grad for d in self.in_data]
+                dtype = self.in_data[0].dtype if self.in_data else torch.float32
+                self.in_grad = [self.F.empty_like(d, dtype=dtype) if d.grad is None\
+                        else d.grad for d in self.in_data]
                 self.out_grad = args
                 out = self._backward(*args, **kwargs)
                 if out is not None:
@@ -74,13 +75,12 @@ class OpGen(object):
                 return (None, ) + tuple(self.in_grad)
 
             torch_func_dict = dict(
-                forward = staticmethod(forward),
-                backward = staticmethod(backward),
+                forward=staticmethod(forward),
+                backward=staticmethod(backward),
             )
             torch_func = type('_%s_TORCH_FUNC' % op_name,
-                (torch.autograd.Function, op),
-                torch_func_dict,
-            )
+                              (torch.autograd.Function, op),
+                              torch_func_dict)
             return torch_func
 
         def get_torch_nn_module(op, torch_func):
@@ -92,20 +92,19 @@ class OpGen(object):
                 return torch_func.apply(self, *args, **kwargs)
 
             torch_nn_module_dict = dict(
-                __init__ = __init__,
-                forward = forward,
-                _forward = op.forward,
-                _backward = op.backward,
-                assign = assign,
-                F = property(lambda self : torch),
+                __init__=__init__,
+                forward=forward,
+                _forward=op.forward,
+                _backward=op.backward,
+                assign=assign,
+                F=property(lambda self: torch),
             )
 
             torch_nn_module_dict.update(inputs_func)
 
             torch_nn_module = type('_%s_TORCH_NN_MODULE' % op_name,
-                (torch.nn.Module, op),
-                torch_nn_module_dict,
-            )
+                                   (torch.nn.Module, op),
+                                   torch_nn_module_dict)
             return torch_nn_module
 
         torch_func = get_torch_func(op)

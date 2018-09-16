@@ -1,5 +1,3 @@
-import ctypes
-
 class DType:
     _DTYPE_LIST_ = dict() # () -> inst
     def __init__(self, ctype, is_const=False):
@@ -39,7 +37,6 @@ class TemplateType:
         self.is_const = is_const
     def __repr__(self):
         return '<typename {const}{tname}{pointer}>'.format(
-                const = 'const ' if self.is_const else '',
-                tname = self.tname,
-                pointer = '*' if self.is_pointer else ''
-                )
+            const='const ' if self.is_const else '',
+            tname=self.tname,
+            pointer='*' if self.is_pointer else '')
