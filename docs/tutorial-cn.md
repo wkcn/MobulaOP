@@ -69,7 +69,7 @@ MOBULA_KERNEL mul_elemwise_kernel(const int n, const T* a, const T* b, T* out) {
 
 ```c++
 for (int i = 0; i < n; ++i) {
-	out[i] = a[i] * b[i];
+    out[i] = a[i] * b[i];
 }
 ```
 MobulaOP会自动地使用多线程、OpenMP、CUDA等方法**并行**地执行这个循环。
