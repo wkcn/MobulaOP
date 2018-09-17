@@ -8,7 +8,27 @@
 namespace mobula {
 
 #if USING_CBLAS
-BUILD_ERROR("HIP doesn't support BLAS now :-(");
+#include <hipblas.h>
+static hipblasHandle_t HIPBLAS_HANDLE;
+static struct HIPBLAS_INIT {
+  HIPBLAS_INIT() { hipblasCreate(&HIPBLAS_HANDLE); }
+} hipblas_init_dummy;
+inline void blas_gemm(const int axis, const bool tA, const bool tB, const int M,
+                      const int N, const int K, const float alpha,
+                      const float *A, const int lda, const float *B,
+                      const int ldb, const float beta, float *C,
+                      const int ldc) {
+  if (axis == 0)
+    // row major
+    hipblasSgemm(HIPBLAS_HANDLE, tB ? HIPBLAS_OP_T : HIPBLAS_OP_N,
+                tA ? HIPBLAS_OP_T : HIPBLAS_OP_N, N, M, K, &alpha, B, ldb, A, lda,
+                &beta, C, ldc);
+  else
+    // column major
+    hipblasSgemm(HIPBLAS_HANDLE, tA ? HIPBLAS_OP_T : HIPBLAS_OP_N,
+                tB ? HIPBLAS_OP_T : HIPBLAS_OP_N, M, N, K, &alpha, A, lda, B, ldb,
+                &beta, C, ldc);
+}
 #endif
 
 const int HIP_MAX_GRID_NUM = 65535;
