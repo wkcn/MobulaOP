@@ -6,9 +6,10 @@ AdditionOP = mobula.op.AdditionOP
 
 import mxnet as mx
 
+
 def test_addition():
-    a = mx.nd.array([1,2,3])
-    b = mx.nd.array([4,5,6])
+    a = mx.nd.array([1, 2, 3])
+    b = mx.nd.array([4, 5, 6])
 
     a.attach_grad()
     b.attach_grad()
@@ -16,7 +17,7 @@ def test_addition():
     with mx.autograd.record():
         c = AdditionOP(a, b)
 
-    dc = mx.nd.array([7,8,9])
+    dc = mx.nd.array([7, 8, 9])
     c.backward(dc)
 
     assert ((a + b).asnumpy() == c.asnumpy()).all()

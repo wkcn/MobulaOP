@@ -4,6 +4,7 @@ import os
 
 import numpy as np
 
+
 @mobula.op.register
 class ROIAlign:
     def __init__(self, pooled_size, spatial_scale, sampling_ratio):
@@ -20,10 +21,12 @@ class ROIAlign:
 
         if self.req[0] == req.add:
             out_temp = self.F.empty_like(out)
-            mobula.func.roi_align_forward(out_size, data, self.spatial_scale, data.shape[1], data.shape[2], data.shape[3], self.pooled_size[0], self.pooled_size[1], self.sampling_ratio, rois, out_temp)
+            mobula.func.roi_align_forward(out_size, data, self.spatial_scale, data.shape[1], data.shape[
+                                          2], data.shape[3], self.pooled_size[0], self.pooled_size[1], self.sampling_ratio, rois, out_temp)
             self.y[:] += out_temp
         else:
-            mobula.func.roi_align_forward(out_size, data, self.spatial_scale, data.shape[1], data.shape[2], data.shape[3], self.pooled_size[0], self.pooled_size[1], self.sampling_ratio, rois, self.y)
+            mobula.func.roi_align_forward(out_size, data, self.spatial_scale, data.shape[1], data.shape[
+                                          2], data.shape[3], self.pooled_size[0], self.pooled_size[1], self.sampling_ratio, rois, self.y)
 
     def backward(self, dy):
         if self.req[0] == req.null:
@@ -33,7 +36,8 @@ class ROIAlign:
         data, rois = self.X
 
         dy_size = np.prod(dy.size()) if callable(dy.size) else dy.size
-        mobula.func.roi_align_backward(dy_size, dy, self.spatial_scale, data.shape[1], data.shape[2], data.shape[3], self.pooled_size[0], self.pooled_size[1], self.sampling_ratio, self.dX[0], rois)
+        mobula.func.roi_align_backward(dy_size, dy, self.spatial_scale, data.shape[1], data.shape[2], data.shape[
+                                       3], self.pooled_size[0], self.pooled_size[1], self.sampling_ratio, self.dX[0], rois)
 
         if self.req[1] not in [req.null, req.add]:
             self.dX[1][:] = 0

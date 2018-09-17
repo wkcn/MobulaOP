@@ -2,15 +2,19 @@ import mobula
 from mobula.test_utils import assert_almost_equal
 import numpy as np
 
+
 @mobula.op.register
 class MulOP:
     def forward(self, a, b):
         return a * b
+
     def backward(self, dy):
         return dy * self.X[1], dy * self.X[0]
+
     def infer_shape(self, in_shape):
         assert in_shape[0] == in_shape[1]
         return in_shape, [in_shape[0]]
+
 
 def test_ctx_mxnet():
     try:
@@ -36,7 +40,8 @@ def test_ctx_mxnet():
     assert_almost_equal(b.grad, a * dy)
     assert_almost_equal(a * b, c)
 
-def test_ctx_torch(): 
+
+def test_ctx_torch():
     try:
         import torch
     except ImportError:
@@ -55,6 +60,7 @@ def test_ctx_torch():
     assert_almost_equal(a.grad.data, (b * dy).data)
     assert_almost_equal(b.grad.data, (a * dy).data)
     assert_almost_equal((a * b).data, c.data)
+
 
 def test_ctx_np():
     shape = (5, 5)

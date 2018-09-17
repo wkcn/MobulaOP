@@ -1,15 +1,16 @@
 import mobula
-from mobula.test_utils import assert_almost_equal 
+from mobula.test_utils import assert_almost_equal
 import numpy as np
 import os
 import ctypes
 mobula.op.load('./utils', os.path.dirname(__file__))
 
+
 def test_non_c_contiguous():
     a = np.random.random((5, 5))
     b = np.random.random((5, 5))
     c = np.empty((5, 5))
-    s = (slice(None), slice(2,4))
+    s = (slice(None), slice(2, 4))
     a_part = a[s]
     b_part = b[s]
     c_part = c[s]
@@ -20,12 +21,14 @@ def test_non_c_contiguous():
     assert_almost_equal(a_part * b_part, c_part)
     assert_almost_equal(c[s], c_part)
 
+
 def test_func_kwargs():
     a = np.random.random((5, 5))
     b = np.random.random((5, 5))
     c = np.empty((5, 5))
     mobula.func.mul_elemwise(n=a.size, a=a, b=b, c=c)
     assert_almost_equal(a*b, c)
+
 
 def test_default_value_op():
     a = np.random.random((5, 5))
@@ -34,8 +37,9 @@ def test_default_value_op():
     op = mobula.op.default_add_op[np.ndarray](value=value)
     c = op(a, b)
     assert_almost_equal(a+b, c)
-    c = op(a) # a+b[default=value]
+    c = op(a)  # a+b[default=value]
     assert_almost_equal(a+value, c)
+
 
 def test_thread():
     n = 300
@@ -50,6 +54,7 @@ def test_thread():
     assert_almost_equal(np.arange(n // 3) * 3, out_3)
     assert_almost_equal(np.arange(n * 2) * 2, out_4)
     assert_almost_equal(np.arange(n * 3) * 3, out_5)
+
 
 def test_const_template():
     shape = (5, 5)

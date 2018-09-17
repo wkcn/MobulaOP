@@ -8,13 +8,9 @@
 namespace mobula {
 
 template <typename T>
-MOBULA_DEVICE T bilinear_interpolate(
-    const T* bottom_data,
-    const int height,
-    const int width,
-    T y,
-    T x,
-    const int /*index for debug only*/) {
+MOBULA_DEVICE T bilinear_interpolate(const T* bottom_data, const int height,
+                                     const int width, T y, T x,
+                                     const int /*index for debug only*/) {
   // deal with cases that inverse elements are out of feature map boundary
   if (y < -1.0 || y > height || x < -1.0 || x > width) {
     // empty
@@ -64,18 +60,8 @@ MOBULA_DEVICE T bilinear_interpolate(
 
 template <typename T>
 MOBULA_DEVICE void bilinear_interpolate_gradient(
-    const int height,
-    const int width,
-    T y,
-    T x,
-    T& w1,
-    T& w2,
-    T& w3,
-    T& w4,
-    int& x_low,
-    int& x_high,
-    int& y_low,
-    int& y_high,
+    const int height, const int width, T y, T x, T& w1, T& w2, T& w3, T& w4,
+    int& x_low, int& x_high, int& y_low, int& y_high,
     const int /*index for debug only*/) {
   // deal with cases that inverse elements are out of feature map boundary
   if (y < -1.0 || y > height || x < -1.0 || x > width) {

@@ -9,10 +9,10 @@ namespace mobula {
 
 template <typename Func>
 MOBULA_DEVICE void parfor(const int n, Func F) {
-    #pragma omp parallel for
-    for (int i = 0; i < n; ++i) {
-        F(i);
-    }
+#pragma omp parallel for
+  for (int i = 0; i < n; ++i) {
+    F(i);
+  }
 }
 
 }  // namespace mobula

@@ -7,6 +7,7 @@ mobula.op.load('ROIAlign')
 
 T = np.float32
 
+
 def bilinear_interpolate(bottom, height, width, y, x):
     if y < -1.0 or y > height or x < -1.0 or x > width:
         return 0.0, []
@@ -56,8 +57,9 @@ def bilinear_interpolate(bottom, height, width, y, x):
     val = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4
     grad = [(y_low, x_low, w1), (y_low, x_high, w2),
             (y_high, x_low, w3), (y_high, x_high, w4)
-           ]
+            ]
     return val, grad
+
 
 def bilinear_interpolate_gradient(height, width, y, x):
     '''
@@ -66,7 +68,7 @@ def bilinear_interpolate_gradient(height, width, y, x):
         x_low, x_high, y_low, y_high
     '''
     if y < -1.0 or y > height or x < -1.0 or x > width:
-        return 0,0,0,0,-1,-1,-1,-1
+        return 0, 0, 0, 0, -1, -1, -1, -1
     x = T(max(0.0, x))
     y = T(max(0.0, y))
     x_low = int(x)
@@ -93,6 +95,7 @@ def bilinear_interpolate_gradient(height, width, y, x):
     w3 = ly * hx
     w4 = ly * lx
     return w1, w2, w3, w4, x_low, x_high, y_low, y_high
+
 
 def roialign_forward_backward(data, rois, pooled_size, spatial_scale, sampling_ratio, dy):
     N, C, H, W = data.shape
@@ -124,17 +127,21 @@ def roialign_forward_backward(data, rois, pooled_size, spatial_scale, sampling_r
                 for pw in range(PW):
                     val = T(0.0)
                     for iy in range(roi_bin_grid_h):
-                        y = sh + T(ph) * bin_h + T(iy + 0.5) * bin_h / T(roi_bin_grid_h)
+                        y = sh + T(ph) * bin_h + T(iy + 0.5) * \
+                            bin_h / T(roi_bin_grid_h)
                         for ix in range(roi_bin_grid_w):
-                            x = sw + T(pw) * bin_w + T(ix + 0.5) * bin_w / T(roi_bin_grid_w)
+                            x = sw + T(pw) * bin_w + T(ix + 0.5) * \
+                                bin_w / T(roi_bin_grid_w)
                             v, g = bilinear_interpolate(bdata[c], H, W, y, x)
                             val += v
                             # compute grad
                             for qy, qx, qw in g:
-                                dx[batch_ind, c, qy, qx] += dy[r, c, ph, pw] * qw / count
+                                dx[batch_ind, c, qy, qx] += dy[r,
+                                                               c, ph, pw] * qw / count
 
                     out[r, c, ph, pw] = val / count
     return out, [dx, drois]
+
 
 def roialign_backward(bottom_diff, rois, pooled_size, spatial_scale, sampling_ratio, top_diff):
     N, C, H, W = bottom_diff.shape
@@ -160,52 +167,65 @@ def roialign_backward(bottom_diff, rois, pooled_size, spatial_scale, sampling_ra
             for ph in range(PH):
                 for pw in range(PW):
                     for iy in range(roi_bin_grid_h):
-                        y = sh + T(ph) * bin_h + T(iy + 0.5) * bin_h / T(roi_bin_grid_h)
+                        y = sh + T(ph) * bin_h + T(iy + 0.5) * \
+                            bin_h / T(roi_bin_grid_h)
                         for ix in range(roi_bin_grid_w):
-                            x = sw + T(pw) * bin_w + T(ix + 0.5) * bin_w / T(roi_bin_grid_w)
-                            w1, w2, w3, w4, x_low, x_high, y_low, y_high = bilinear_interpolate_gradient(H, W, y, x)
+                            x = sw + T(pw) * bin_w + T(ix + 0.5) * \
+                                bin_w / T(roi_bin_grid_w)
+                            w1, w2, w3, w4, x_low, x_high, y_low, y_high = bilinear_interpolate_gradient(
+                                H, W, y, x)
                             dtop = top_diff[r, c, ph, pw]
                             if x_low >= 0 and x_high >= 0 and y_low >= 0 and y_high >= 0:
-                                bottom_diff[batch_ind, c, y_low, x_low] += dtop * w1 / count
-                                bottom_diff[batch_ind, c, y_low, x_high] += dtop * w2 / count
-                                bottom_diff[batch_ind, c, y_high, x_low] += dtop * w3 / count
-                                bottom_diff[batch_ind, c, y_high, x_high] += dtop * w4 / count
+                                bottom_diff[batch_ind, c, y_low,
+                                            x_low] += dtop * w1 / count
+                                bottom_diff[batch_ind, c, y_low,
+                                            x_high] += dtop * w2 / count
+                                bottom_diff[batch_ind, c, y_high,
+                                            x_low] += dtop * w3 / count
+                                bottom_diff[batch_ind, c, y_high,
+                                            x_high] += dtop * w4 / count
+
 
 def test_roi_align_sym():
     dtype = np.float32
 
     N, C, H, W = 2, 3, 4, 4
 
-    data = np.arange(N*C*H*W).astype(dtype).reshape((N,C,H,W))
-    rois = np.array([[0, 1, 1, 3, 3], [1, 2, 2, 3, 3]], dtype = dtype)
+    data = np.arange(N*C*H*W).astype(dtype).reshape((N, C, H, W))
+    rois = np.array([[0, 1, 1, 3, 3], [1, 2, 2, 3, 3]], dtype=dtype)
 
     data_sym = mx.sym.Variable('data')
     rois_sym = mx.sym.Variable('rois')
 
-    output_sym = mobula.op.ROIAlign(data = data_sym, rois = rois_sym, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
+    output_sym = mobula.op.ROIAlign(data=data_sym, rois=rois_sym, pooled_size=(
+        2, 2), spatial_scale=1.0, sampling_ratio=1)
     output_sym = mx.sym.MakeLoss(output_sym)
 
-    exe = output_sym.simple_bind(ctx = mx.context.current_context(), data = data.shape, rois = rois.shape)
-    exe.forward(data = data, rois = rois)
+    exe = output_sym.simple_bind(
+        ctx=mx.context.current_context(), data=data.shape, rois=rois.shape)
+    exe.forward(data=data, rois=rois)
 
     res = exe.outputs[0].asnumpy()
 
     exe.backward()
     mx.nd.waitall()
 
+
 def test_roi_align_nd():
     dtype = np.float32
 
     N, C, H, W = 2, 3, 4, 4
 
-    data = mx.nd.array(np.arange(N*C*H*W).astype(dtype).reshape((N,C,H,W)))
-    rois = mx.nd.array(np.array([[0, 1, 1, 3, 3]], dtype = dtype))
+    data = mx.nd.array(np.arange(N*C*H*W).astype(dtype).reshape((N, C, H, W)))
+    rois = mx.nd.array(np.array([[0, 1, 1, 3, 3]], dtype=dtype))
 
     data.attach_grad()
     with mx.autograd.record():
-        output = mobula.op.ROIAlign(data = data, rois = rois, pooled_size = (2,2), spatial_scale = 1.0, sampling_ratio = 1)
+        output = mobula.op.ROIAlign(data=data, rois=rois, pooled_size=(
+            2, 2), spatial_scale=1.0, sampling_ratio=1)
     output.backward()
     mx.nd.waitall()
+
 
 def test_roi_align_value():
     dtype = np.float32
@@ -218,29 +238,33 @@ def test_roi_align_value():
 
     spatial_scale = H * 1.0 / dlen
     sampling_ratio = 0
-    data = mx.nd.array(np.arange(N*C*W*H).reshape((N,C,H,W)), dtype = dtype)
+    data = mx.nd.array(np.arange(N*C*W*H).reshape((N, C, H, W)), dtype=dtype)
     # data = mx.nd.random.uniform(0, 1, (N, C, H, W), dtype = dtype)
-    center_xy = mx.nd.random.uniform(0, dlen, (R, 2), dtype = dtype)
-    wh = mx.nd.random.uniform(0, dlen, (R, 2), dtype = dtype)
-    batch_ind = mx.nd.array(np.random.randint(0, N, size = (R,1)))
-    pos = mx.nd.concat(center_xy - wh / 2, center_xy + wh / 2, dim = 1)
-    rois = mx.nd.concat(batch_ind, pos, dim = 1)
+    center_xy = mx.nd.random.uniform(0, dlen, (R, 2), dtype=dtype)
+    wh = mx.nd.random.uniform(0, dlen, (R, 2), dtype=dtype)
+    batch_ind = mx.nd.array(np.random.randint(0, N, size=(R, 1)))
+    pos = mx.nd.concat(center_xy - wh / 2, center_xy + wh / 2, dim=1)
+    rois = mx.nd.concat(batch_ind, pos, dim=1)
 
     data.attach_grad()
     rois.attach_grad()
     with mx.autograd.record():
-        output = mobula.op.ROIAlign(data = data, rois = rois, pooled_size = pooled_size, spatial_scale = spatial_scale, sampling_ratio = sampling_ratio)
-    dy = mx.nd.random.uniform(-1, 1, (R, C) + pooled_size, dtype = dtype)
+        output = mobula.op.ROIAlign(data=data, rois=rois, pooled_size=pooled_size,
+                                    spatial_scale=spatial_scale, sampling_ratio=sampling_ratio)
+    dy = mx.nd.random.uniform(-1, 1, (R, C) + pooled_size, dtype=dtype)
     output.backward(dy)
-    real_output, [dx, drois] = roialign_forward_backward(data.asnumpy(), rois.asnumpy(), pooled_size, spatial_scale, sampling_ratio, dy.asnumpy())
+    real_output, [dx, drois] = roialign_forward_backward(data.asnumpy(
+    ), rois.asnumpy(), pooled_size, spatial_scale, sampling_ratio, dy.asnumpy())
 
-    bottom_diff = np.zeros(data.shape, dtype = T)
-    roialign_backward(bottom_diff, rois.asnumpy(), pooled_size, spatial_scale, sampling_ratio, dy.asnumpy())
+    bottom_diff = np.zeros(data.shape, dtype=T)
+    roialign_backward(bottom_diff, rois.asnumpy(), pooled_size,
+                      spatial_scale, sampling_ratio, dy.asnumpy())
     assert_almost_equal(dx, bottom_diff)
 
-    assert_almost_equal(output.asnumpy(), real_output, atol = 1e-3)
-    assert_almost_equal(data.grad.asnumpy(), dx, atol = 1e-3)
-    assert_almost_equal(rois.grad.asnumpy(), drois, atol = 1e-3)
+    assert_almost_equal(output.asnumpy(), real_output, atol=1e-3)
+    assert_almost_equal(data.grad.asnumpy(), dx, atol=1e-3)
+    assert_almost_equal(rois.grad.asnumpy(), drois, atol=1e-3)
+
 
 if __name__ == '__main__':
     test_roi_align_value()

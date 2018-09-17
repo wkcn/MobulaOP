@@ -1,5 +1,3 @@
 #include "defines.h"
 
-namespace mobula {
-
-}
+namespace mobula {}

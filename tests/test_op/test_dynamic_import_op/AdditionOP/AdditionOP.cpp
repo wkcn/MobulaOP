@@ -16,11 +16,10 @@ using namespace mobula;
  */
 // use `MOBULA_KERNEL` macro to declare a kernel function
 // the kernel function will be adapted for CPU and GPU
-MOBULA_KERNEL addition_op_forward_kernel(const int n, const float* a, const float* b, float* c) {
-    // use parallel for-loop
-    // `parfor(number-of-iterations, function)`
-    // please NOTE Thread Safety in `parfor`
-    parfor(n, [&](int i){
-        c[i] = a[i] + b[i];
-    });
+MOBULA_KERNEL addition_op_forward_kernel(const int n, const float* a,
+                                         const float* b, float* c) {
+  // use parallel for-loop
+  // `parfor(number-of-iterations, function)`
+  // please NOTE Thread Safety in `parfor`
+  parfor(n, [&](int i) { c[i] = a[i] + b[i]; });
 }

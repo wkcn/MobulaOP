@@ -1,12 +1,13 @@
 """ Example for using TVM generated function """
 import sys
-sys.path.append('../') # Add MobulaOP path
+sys.path.append('../')  # Add MobulaOP path
 import mobula
 
 import tvm
 import topi
 from tvm.contrib.mxnet import to_mxnet_func
 from tvm.contrib.dlpack import to_pytorch_func
+
 
 def get_tvm_add():
     # define compute
@@ -26,6 +27,7 @@ def get_tvm_add():
 
     return func_cpu, func_gpu
 
+
 @mobula.op.register
 class TVMAddOp:
     def __init__(self):
@@ -42,7 +44,6 @@ class TVMAddOp:
             }
         }
 
-
     def forward(self, x, y):
         b = mobula.glue.backend.get_var_backend(x)
         backend = (b.__name__.split('.')[-1])
@@ -50,34 +51,35 @@ class TVMAddOp:
 
         self.func[backend][device_type](x, y, self.Y[0])
 
-    def backward(self, dy): 
+    def backward(self, dy):
         return [dy, dy]
 
     def infer_shape(self, in_shape):
         assert in_shape[0] == in_shape[1]
         return in_shape, [in_shape[0]]
 
+
 try:
     import mxnet as mx
-    print ('===== MXNet =====')
+    print('===== MXNet =====')
     for ctx in [mx.cpu(), mx.gpu()]:
         print(ctx)
         a = mx.nd.array([1.0, 2.0, 3.0], ctx=ctx)
         b = mx.nd.array([4.0, 5.0, 6.0], ctx=ctx)
         c = TVMAddOp(a, b)
-        print ('a + b = c\n{} + {} = {}\n'.format(a.asnumpy(), b.asnumpy(), c.asnumpy())) # [5.0, 7.0, 9.0]
+        print('a + b = c\n{} + {} = {}\n'.format(a.asnumpy(),
+                                                 b.asnumpy(), c.asnumpy()))  # [5.0, 7.0, 9.0]
 except ImportError:
     pass
 
 try:
     import torch
-    print ('===== PyTorch =====')
+    print('===== PyTorch =====')
     for device in [torch.device('cpu'), torch.device('cuda')]:
         print(device)
         a = torch.tensor([1.0, 2.0, 3.0], device=device)
         b = torch.tensor([4.0, 5.0, 6.0], device=device)
         c = TVMAddOp(a, b)
-        print ('a + b = c\n{} + {} = {}\n'.format(a, b, c)) # [5.0, 7.0, 9.0]
+        print('a + b = c\n{} + {} = {}\n'.format(a, b, c))  # [5.0, 7.0, 9.0]
 except ImportError:
     pass
-
