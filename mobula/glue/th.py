@@ -2,13 +2,16 @@ import ctypes
 import torch
 from .common import *
 
+
 def get_pointer(v):
     return v.data_ptr()
+
 
 THDTYPE2CTYPE_MAP = dict()
 THDTYPE2CTYPE_MAP[torch.int] = ctypes.c_int
 THDTYPE2CTYPE_MAP[torch.float] = ctypes.c_float
 THDTYPE2CTYPE_MAP[torch.double] = ctypes.c_double
+
 
 def get_ctype(v):
     dtype = v.dtype
@@ -16,23 +19,27 @@ def get_ctype(v):
     assert ctype is not None, TypeError('Unknown Type: {}'.format(dtype))
     return ctype
 
+
 def dev_id(a):
     if isinstance(a, torch.Tensor):
         dev = a.device
         return None if dev.type == 'cpu' else dev.index
     return None
 
+
 class OpGen(object):
     def __init__(self, op, name):
         self.op = op
         self.name = name
         self.cache = dict()
+
     def __call__(self, *args, **kwargs):
         if self.name not in self.cache:
             # register operator
             self.cache[self.name] = self.register()
         inputs, pars = get_in_data(op=self.op, *args, **kwargs)
         return self.cache[self.name](*pars[0], **pars[1])(*inputs)
+
     def register(self):
         op = self.op
         op_name = self.name
@@ -90,6 +97,7 @@ class OpGen(object):
                 torch.nn.Module.__init__(self)
                 if hasattr(op, '__init__'):
                     op.__init__(self, *args, **kwargs)
+
             def forward(self, *args, **kwargs):
                 return torch_func.apply(self, *args, **kwargs)
 
@@ -112,5 +120,6 @@ class OpGen(object):
         torch_func = get_torch_func(op)
         torch_nn_module = get_torch_nn_module(op, torch_func)
         return torch_nn_module
+
 
 F = torch
