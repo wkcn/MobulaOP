@@ -52,8 +52,8 @@ class OpGen(object):
                 in_shape = get_in_shape(self.in_data)
                 out_shape = self.infer_shape(in_shape)[1]
                 dtype = self.in_data[0].dtype if self.in_data else torch.float32
-                self.out_data = [self.F.empty(s, dtype=dtype)
-                                 for s in out_shape]
+                device = self.in_data[0].device if self.in_data else torch.device('cpu')
+                self.out_data = [self.F.empty(s, dtype=dtype, device=device) for s in out_shape]
                 out = self._forward(*args, **kwargs)
                 if out is not None:
                     if not isinstance(out, (list, tuple)):
@@ -67,8 +67,9 @@ class OpGen(object):
             def backward(ctx, *args, **kwargs):
                 self = ctx.self
                 dtype = self.in_data[0].dtype if self.in_data else torch.float32
-                self.in_grad = [self.F.empty_like(d, dtype=dtype) if d.grad is None
-                                else d.grad for d in self.in_data]
+                device = self.in_data[0].device if self.in_data else torch.device('cpu')
+                self.in_grad = [self.F.empty_like(d, dtype=dtype, device=device) if d.grad is None\
+                        else d.grad for d in self.in_data]
                 self.out_grad = args
                 out = self._backward(*args, **kwargs)
                 if out is not None:
