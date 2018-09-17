@@ -2,6 +2,7 @@ import ctypes
 import numpy as np
 from .common import *
 
+
 def get_pointer(v):
     def p(e):
         return e.ctypes.data_as(ctypes.c_void_p)
@@ -10,23 +11,28 @@ def get_pointer(v):
         return p(c), c
     return p(v)
 
+
 def get_ctype(v):
     return NPDTYPE2CTYPE(v.dtype)
 
+
 def dev_id(a):
     return None
+
 
 class OpGen(object):
     def __init__(self, op, name):
         self.op = op
         self.name = name
         self.cache = dict()
+
     def __call__(self, *args, **kwargs):
         if self.name not in self.cache:
             # register operator
             self.cache[self.name] = self.register()
         kwargs.pop('__input_type__')
         return self.cache[self.name](*args, **kwargs)
+
     def register(self):
         def forward(self, *args, **kwargs):
             inputs, pars = get_in_data(op=self.op, *args, **kwargs)
@@ -57,14 +63,16 @@ class OpGen(object):
             dtype = self.in_data[0].dtype
 
             if in_grad is None:
-                in_grad = [self.F.empty_like(d, dtype=dtype) for d in self.in_data]
+                in_grad = [self.F.empty_like(d, dtype=dtype)
+                           for d in self.in_data]
             else:
                 if not isinstance(in_grad, (list, tuple)):
                     in_grad = [in_grad]
             self.in_grad = in_grad
 
             if out_grad is None:
-                out_grad = [self.F.ones_like(d, dtype=dtype) for d in self.out_data]
+                out_grad = [self.F.ones_like(d, dtype=dtype)
+                            for d in self.out_data]
             else:
                 if not isinstance(out_grad, (list, tuple)):
                     out_grad = [out_grad]
@@ -74,7 +82,7 @@ class OpGen(object):
                 self.req = ['write' for _ in self.in_data]
             else:
                 assert len(req) == len(self.in_data),\
-                        ValueError('len(req) should be %d' % len(self.in_data))
+                    ValueError('len(req) should be %d' % len(self.in_data))
                 self.req = req
             out = self._backward(*out_grad)
             if out is not None:
@@ -105,5 +113,6 @@ class OpGen(object):
                      (self.op, object),
                      np_op_dict)
         return np_op
+
 
 F = np

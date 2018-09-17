@@ -2,13 +2,16 @@ import ctypes
 import torch
 from .common import *
 
+
 def get_pointer(v):
     return v.data_ptr()
+
 
 THDTYPE2CTYPE_MAP = dict()
 THDTYPE2CTYPE_MAP[torch.int] = ctypes.c_int
 THDTYPE2CTYPE_MAP[torch.float] = ctypes.c_float
 THDTYPE2CTYPE_MAP[torch.double] = ctypes.c_double
+
 
 def get_ctype(v):
     dtype = v.dtype
@@ -16,23 +19,27 @@ def get_ctype(v):
     assert ctype is not None, TypeError('Unknown Type: {}'.format(dtype))
     return ctype
 
+
 def dev_id(a):
     if isinstance(a, torch.Tensor):
         dev = a.device
         return None if dev.type == 'cpu' else dev.index
     return None
 
+
 class OpGen(object):
     def __init__(self, op, name):
         self.op = op
         self.name = name
         self.cache = dict()
+
     def __call__(self, *args, **kwargs):
         if self.name not in self.cache:
             # register operator
             self.cache[self.name] = self.register()
         inputs, pars = get_in_data(op=self.op, *args, **kwargs)
         return self.cache[self.name](*pars[0], **pars[1])(*inputs)
+
     def register(self):
         op = self.op
         op_name = self.name
@@ -45,7 +52,8 @@ class OpGen(object):
                 in_shape = get_in_shape(self.in_data)
                 out_shape = self.infer_shape(in_shape)[1]
                 dtype = self.in_data[0].dtype if self.in_data else torch.float32
-                self.out_data = [self.F.empty(s, dtype=dtype) for s in out_shape]
+                self.out_data = [self.F.empty(s, dtype=dtype)
+                                 for s in out_shape]
                 out = self._forward(*args, **kwargs)
                 if out is not None:
                     if not isinstance(out, (list, tuple)):
@@ -59,8 +67,8 @@ class OpGen(object):
             def backward(ctx, *args, **kwargs):
                 self = ctx.self
                 dtype = self.in_data[0].dtype if self.in_data else torch.float32
-                self.in_grad = [self.F.empty_like(d, dtype=dtype) if d.grad is None\
-                        else d.grad for d in self.in_data]
+                self.in_grad = [self.F.empty_like(d, dtype=dtype) if d.grad is None
+                                else d.grad for d in self.in_data]
                 self.out_grad = args
                 out = self._backward(*args, **kwargs)
                 if out is not None:
@@ -88,6 +96,7 @@ class OpGen(object):
                 torch.nn.Module.__init__(self)
                 if hasattr(op, '__init__'):
                     op.__init__(self, *args, **kwargs)
+
             def forward(self, *args, **kwargs):
                 return torch_func.apply(self, *args, **kwargs)
 
@@ -110,5 +119,6 @@ class OpGen(object):
         torch_func = get_torch_func(op)
         torch_nn_module = get_torch_nn_module(op, torch_func)
         return torch_nn_module
+
 
 F = torch
