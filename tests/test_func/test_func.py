@@ -61,8 +61,9 @@ def test_const_template():
     value = 3939
     cs = [ctypes.c_int, ctypes.c_float, ctypes.c_double]
     vs = [3, 9.9, 3.9]
-    for ctype, value in zip(cs, vs):
+    atols = [0, 1e-6, 1e-6]
+    for ctype, value, atol in zip(cs, vs, atols):
         c_value = ctype(value)
         a = np.empty(shape)
         mobula.func.test_const_template(a.size, c_value, a)
-        assert_almost_equal(np.tile(value, shape), a)
+        assert_almost_equal(np.tile(value, shape), a, atol=atol)
