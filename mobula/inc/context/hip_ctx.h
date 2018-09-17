@@ -21,13 +21,13 @@ inline void blas_gemm(const int axis, const bool tA, const bool tB, const int M,
   if (axis == 0)
     // row major
     hipblasSgemm(HIPBLAS_HANDLE, tB ? HIPBLAS_OP_T : HIPBLAS_OP_N,
-                tA ? HIPBLAS_OP_T : HIPBLAS_OP_N, N, M, K, &alpha, B, ldb, A, lda,
-                &beta, C, ldc);
+                 tA ? HIPBLAS_OP_T : HIPBLAS_OP_N, N, M, K, &alpha, B, ldb, A,
+                 lda, &beta, C, ldc);
   else
     // column major
     hipblasSgemm(HIPBLAS_HANDLE, tA ? HIPBLAS_OP_T : HIPBLAS_OP_N,
-                tB ? HIPBLAS_OP_T : HIPBLAS_OP_N, M, N, K, &alpha, A, lda, B, ldb,
-                &beta, C, ldc);
+                 tB ? HIPBLAS_OP_T : HIPBLAS_OP_N, M, N, K, &alpha, A, lda, B,
+                 ldb, &beta, C, ldc);
 }
 #endif
 
