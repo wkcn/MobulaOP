@@ -10,15 +10,18 @@ from ..build import source_to_so_ctx, build_context, file_changed
 from ..test_utils import get_git_hash
 from ..dtype import DType, TemplateType
 
+
 def load_module_py2(name, pathname):
     module = imp.load_source(name, pathname)
     return module
+
 
 def load_module_py3(name, pathname):
     spec = importlib.util.spec_from_file_location(name, pathname)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
 
 if sys.version_info[0] >= 3:
     import importlib
@@ -28,8 +31,10 @@ else:
     load_module = load_module_py2
 
 MOBULA_KERNEL_REG = re.compile(r'^\s*MOBULA_KERNEL.*?')
-MOBULA_KERNEL_FUNC_REG = re.compile(r'^\s*MOBULA_KERNEL\s*(.*?)\s*\((.*?)\)(?:.*?)*')
+MOBULA_KERNEL_FUNC_REG = re.compile(
+    r'^\s*MOBULA_KERNEL\s*(.*?)\s*\((.*?)\)(?:.*?)*')
 CPP_TEMPLATE_REG = re.compile(r'^\s*template\s*\<(.*?)\>\s*')
+
 
 def get_template_decl(code):
     u = CPP_TEMPLATE_REG.search(code)
@@ -43,6 +48,7 @@ def get_template_decl(code):
         if dtype.strip() == 'typename':
             templates.append(dname.strip())
     return templates
+
 
 def parse_parameter_decl(decl):
     """Parse the code of parameter declaration
@@ -59,7 +65,7 @@ def parse_parameter_decl(decl):
     """
     num_star = decl.count('*')
     assert num_star <= 1,\
-            Exception('Only support pass-by-value or pass-by-1-level-pointer, \
+        Exception('Only support pass-by-value or pass-by-1-level-pointer, \
             Error declaration: {}'.format(decl))
     is_pointer = num_star > 0
     if is_pointer:
@@ -82,6 +88,7 @@ def parse_parameter_decl(decl):
         return DType(ctype, is_const=is_const), var_name
     # template type
     return TemplateType(tname=type_name, is_pointer=is_pointer, is_const=is_const), var_name
+
 
 def parse_parameters_list(plist):
     """Parse the code of parameter declaration list
@@ -113,24 +120,30 @@ def parse_parameters_list(plist):
         pars_list.append((dtype, pname))
     return rtn_type, func_name, pars_list
 
+
 # runtime
-CTX_FUNC_MAP = dict() # ctx -> dict(idcode -> function)
+CTX_FUNC_MAP = dict()  # ctx -> dict(idcode -> function)
 # static
-TEMPLATE_INST_MAP = dict() # fname -> dict([(idcode, template_inst_code), ...])
+# fname -> dict([(idcode, template_inst_code), ...])
+TEMPLATE_INST_MAP = dict()
+
 
 def get_template_inst_fname(build_path, name):
     fname = '{}_template.js'.format(name)
     fpath = os.path.join(build_path, fname)
     return fpath
 
+
 def load_js_map(fname):
     if os.path.exists(fname):
         return json.loads(open(fname).read())
     return dict()
 
+
 def save_js_map(fname, data):
     with open(fname, 'w') as fout:
         fout.write(json.dumps(data))
+
 
 """reference:
 https://stackoverflow.com/questions/50964033/forcing-ctypes-cdll-loadlibrary-to-reload-library-from-file"""
@@ -138,20 +151,24 @@ dlclose_func = ctypes.CDLL(None).dlclose
 dlclose_func.argtypes = [ctypes.c_void_p]
 dlclose_func.restype = ctypes.c_int
 
+
 class CPPInfo:
     def __init__(self, cpp_fname):
         self.cpp_fname = cpp_fname
         self.function_args = dict()
         self.dll = None
+
     def load_dll(self, dll_fname):
         # keep reference
         if self.dll is not None:
             dlclose_func(self.dll._handle)
         self.dll = ctypes.CDLL(dll_fname)
 
+
 def get_so_path(fname):
     path, name = os.path.split(fname)
     return os.path.join(path, 'build', os.path.splitext(name)[0])
+
 
 def build_lib(cpp_fname, code_buffer, ctx):
     cpp_path, cpp_basename = os.path.split(cpp_fname)
@@ -179,8 +196,8 @@ extern "C" {
         os.mkdir(build_path_ctx)
 
     # build so
-    cpp_wrapper_fname = os.path.join(build_path_ctx,\
-            os.path.splitext(cpp_basename)[0] + '_wrapper.cpp')
+    cpp_wrapper_fname = os.path.join(build_path_ctx,
+                                     os.path.splitext(cpp_basename)[0] + '_wrapper.cpp')
     with open(cpp_wrapper_fname, 'w') as fout:
         fout.write(extra_code)
     # build lib
@@ -193,6 +210,7 @@ extern "C" {
     source_to_so_ctx(build_path, srcs, target_name, ctx, buildin_cpp)
 
     return target_name
+
 
 def op_loader(cfunc, arg_types, ctx, cpp_info):
     '''Import Operator Loader
@@ -227,7 +245,8 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
         use_template = bool(cfunc.template_list)
         if not os.path.exists(build_path):
             os.makedirs(build_path)
-        template_inst_fname = get_template_inst_fname(build_path, os.path.splitext(cpp_basename)[0])
+        template_inst_fname = get_template_inst_fname(
+            build_path, os.path.splitext(cpp_basename)[0])
 
         if cpp_fname not in TEMPLATE_INST_MAP:
             tmap = load_js_map(template_inst_fname)
@@ -260,7 +279,7 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
                 args_def = ', '.join(['{ctype} {name}'.format(
                     ctype=dtype.cname,
                     name=name
-                    ) for dtype, name in zip(ord_cfunc.arg_types, ord_cfunc.arg_names)])
+                ) for dtype, name in zip(ord_cfunc.arg_types, ord_cfunc.arg_names)])
                 nthread = ord_cfunc.arg_names[0]
                 args_inst = ', '.join(ord_cfunc.arg_names)
                 code_buffer += '''
@@ -279,31 +298,33 @@ void %s(%s) {
                     if not isinstance(dtype, TemplateType):
                         continue
                     tname = dtype.tname
-                    rtype = str(rtype).replace('const', '').replace('*', '').strip()
+                    rtype = str(rtype).replace(
+                        'const', '').replace('*', '').strip()
                     if tname in template_mapping:
                         assert template_mapping[tname] == rtype,\
-                                Exception('Excepted template type {} instead of {}'.\
-                                format(template_mapping[tname], rtype))
+                            Exception('Excepted template type {} instead of {}'.
+                                      format(template_mapping[tname], rtype))
                     else:
                         template_mapping[tname] = rtype
                 assert len(template_mapping) == len(cfunc.template_list),\
-                        Exception('Template List: {}, mapping: {}'.\
-                        format(cfunc.template_list, template_mapping))
+                    Exception('Template List: {}, mapping: {}'.
+                              format(cfunc.template_list, template_mapping))
 
                 args_def = ', '.join(['{ctype} {name}'.format(
                     ctype=dtype.cname,
                     name=name
-                    ) for dtype, name in zip(arg_types, cfunc.arg_names)])
+                ) for dtype, name in zip(arg_types, cfunc.arg_names)])
 
                 nthread = cfunc.arg_names[0]
-                template_inst = [template_mapping[tname] for tname in cfunc.template_list]
+                template_inst = [template_mapping[tname]
+                                 for tname in cfunc.template_list]
                 args_inst = ', '.join(cfunc.arg_names)
                 template_post = '<%s>' % (', '.join(template_inst))
                 code = '''
 void %s(%s) {
     KERNEL_RUN(%s, %s)(%s);
-}''' % (func_idcode_hash, args_def, '({}_kernel{})'.\
-        format(func_name, template_post), nthread, args_inst)
+}''' % (func_idcode_hash, args_def, '({}_kernel{})'.
+                    format(func_name, template_post), nthread, args_inst)
                 tmap[idcode] = code
 
             for code in tmap.values():
@@ -325,7 +346,8 @@ void %s(%s) {
                 func_idcode_hash = get_idcode_hash(func_idcode)
                 func = getattr(cpp_info.dll, func_idcode_hash, None)
                 assert func is not None,\
-                        Exception('No function `{}` in DLL {}'.format(func_idcode, dll_fname))
+                    Exception('No function `{}` in DLL {}'.format(
+                        func_idcode, dll_fname))
                 func_map[func_idcode] = func
 
         # template functions
@@ -333,10 +355,12 @@ void %s(%s) {
             func_idcode_hash = get_idcode_hash(func_idcode)
             func = getattr(cpp_info.dll, func_idcode_hash, None)
             assert func is not None,\
-                    Exception('No function `{}` in DLL {}'.format(func_idcode, dll_fname))
+                Exception('No function `{}` in DLL {}'.format(
+                    func_idcode, dll_fname))
             func_map[func_idcode] = func
 
     return func_map[idcode]
+
 
 def get_functions_from_cpp(cpp_fname):
     unmatched_brackets = 0
@@ -363,22 +387,25 @@ def get_functions_from_cpp(cpp_fname):
                 func_def = func_def.replace('\n', '').replace('\r', '')
                 func_started = False
                 templates = None
-                rtn_type, kernel_name, par_list = parse_parameters_list(func_def)
+                rtn_type, kernel_name, par_list = parse_parameters_list(
+                    func_def)
                 # template name check
                 template_set = set(template_list)
                 assert len(template_set) == len(template_list),\
-                        Exception('Duplicated template name in {}'.format(', '.join(template_list)))
+                    Exception('Duplicated template name in {}'.format(
+                        ', '.join(template_list)))
                 use_template = False
                 for dtype, _ in par_list:
                     if isinstance(dtype, TemplateType):
                         assert dtype.tname in template_set,\
-                                Exception("template name '{}' is not defined".format(dtype.tname))
+                            Exception(
+                                "template name '{}' is not defined".format(dtype.tname))
                         use_template = True
                 if not use_template:
                     template_list[:] = []
 
                 assert kernel_name.endswith('_kernel'),\
-                        Exception('the postfix of a MOBULA_KERNEL name must be `_kernel`, \
+                    Exception('the postfix of a MOBULA_KERNEL name must be `_kernel`, \
                         e.g. addition_forward_kernel')
                 func_name = kernel_name[:-len('_kernel')]
 
@@ -391,17 +418,19 @@ def get_functions_from_cpp(cpp_fname):
                                      loader=op_loader,
                                      loader_kwargs=dict(
                                          cpp_info=cpp_info,
-                                         )
+                                     )
                                      )
                 template_list[:] = []
                 function_args[func_name] = funcdef_args
 
     assert unmatched_brackets == 0,\
-            Exception('# unmatched brackets: {}'.format(unmatched_brackets))
+        Exception('# unmatched brackets: {}'.format(unmatched_brackets))
 
     # Load dynamic file
-    functions = dict([(name, CFuncDef(**kwargs)) for name, kwargs in function_args.items()])
+    functions = dict([(name, CFuncDef(**kwargs))
+                      for name, kwargs in function_args.items()])
     return functions
+
 
 def load(module_name, path=''):
     '''Load Operator Module
@@ -442,5 +471,5 @@ def load(module_name, path=''):
         # Create Operator
         module = load_module(op_name, py_fname)
     assert found,\
-            IOError("{}.cpp or {}.py or __init__.py not found in the path {}".\
-            format(op_name, op_name, path))
+        IOError("{}.cpp or {}.py or __init__.py not found in the path {}".
+                format(op_name, op_name, path))

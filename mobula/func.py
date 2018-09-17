@@ -4,12 +4,14 @@ import hashlib
 from . import glue
 from .dtype import DType, TemplateType, UnknownCType
 
+
 def get_func_idcode(func_name, arg_types):
     arg_types_str = ','.join([e.cname for e in arg_types])
     idcode = '{func_name}:{arg_types_str}'.format(
         func_name=func_name,
         arg_types_str=arg_types_str)
     return idcode
+
 
 def get_idcode_hash(idcode):
     sp = idcode.split(':')
@@ -18,14 +20,16 @@ def get_idcode_hash(idcode):
     md5.update(idcode[len(func_name)+1:].encode('utf-8'))
     return '{}_{}'.format(func_name, md5.hexdigest()[:8])
 
+
 gpu_ctx_name = None
 for gpu_ctx in ['cuda', 'hip']:
-    gpu_lib_fname = os.path.join(os.path.dirname(__file__), 'build',\
-            'mobula_op_{}.so'.format(gpu_ctx))
+    gpu_lib_fname = os.path.join(os.path.dirname(__file__), 'build',
+                                 'mobula_op_{}.so'.format(gpu_ctx))
     if os.path.exists(gpu_lib_fname):
         gpu_lib = ctypes.CDLL(gpu_lib_fname)
         gpu_ctx_name = gpu_ctx
         break
+
 
 def set_device(dev_id):
     if gpu_lib is None:
@@ -33,9 +37,10 @@ def set_device(dev_id):
                 Please `make cuda` or `make hip` for MobulaOP')
     gpu_lib.set_device(dev_id)
 
+
 class CFuncDef:
-    def __init__(self, func_name, arg_names=[], arg_types=None, rtn_type=None,\
-            template_list=[], loader=None, loader_kwargs=None):
+    def __init__(self, func_name, arg_names=[], arg_types=None, rtn_type=None,
+                 template_list=[], loader=None, loader_kwargs=None):
         self.func_name = func_name
         self.arg_names = arg_names
         self.arg_types = arg_types
@@ -43,6 +48,7 @@ class CFuncDef:
         self.template_list = template_list
         self.loader = loader
         self.loader_kwargs = loader_kwargs
+
     def __call__(self, arg_datas, arg_types, dev_id):
         if dev_id is None:
             ctx = 'cpu'
@@ -53,9 +59,11 @@ class CFuncDef:
         func = self.loader(self, arg_types, ctx, **self.loader_kwargs)
         return func(*arg_datas)
 
+
 class MobulaFunc:
     """An encapsulation for CFunction
     """
+
     def __init__(self, name, func):
         self.name = name
         self.par_name = func.arg_names
@@ -83,8 +91,8 @@ class MobulaFunc:
         arg_types = []
         template_mapping = dict()
 
-        def analyze_element(a, p, backend_inputs, backend_outputs,\
-                noncontiguous_list, template_mapping):
+        def analyze_element(a, p, backend_inputs, backend_outputs,
+                            noncontiguous_list, template_mapping):
             """Analyze an element
 
             Parameters
@@ -99,7 +107,7 @@ class MobulaFunc:
                 the list of noncontiguous variables
             """
             assert isinstance(p, (DType, TemplateType)),\
-                    TypeError('Unknown Data Type: {}'.format(type(p)))
+                TypeError('Unknown Data Type: {}'.format(type(p)))
             backend = glue.backend.get_var_backend(a)
             if p.is_pointer:
                 # multiple-dim array
@@ -111,7 +119,7 @@ class MobulaFunc:
                 pa = backend.get_pointer(a)
                 if isinstance(pa, (list, tuple)):
                     if p.is_const:
-                        temp_list.append(pa[1]) # hold a reference
+                        temp_list.append(pa[1])  # hold a reference
                     else:
                         noncontiguous_list.append((a, pa[1]))
                     pa = pa[0]
@@ -126,23 +134,26 @@ class MobulaFunc:
                     else:
                         template_mapping[p.tname] = expected_ctype = ctype
                 assert ctype == expected_ctype,\
-                        TypeError('Expected Type {} instead of {}'.format(expected_ctype, ctype))
+                    TypeError('Expected Type {} instead of {}'.format(
+                        expected_ctype, ctype))
                 pa = ctypes.cast(pa, ctype)
             else:
                 dev_id = None
                 if isinstance(p, TemplateType):
                     pa = a
-                    ctype = type(a) if hasattr(a, '_type_') else UnknownCType(p.tname)
+                    ctype = type(a) if hasattr(
+                        a, '_type_') else UnknownCType(p.tname)
                 else:
                     pa = p.ctype(a)
                     ctype = p.ctype
             return pa, dev_id, ctype
 
-        extra_pars = [backend_inputs, backend_outputs, noncontiguous_list, template_mapping]
+        extra_pars = [backend_inputs, backend_outputs,
+                      noncontiguous_list, template_mapping]
 
         for a, p in zip(args_gen(), self.par_type):
             assert not isinstance(p, (list, tuple)),\
-                    Exception('Not supported list or tuple as input variable now')
+                Exception('Not supported list or tuple as input variable now')
             pa, aid, ctype = analyze_element(a, p, *extra_pars)
             arg_datas.append(pa)
             if isinstance(ctype, UnknownCType):
@@ -153,7 +164,8 @@ class MobulaFunc:
 
             if aid is not None:
                 if dev_id is not None:
-                    assert aid == dev_id, ValueError("Don't use multiple devices in a call :-(")
+                    assert aid == dev_id, ValueError(
+                        "Don't use multiple devices in a call :-(")
                 else:
                     dev_id = aid
 
@@ -161,7 +173,7 @@ class MobulaFunc:
         for i, a in enumerate(arg_types):
             if isinstance(a, UnknownCType):
                 assert a.tname in template_mapping,\
-                        Exception('Unknown template name: {}'.format(a.tname))
+                    Exception('Unknown template name: {}'.format(a.tname))
                 ctype = template_mapping[a.tname]._type_
                 arg_types[i] = DType(ctype, a.is_const)
                 arg_datas[i] = ctype(arg_datas[i])
@@ -180,6 +192,7 @@ class MobulaFunc:
         for source, target in noncontiguous_list:
             source[:] = target
         return rtn
+
 
 def bind(functions):
     for k, func in functions.items():

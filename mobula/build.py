@@ -19,25 +19,25 @@ for path in INC_PATHS:
         COMMON_FLAGS.add_string('-I{}'.format(p))
 
 CFLAGS = Flags('-std=c++11 -fPIC').add_definition('USING_CUDA', 0).\
-        add_definition('USING_HIP', 0).add_definition('USING_OPENMP', config.USING_OPENMP).\
-        add_string(COMMON_FLAGS)
+    add_definition('USING_HIP', 0).add_definition('USING_OPENMP', config.USING_OPENMP).\
+    add_string(COMMON_FLAGS)
 LDFLAGS = Flags('-lpthread -shared')
 if config.USING_CBLAS:
     LDFLAGS.add_string('-lopenblas')
 
 CU_FLAGS = Flags('-std=c++11 -x cu -Wno-deprecated-gpu-targets -dc \
 --compiler-options "-fPIC" --expt-extended-lambda').\
-        add_definition('USING_CUDA', 1).\
-        add_definition('USING_HIP', 0).\
-        add_string(COMMON_FLAGS)
+    add_definition('USING_CUDA', 1).\
+    add_definition('USING_HIP', 0).\
+    add_string(COMMON_FLAGS)
 CU_LDFLAGS = Flags('-lpthread -shared -Wno-deprecated-gpu-targets \
 -L%s/lib64 -lcuda -lcudart -lcublas' % config.CUDA_DIR)
 
 HIP_FLAGS = Flags('-std=c++11 -Wno-deprecated-gpu-targets -Wno-deprecated-declarations -dc \
 --compiler-options "-fPIC" --expt-extended-lambda').\
-        add_definition('USING_CUDA', 0).\
-        add_definition('USING_HIP', 1).\
-        add_string(COMMON_FLAGS)
+    add_definition('USING_CUDA', 0).\
+    add_definition('USING_HIP', 1).\
+    add_string(COMMON_FLAGS)
 HIP_LDFLAGS = Flags('-lpthread -shared -Wno-deprecated-gpu-targets')
 
 if config.USING_OPENMP:
@@ -49,6 +49,7 @@ if config.USING_HIGH_LEVEL_WARNINGS:
 -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wmissing-include-dirs \
 -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow \
 -Wsign-promo -Wundef -fdiagnostics-show-option')
+
 
 def source_to_o(build_path, src_obj, compiler=config.CXX, cflags=CFLAGS):
     mkdir(build_path)
@@ -70,9 +71,11 @@ def source_to_o(build_path, src_obj, compiler=config.CXX, cflags=CFLAGS):
     run_command_parallel(commands)
     return updated
 
+
 def o_to_so(target_name, objs, linker, ldflags=LDFLAGS):
     command = "%s %s %s -o %s" % (linker, ' '.join(objs), ldflags, target_name)
     run_command(command)
+
 
 def source_to_so(build_path, srcs, target_name, compiler, cflags, ldflags, buildin_o=None):
     objs = change_exts(srcs, [('cpp', 'o')])
@@ -84,26 +87,31 @@ def source_to_so(build_path, srcs, target_name, compiler, cflags, ldflags, build
         abs_objs = add_path(build_path, objs)
         o_to_so(target_name, abs_objs, compiler, ldflags)
 
+
 BUILD_FLAGS = dict(
     cpu=(config.CXX, CFLAGS, LDFLAGS),
     cuda=(config.NVCC, CU_FLAGS, CU_LDFLAGS),
     hip=(config.HIPCC, HIP_FLAGS, HIP_LDFLAGS)
 )
 
+
 def source_to_so_ctx(build_path, srcs, target_name, ctx_name, buildin_cpp=None):
-    assert ctx_name in BUILD_FLAGS, ValueError('Unsupported Context: {} -('.format(ctx_name))
+    assert ctx_name in BUILD_FLAGS, ValueError(
+        'Unsupported Context: {} -('.format(ctx_name))
 
     buildin_o = []
     if buildin_cpp is not None:
         buildin_path = os.path.join(ENV_PATH, config.BUILD_PATH, ctx_name)
-        buildin_o = [os.path.join(buildin_path, fname) for fname in\
-                change_exts(buildin_cpp, [('cpp', 'o')])]
+        buildin_o = [os.path.join(buildin_path, fname) for fname in
+                     change_exts(buildin_cpp, [('cpp', 'o')])]
         for fname in buildin_o:
             assert os.path.exists(fname),\
-                    Exception('File {} not found, please rebuild MobulaOP :-('.format(fname))
+                Exception(
+                    'File {} not found, please rebuild MobulaOP :-('.format(fname))
 
     flags = BUILD_FLAGS[ctx_name] + (buildin_o, )
     source_to_so(build_path, srcs, target_name, *flags)
+
 
 def all_func():
     # cpu
@@ -111,18 +119,22 @@ def all_func():
     target_name = os.path.join(config.BUILD_PATH, '%s_cpu.so' % config.TARGET)
     source_to_so_ctx(build_path, SRCS, target_name, 'cpu')
 
+
 def cuda_func():
     build_path = os.path.join(config.BUILD_PATH, 'cuda')
     target_name = os.path.join(config.BUILD_PATH, '%s_cuda.so' % config.TARGET)
     source_to_so_ctx(build_path, SRCS, target_name, 'cuda')
+
 
 def hip_func():
     build_path = os.path.join(config.BUILD_PATH, 'hip')
     target_name = os.path.join(config.BUILD_PATH, '%s_hip.so' % config.TARGET)
     source_to_so_ctx(build_path, SRCS, target_name, 'hip')
 
+
 def clean_func():
     rmdir(config.BUILD_PATH)
+
 
 RULES = dict(
     all=all_func,
@@ -131,8 +143,10 @@ RULES = dict(
     clean=clean_func,
 )
 
+
 def run_rule(name):
     RULES[name]()
+
 
 if __name__ == '__main__':
     SRCS = wildcard(['src'], 'cpp')
