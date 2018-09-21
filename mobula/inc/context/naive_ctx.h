@@ -81,6 +81,8 @@ MOBULA_DEVICE void parfor(const int n, Func F) {
   }
 }
 
+#define KERNEL_RUN(a, n) (a)
+
 #endif  // HOST_NUM_THREADS > 1
 
 }  // namespace mobula

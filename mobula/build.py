@@ -79,7 +79,7 @@ def source_to_o(build_path, src_obj, compiler=config.CXX, cflags=CFLAGS):
             for path in INC_PATHS:
                 p = os.path.join(ENV_PATH, path)
                 inc_flags.add_string('-I{}'.format(p))
-            command = 'cl %s -c %s -Fo%s'.format(inc_flags, src, build_name)
+            command = 'cl %s -c %s -Fo%s' % (inc_flags, src, build_name)
         commands.append(command)
     run_command_parallel(commands)
     return updated
