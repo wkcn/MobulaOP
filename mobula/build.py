@@ -72,14 +72,24 @@ def source_to_o(build_path, src_obj, compiler=config.CXX, cflags=CFLAGS):
         if build_dir_name not in existed_dirs:
             mkdir(build_dir_name)
             existed_dirs.add(build_dir_name)
-        command = '%s %s %s -c -o %s' % (compiler, src, cflags, build_name)
+        if IS_LINUX:
+            command = '%s %s %s -c -o %s' % (compiler, src, cflags, build_name)
+        else:
+            inc_flags = Flags()
+            for path in INC_PATHS:
+                p = os.path.join(ENV_PATH, path)
+                inc_flags.add_string('-I{}'.format(p))
+            command = 'cl %s -c %s -Fo%s'.format(inc_flags, src, build_name)
         commands.append(command)
     run_command_parallel(commands)
     return updated
 
 
 def o_to_so(target_name, objs, linker, ldflags=LDFLAGS):
-    command = "%s %s %s -o %s" % (linker, ' '.join(objs), ldflags, target_name)
+    if IS_LINUX:
+        command = '%s %s %s -o %s' % (linker, ' '.join(objs), ldflags, target_name)
+    else:
+        command = 'link -DLL %s -out:%s' % (' '.join(objs), target_name)
     run_command(command)
 
 

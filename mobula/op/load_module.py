@@ -286,7 +286,7 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
                 nthread = ord_cfunc.arg_names[0]
                 args_inst = ', '.join(ord_cfunc.arg_names)
                 code_buffer += '''
-void %s(%s) {
+MOBULA_DLL void %s(%s) {
     KERNEL_RUN(%s, %s)(%s);
 }''' % (func_idcode_hash, args_def, '{}_kernel'.format(func_name), nthread, args_inst)
 
@@ -324,7 +324,7 @@ void %s(%s) {
                 args_inst = ', '.join(cfunc.arg_names)
                 template_post = '<%s>' % (', '.join(template_inst))
                 code = '''
-void %s(%s) {
+MOBULA_DLL void %s(%s) {
     KERNEL_RUN(%s, %s)(%s);
 }''' % (func_idcode_hash, args_def, '({}_kernel{})'.
                     format(func_name, template_post), nthread, args_inst)

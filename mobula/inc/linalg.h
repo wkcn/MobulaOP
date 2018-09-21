@@ -65,7 +65,7 @@ MOBULA_KERNEL linalg_gemm_tt_kernel(const int n, const T *a, const T *b,
 extern "C" {
 using namespace mobula;
 
-void linalg_gemm_ff(const DType *a, const DType *b, const int I, const int U,
+MOBULA_DLL void linalg_gemm_ff(const DType *a, const DType *b, const int I, const int U,
                     const int J, DType *out) {
 #if not USING_CBLAS
   const int N = I;
@@ -75,7 +75,7 @@ void linalg_gemm_ff(const DType *a, const DType *b, const int I, const int U,
 #endif
 }
 
-void linalg_gemm_ft(const DType *a, const DType *b, const int I, const int U,
+MOBULA_DLL void linalg_gemm_ft(const DType *a, const DType *b, const int I, const int U,
                     const int J, DType *out) {
 #if not USING_CBLAS
   const int N = I * J;
@@ -85,7 +85,7 @@ void linalg_gemm_ft(const DType *a, const DType *b, const int I, const int U,
 #endif
 }
 
-void linalg_gemm_tf(const DType *a, const DType *b, const int I, const int U,
+MOBULA_DLL void linalg_gemm_tf(const DType *a, const DType *b, const int I, const int U,
                     const int J, DType *out) {
 #if not USING_CBLAS
   const int N = I * J;
@@ -95,7 +95,7 @@ void linalg_gemm_tf(const DType *a, const DType *b, const int I, const int U,
 #endif
 }
 
-void linalg_gemm_tt(const DType *a, const DType *b, const int I, const int U,
+MOBULA_DLL void linalg_gemm_tt(const DType *a, const DType *b, const int I, const int U,
                     const int J, DType *out) {
 #if not USING_CBLAS
   const int N = J;
