@@ -1,6 +1,7 @@
 import os
 import threading
 import hashlib
+import platform
 import re
 import yaml
 from easydict import EasyDict as edict
@@ -13,6 +14,10 @@ if not hasattr(Queue.Queue, 'clear'):
         with self.mutex:
             self.queue.clear()
     setattr(Queue.Queue, 'clear', _queue_clear)
+
+SYSTEM_NAME = platform.system()
+IS_WINDOWS = SYSTEM_NAME == 'Windows'
+IS_LINUX = SYSTEM_NAME == 'Linux'
 
 INC_PATHS = ['./']
 

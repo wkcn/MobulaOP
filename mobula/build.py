@@ -18,9 +18,11 @@ for path in INC_PATHS:
     if p:
         COMMON_FLAGS.add_string('-I{}'.format(p))
 
-CFLAGS = Flags('-std=c++11 -fPIC').add_definition('USING_CUDA', 0).\
+CFLAGS = Flags('-std=c++11').add_definition('USING_CUDA', 0).\
     add_definition('USING_HIP', 0).add_definition('USING_OPENMP', config.USING_OPENMP).\
     add_string(COMMON_FLAGS)
+if not IS_WINDOWS:
+    CFLAGS.add_string('-fPIC')
 LDFLAGS = Flags('-lpthread -shared')
 if config.USING_CBLAS:
     LDFLAGS.add_string('-lopenblas')

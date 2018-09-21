@@ -147,9 +147,12 @@ def save_js_map(fname, data):
 
 """reference:
 https://stackoverflow.com/questions/50964033/forcing-ctypes-cdll-loadlibrary-to-reload-library-from-file"""
-dlclose_func = ctypes.CDLL(None).dlclose
-dlclose_func.argtypes = [ctypes.c_void_p]
-dlclose_func.restype = ctypes.c_int
+try:
+    dlclose_func = ctypes.CDLL(None).dlclose
+    dlclose_func.argtypes = [ctypes.c_void_p]
+    dlclose_func.restype = ctypes.c_int
+except:
+    dlclose_func = lambda handle : None
 
 
 class CPPInfo:

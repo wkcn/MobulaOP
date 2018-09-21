@@ -7,6 +7,12 @@
 #include <mutex>
 #include <thread>
 
+#ifdef __x86_64__
+typedef uint64_t PointerValue;
+#else
+typedef uint32_t PointerValue;
+#endif
+
 namespace mobula {
 
 #if USING_CBLAS
@@ -33,7 +39,7 @@ using std::min;
 constexpr int NUM_MOBULA_ATOMIC_ADD_MUTEXES = HOST_NUM_THREADS * 8;
 static std::mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
 inline MOBULA_DEVICE float atomic_add(const float val, float *address) {
-  long id = (reinterpret_cast<long>(address) / sizeof(float)) %
+  PointerValue id = (reinterpret_cast<PointerValue>(address) / sizeof(float)) %
             NUM_MOBULA_ATOMIC_ADD_MUTEXES;
   MOBULA_ATOMIC_ADD_MUTEXES[id].lock();
   *address += val;
