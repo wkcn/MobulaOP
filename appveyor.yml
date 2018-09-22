@@ -13,7 +13,7 @@ build_script:
 - cmd: >-
     pip install -r ./requirements.txt
 
-    pip install mxnet-mkl
+    pip install https://files.pythonhosted.org/packages/9a/b1/a56a780e49742d1adaf4843bf140e9d66f0a50b2cc35348467b7fe75bbf3/mxnet-1.2.1-py2.py3-none-win_amd64.whl
 
     pip install python-coveralls nose
 
