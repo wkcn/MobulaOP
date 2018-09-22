@@ -9,6 +9,7 @@ from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash
 from ..build import source_to_so_ctx, build_context, file_changed
 from ..test_utils import get_git_hash
 from ..dtype import DType, TemplateType
+from ..version import OP_LOAD_MODULE_BUILD_VERSION
 
 
 def load_module_py2(name, pathname):
@@ -335,7 +336,8 @@ MOBULA_DLL void %s(%s) {
             with build_context():
                 build_lib(cpp_fname, code_buffer, ctx, dll_fname)
             # update tmap
-            map_data = dict(version=2.01, build_id=build_id, functions=tmap)
+            map_data = dict(version=OP_LOAD_MODULE_BUILD_VERSION,
+                            build_id=build_id, functions=tmap)
             save_js_map(template_inst_fname, map_data)
 
         # load all functions in the dll
