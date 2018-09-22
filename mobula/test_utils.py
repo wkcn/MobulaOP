@@ -94,6 +94,7 @@ def assert_almost_equal(a, b, rtol=1e-5, atol=1e-8):
     # Check Relative Error
     if max_relative_error > rtol:
         # If relative error >= rtol, raise AssertionError,
+        idx = relative_error.argmax()
         raise_error(relative_error, 'Maximum Relative Error({}) > rtol({}): {} vs {}'.
                     format(max_relative_error, rtol, a.ravel()[idx], b.ravel()[idx]))
 
