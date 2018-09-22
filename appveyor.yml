@@ -13,7 +13,7 @@ build_script:
 - cmd: >-
     pip install -r ./requirements.txt
 
-    pip install mxnet-cu80
+    pip install mxnet-mkl
 
     pip install python-coveralls nose
 
