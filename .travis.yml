@@ -14,8 +14,8 @@ python:
 script:
     - pip install -r ./requirements.txt
     - pip install python-coveralls mxnet
-    - yes n | sh build.sh
-    - sh tests/run_tests.sh
+    - sh build.sh
+    - nosetests --with-coverage
 
 after_success:
     - coveralls

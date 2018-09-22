@@ -34,7 +34,7 @@ CU_FLAGS = Flags('-std=c++11 -x cu -Wno-deprecated-gpu-targets -dc \
     add_string(COMMON_FLAGS)
 if not OS_IS_WINDOWS:
     CU_FLAGS.add_string('--compiler-options "-fPIC"')
-CU_LDFLAGS = Flags('-lpthread -shared -Wno-deprecated-gpu-targets \
+CU_LDFLAGS = Flags('-shared -Wno-deprecated-gpu-targets \
 -L%s/lib64 -lcuda -lcudart' % config.CUDA_DIR)
 if config.USING_CBLAS:
     CU_LDFLAGS.add_string('-lcublas')
@@ -46,7 +46,7 @@ HIP_FLAGS = Flags('-std=c++11 -Wno-deprecated-gpu-targets -Wno-deprecated-declar
     add_string(COMMON_FLAGS)
 if not OS_IS_WINDOWS:
     HIP_FLAGS.add_string('--compiler-options "-fPIC"')
-HIP_LDFLAGS = Flags('-lpthread -shared -Wno-deprecated-gpu-targets')
+HIP_LDFLAGS = Flags('-shared -Wno-deprecated-gpu-targets')
 if config.USING_CBLAS:
     HIP_LDFLAGS.add_string('-lhipblas')
 

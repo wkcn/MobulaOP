@@ -1,6 +1,7 @@
 # MobulaOP
 
-[![](https://api.travis-ci.org/wkcn/MobulaOP.svg?branch=master)](https://travis-ci.org/wkcn/MobulaOP)
+[![Linux Build status](https://api.travis-ci.org/wkcn/MobulaOP.svg?branch=master)](https://travis-ci.org/wkcn/MobulaOP)
+[![Windows Build status](https://ci.appveyor.com/api/projects/status/bvnavb8k2xnu0wqj?svg=true)](https://ci.appveyor.com/project/wkcn/mobulaop)
 [![Coverage Status](https://coveralls.io/repos/github/wkcn/MobulaOP/badge.svg?branch=master)](https://coveralls.io/github/wkcn/MobulaOP?branch=master)
 
 ## What is it?
