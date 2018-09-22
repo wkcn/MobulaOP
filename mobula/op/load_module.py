@@ -152,7 +152,7 @@ try:
     dlclose_func.argtypes = [ctypes.c_void_p]
     dlclose_func.restype = ctypes.c_int
 except:
-    dlclose_func = lambda handle : None
+    def dlclose_func(handle): return None
 
 
 class CPPInfo:

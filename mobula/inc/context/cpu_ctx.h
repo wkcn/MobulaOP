@@ -40,7 +40,7 @@ constexpr int NUM_MOBULA_ATOMIC_ADD_MUTEXES = HOST_NUM_THREADS * 8;
 static std::mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
 inline MOBULA_DEVICE float atomic_add(const float val, float *address) {
   PointerValue id = (reinterpret_cast<PointerValue>(address) / sizeof(float)) %
-            NUM_MOBULA_ATOMIC_ADD_MUTEXES;
+                    NUM_MOBULA_ATOMIC_ADD_MUTEXES;
   MOBULA_ATOMIC_ADD_MUTEXES[id].lock();
   *address += val;
   MOBULA_ATOMIC_ADD_MUTEXES[id].unlock();

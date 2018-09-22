@@ -1,5 +1,7 @@
 all:
 	python build.py all
+cpu:
+	python build.py cpu
 cuda:
 	python build.py cuda
 hip:

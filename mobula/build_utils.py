@@ -5,6 +5,7 @@ import platform
 import re
 import yaml
 from easydict import EasyDict as edict
+from subprocess import Popen, PIPE
 try:
     import Queue
 except ImportError:
@@ -15,9 +16,11 @@ if not hasattr(Queue.Queue, 'clear'):
             self.queue.clear()
     setattr(Queue.Queue, 'clear', _queue_clear)
 
-SYSTEM_NAME = platform.system()
-IS_WINDOWS = SYSTEM_NAME == 'Windows'
-IS_LINUX = SYSTEM_NAME == 'Linux'
+OS_NAME = platform.system()
+OS_IS_WINDOWS = OS_NAME == 'Windows'
+OS_IS_LINUX = OS_NAME == 'Linux'
+assert OS_IS_WINDOWS or OS_IS_LINUX,\
+    Exception('Unsupported Operator System: {}'.format(OS_NAME))
 
 INC_PATHS = ['./']
 
@@ -177,9 +180,15 @@ def mkdir(dir_name):
         os.makedirs(dir_name)
 
 
+if OS_IS_LINUX:
+    rmdir_command = 'rm -rf'
+elif OS_IS_WINDOWS:
+    rmdir_command = 'rd /s /q'
+
+
 def rmdir(dir_name):
     if os.path.exists(dir_name):
-        command = 'rm -rf %s' % dir_name
+        command = '%s %s' % (rmdir_command, dir_name)
         run_command(command)
 
 
@@ -300,3 +309,11 @@ def run_command_parallel(commands, allow_error=False):
 
 def add_path(path, files):
     return list(map(lambda x: os.path.join(path, x), files))
+
+
+def command_exists(command):
+    try:
+        Popen([command], stdout=PIPE, stderr=PIPE, stdin=PIPE)
+    except:
+        return False
+    return True

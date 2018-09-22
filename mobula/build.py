@@ -21,7 +21,7 @@ for path in INC_PATHS:
 CFLAGS = Flags('-std=c++11').add_definition('USING_CUDA', 0).\
     add_definition('USING_HIP', 0).add_definition('USING_OPENMP', config.USING_OPENMP).\
     add_string(COMMON_FLAGS)
-if not IS_WINDOWS:
+if not OS_IS_WINDOWS:
     CFLAGS.add_string('-fPIC')
 LDFLAGS = Flags('-lpthread -shared')
 if config.USING_CBLAS:
@@ -72,22 +72,23 @@ def source_to_o(build_path, src_obj, compiler=config.CXX, cflags=CFLAGS):
         if build_dir_name not in existed_dirs:
             mkdir(build_dir_name)
             existed_dirs.add(build_dir_name)
-        if IS_LINUX:
+        if OS_IS_LINUX:
             command = '%s %s %s -c -o %s' % (compiler, src, cflags, build_name)
         else:
             inc_flags = Flags()
             for path in INC_PATHS:
                 p = os.path.join(ENV_PATH, path)
                 inc_flags.add_string('-I{}'.format(p))
-            command = 'cl %s -c %s -Fo%s' % (inc_flags, src, build_name)
+            command = 'cl /O2 %s -c %s -Fo%s' % (inc_flags, src, build_name)
         commands.append(command)
     run_command_parallel(commands)
     return updated
 
 
 def o_to_so(target_name, objs, linker, ldflags=LDFLAGS):
-    if IS_LINUX:
-        command = '%s %s %s -o %s' % (linker, ' '.join(objs), ldflags, target_name)
+    if OS_IS_LINUX:
+        command = '%s %s %s -o %s' % (linker,
+                                      ' '.join(objs), ldflags, target_name)
     else:
         command = 'link -DLL %s -out:%s' % (' '.join(objs), target_name)
     run_command(command)
@@ -129,7 +130,7 @@ def source_to_so_ctx(build_path, srcs, target_name, ctx_name, buildin_cpp=None):
     source_to_so(build_path, srcs, target_name, *flags)
 
 
-def all_func():
+def cpu_func():
     # cpu
     build_path = os.path.join(config.BUILD_PATH, 'cpu')
     target_name = os.path.join(config.BUILD_PATH, '%s_cpu.so' % config.TARGET)
@@ -152,8 +153,17 @@ def clean_func():
     rmdir(config.BUILD_PATH)
 
 
+def all_func():
+    cpu_func()
+    if command_exists(config.NVCC):
+        cuda_func()
+    elif command_exists(config.HIPCC):
+        hip_func()
+
+
 RULES = dict(
     all=all_func,
+    cpu=cpu_func,
     cuda=cuda_func,
     hip=hip_func,
     clean=clean_func,
@@ -161,6 +171,8 @@ RULES = dict(
 
 
 def run_rule(name):
+    assert name in RULES, ValueError(
+        "No rule to make target '{}'".format(name))
     RULES[name]()
 
 
