@@ -76,7 +76,7 @@ def source_to_o(build_path, src_obj, compiler=config.CXX, cflags=CFLAGS):
         if build_dir_name not in existed_dirs:
             mkdir(build_dir_name)
             existed_dirs.add(build_dir_name)
-        if OS_IS_WINDOWS and command_exists(compiler):
+        if OS_IS_WINDOWS and not command_exists(compiler):
             inc_flags = Flags()
             for path in INC_PATHS:
                 p = os.path.join(ENV_PATH, path)
@@ -90,7 +90,7 @@ def source_to_o(build_path, src_obj, compiler=config.CXX, cflags=CFLAGS):
 
 
 def o_to_so(target_name, objs, linker, ldflags=LDFLAGS):
-    if OS_IS_WINDOWS and command_exists(linker):
+    if OS_IS_WINDOWS and not command_exists(linker):
         command = 'link -DLL %s -out:%s' % (' '.join(objs), target_name)
     else:
         command = '%s %s %s -o %s' % (linker,
