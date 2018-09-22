@@ -1,23 +1,25 @@
-image: Visual Studio 2017
+image: Visual Studio 2015
 version: 1.0.{build}
 
 environment:
     matrix:
-        - PYTHON_VERSION: 2.7
-          PYTHON_ARCH: "64"
-
-        - PYTHON_VERSION: 3.6
-          PYTHON_ARCH: "64"
+        - PYTHON: C:\Python27-x64
+        - PYTHON: C:\Python36-x64
 
 build_script:
 - cmd: >-
+
+    SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
+
     pip install -r ./requirements.txt
 
-    pip install https://files.pythonhosted.org/packages/9a/b1/a56a780e49742d1adaf4843bf140e9d66f0a50b2cc35348467b7fe75bbf3/mxnet-1.2.1-py2.py3-none-win_amd64.whl
+    pip install mxnet --pre
 
     pip install python-coveralls nose
 
-    call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
+    call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64
+
+    call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
 
     build.bat
 
