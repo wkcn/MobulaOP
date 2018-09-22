@@ -11,6 +11,12 @@ environment:
 
 build_script:
 - cmd: >-
+    pip --version
+
+    pip install --upgrade pip
+
+    pip --version
+
     pip install -r ./requirements.txt
 
     pip install mxnet --pre
