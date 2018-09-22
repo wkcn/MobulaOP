@@ -264,10 +264,11 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
                 else:
                     need_to_rebuild = False
 
+        removed_dll_fname = None
         if need_to_rebuild:
             if os.path.exists(dll_fname):
                 # remove old DLL file
-                os.remove(dll_fname)
+                removed_dll_fname = dll_fname
                 TEMPLATE_BUILD_ID_MAP[cpp_fname] += 1
                 build_id = TEMPLATE_BUILD_ID_MAP[cpp_fname]
                 dll_fname = '{}_{}_{}.so'.format(so_prefix, ctx, build_id)
@@ -363,6 +364,12 @@ MOBULA_DLL void %s(%s) {
                 Exception('No function `{}` in DLL {}'.format(
                     func_idcode, dll_fname))
             func_map[func_idcode] = func
+
+        if removed_dll_fname is not None:
+            try:
+                os.remove(removed_dll_fname)
+            except:
+                pass
 
     return func_map[idcode]
 

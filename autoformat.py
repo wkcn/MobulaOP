@@ -31,9 +31,10 @@ def autopep8(fnames):
             update_file_hash(fname)
 
 
-with build_context():
-    cpp_res = find_all_file('./', ['.cpp', '.h'])
-    clang_format(cpp_res)
+if __name__ == '__main__':
+    with build_context():
+        cpp_res = find_all_file('./', ['.cpp', '.h'])
+        clang_format(cpp_res)
 
-    py_res = find_all_file('./', ['.py'])
-    autopep8(py_res)
+        py_res = find_all_file('./', ['.py'])
+        autopep8(py_res)
