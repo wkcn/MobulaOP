@@ -15,11 +15,8 @@ build_script:
 
     pip install mxnet
 
-#   pip install python-coveralls nose
-
     call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
 
     build.bat
 
 test_script:
-# - cmd: python -m nose --with-coverage
