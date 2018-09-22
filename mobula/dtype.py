@@ -1,3 +1,27 @@
+from .build_utils import OS_IS_LINUX
+if OS_IS_LINUX:
+    def get_real_ctype_name(ctype_name):
+        '''
+        ctypes.c_int32: c_int
+        ctypes.c_int64: c_long
+        '''
+        if ctype_name == 'long':
+            ctype_name = 'int64_t'
+        return ctype_name
+else:
+    # Windows
+    def get_real_ctype_name(ctype_name):
+        '''
+        ctypes.c_int32: c_long
+        ctypes.c_int64: c_longlong
+        '''
+        if ctype_name == 'long':
+            ctype_name = 'int'
+        elif ctype_name == 'longlong':
+            ctype_name = 'int64_t'
+        return ctype_name
+
+
 class DType:
     _DTYPE_LIST_ = dict()  # () -> inst
 
@@ -13,8 +37,7 @@ class DType:
             # pointer
             self.is_pointer = True
             ctype_name = name[5:]
-            if ctype_name == 'long':
-                ctype_name = 'int64_t'
+            ctype_name = get_real_ctype_name(ctype_name)
         else:
             ctype_name = name[2:]
         if self.is_const:
