@@ -13,10 +13,13 @@ build_script:
 - cmd: >-
     pip install -r ./requirements.txt
 
-    pip install mxnet
+    pip install mxnet-cu80
+
+    pip install python-coveralls nose
 
     call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
 
     build.bat
 
 test_script:
+- cmd: python -m nose --with-coverage
