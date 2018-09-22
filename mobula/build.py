@@ -28,20 +28,24 @@ if config.USING_CBLAS:
     LDFLAGS.add_string('-lopenblas')
 
 CU_FLAGS = Flags('-std=c++11 -x cu -Wno-deprecated-gpu-targets -dc \
---compiler-options "-fPIC" --expt-extended-lambda').\
+--expt-extended-lambda').\
     add_definition('USING_CUDA', 1).\
     add_definition('USING_HIP', 0).\
     add_string(COMMON_FLAGS)
+if not OS_IS_WINDOWS:
+    CU_FLAGS.add_string('--compiler-options "-fPIC"')
 CU_LDFLAGS = Flags('-lpthread -shared -Wno-deprecated-gpu-targets \
 -L%s/lib64 -lcuda -lcudart' % config.CUDA_DIR)
 if config.USING_CBLAS:
     CU_LDFLAGS.add_string('-lcublas')
 
 HIP_FLAGS = Flags('-std=c++11 -Wno-deprecated-gpu-targets -Wno-deprecated-declarations -dc \
---compiler-options "-fPIC" --expt-extended-lambda').\
+--expt-extended-lambda').\
     add_definition('USING_CUDA', 0).\
     add_definition('USING_HIP', 1).\
     add_string(COMMON_FLAGS)
+if not OS_IS_WINDOWS:
+    HIP_FLAGS.add_string('--compiler-options "-fPIC"')
 HIP_LDFLAGS = Flags('-lpthread -shared -Wno-deprecated-gpu-targets')
 if config.USING_CBLAS:
     HIP_LDFLAGS.add_string('-lhipblas')
@@ -72,25 +76,25 @@ def source_to_o(build_path, src_obj, compiler=config.CXX, cflags=CFLAGS):
         if build_dir_name not in existed_dirs:
             mkdir(build_dir_name)
             existed_dirs.add(build_dir_name)
-        if OS_IS_LINUX:
-            command = '%s %s %s -c -o %s' % (compiler, src, cflags, build_name)
-        else:
+        if OS_IS_WINDOWS and command_exists(compiler):
             inc_flags = Flags()
             for path in INC_PATHS:
                 p = os.path.join(ENV_PATH, path)
                 inc_flags.add_string('-I{}'.format(p))
             command = 'cl /O2 %s -c %s -Fo%s' % (inc_flags, src, build_name)
+        else:
+            command = '%s %s %s -c -o %s' % (compiler, src, cflags, build_name)
         commands.append(command)
     run_command_parallel(commands)
     return updated
 
 
 def o_to_so(target_name, objs, linker, ldflags=LDFLAGS):
-    if OS_IS_LINUX:
+    if OS_IS_WINDOWS and command_exists(linker):
+        command = 'link -DLL %s -out:%s' % (' '.join(objs), target_name)
+    else:
         command = '%s %s %s -o %s' % (linker,
                                       ' '.join(objs), ldflags, target_name)
-    else:
-        command = 'link -DLL %s -out:%s' % (' '.join(objs), target_name)
     run_command(command)
 
 
