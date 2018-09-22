@@ -1,9 +1,13 @@
 image: Visual Studio 2015
 version: 1.0.{build}
 
+enviroment:
+    matrix:
+        - PYTHON: C:\Python27-x64
+        - PYTHON: C:\Python36-x64
+
 build_script:
 - cmd: >-
-    set PATH=C:\Python37-x64;%PATH%
 
     pip install -r ./requirements.txt
 
