@@ -1,6 +1,8 @@
 [report]
 omit =
     */python?.?/*
+    */python??/*
+    */python??-x64/*
     */site-packages/*
 	thirdparty/*
     */mxnet/*
