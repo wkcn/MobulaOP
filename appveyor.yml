@@ -3,7 +3,7 @@ version: 1.0.{build}
 
 build_script:
 - cmd: >-
-    set PATH=C:\Python37-x64
+    set PATH=C:\Python37-x64;%PATH%
 
     pip install -r ./requirements.txt
 
