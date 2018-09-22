@@ -126,6 +126,8 @@ CTX_FUNC_MAP = dict()  # ctx -> dict(idcode -> function)
 # static
 # fname -> dict([(idcode, template_inst_code), ...])
 TEMPLATE_INST_MAP = dict()
+# fname -> build_id
+TEMPLATE_BUILD_ID_MAP = dict()
 
 
 def get_template_inst_fname(build_path, name):
@@ -145,16 +147,6 @@ def save_js_map(fname, data):
         fout.write(json.dumps(data))
 
 
-"""reference:
-https://stackoverflow.com/questions/50964033/forcing-ctypes-cdll-loadlibrary-to-reload-library-from-file"""
-try:
-    dlclose_func = ctypes.CDLL(None).dlclose
-    dlclose_func.argtypes = [ctypes.c_void_p]
-    dlclose_func.restype = ctypes.c_int
-except:
-    def dlclose_func(handle): return None
-
-
 class CPPInfo:
     def __init__(self, cpp_fname):
         self.cpp_fname = cpp_fname
@@ -163,17 +155,15 @@ class CPPInfo:
 
     def load_dll(self, dll_fname):
         # keep reference
-        if self.dll is not None:
-            dlclose_func(self.dll._handle)
         self.dll = ctypes.CDLL(dll_fname)
 
 
-def get_so_path(fname):
+def get_so_prefix(fname):
     path, name = os.path.split(fname)
     return os.path.join(path, 'build', os.path.splitext(name)[0])
 
 
-def build_lib(cpp_fname, code_buffer, ctx):
+def build_lib(cpp_fname, code_buffer, ctx, target_name):
     cpp_path, cpp_basename = os.path.split(cpp_fname)
     build_path = os.path.join(cpp_path, 'build')
     create_time = time.strftime('%a %Y-%m-%d %H:%M:%S %Z', time.localtime())
@@ -209,10 +199,7 @@ extern "C" {
     for src in ['defines.cpp', 'context.cpp']:
         buildin_cpp.append(os.path.join('src', src))
 
-    target_name = '{}_{}.so'.format(get_so_path(cpp_fname), ctx)
     source_to_so_ctx(build_path, srcs, target_name, ctx, buildin_cpp)
-
-    return target_name
 
 
 def op_loader(cfunc, arg_types, ctx, cpp_info):
@@ -244,7 +231,6 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
         cpp_path, cpp_basename = os.path.split(cpp_fname)
         build_path = os.path.join(cpp_path, 'build')
 
-        dll_fname = get_so_path(cpp_fname) + '_{}.so'.format(ctx)
         use_template = bool(cfunc.template_list)
         if not os.path.exists(build_path):
             os.makedirs(build_path)
@@ -252,10 +238,17 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
             build_path, os.path.splitext(cpp_basename)[0])
 
         if cpp_fname not in TEMPLATE_INST_MAP:
-            tmap = load_js_map(template_inst_fname)
+            map_data = load_js_map(template_inst_fname)
+            build_id = map_data.get('build_id', 0)
+            tmap = map_data.get('functions', dict())
+            TEMPLATE_BUILD_ID_MAP[cpp_fname] = build_id
             TEMPLATE_INST_MAP[cpp_fname] = tmap
         else:
             tmap = TEMPLATE_INST_MAP[cpp_fname]
+            build_id = TEMPLATE_BUILD_ID_MAP[cpp_fname]
+
+        so_prefix = get_so_prefix(cpp_fname)
+        dll_fname = '{}_{}_{}.so'.format(so_prefix, ctx, build_id)
 
         need_to_rebuild = True
         if file_changed(cpp_fname):
@@ -271,6 +264,12 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
                     need_to_rebuild = False
 
         if need_to_rebuild:
+            if os.path.exists(dll_fname):
+                # remove old DLL file
+                os.remove(dll_fname)
+                TEMPLATE_BUILD_ID_MAP[cpp_fname] += 1
+                build_id = TEMPLATE_BUILD_ID_MAP[cpp_fname]
+                dll_fname = '{}_{}_{}.so'.format(so_prefix, ctx, build_id)
             # build code
             code_buffer = ''
             # generate ordinary functions code
@@ -334,9 +333,10 @@ MOBULA_DLL void %s(%s) {
                 code_buffer += code
 
             with build_context():
-                build_lib(cpp_fname, code_buffer, ctx)
+                build_lib(cpp_fname, code_buffer, ctx, dll_fname)
             # update tmap
-            save_js_map(template_inst_fname, tmap)
+            map_data = dict(version=2.01, build_id=build_id, functions=tmap)
+            save_js_map(template_inst_fname, map_data)
 
         # load all functions in the dll
         cpp_info.load_dll(dll_fname)
