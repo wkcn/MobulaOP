@@ -215,6 +215,15 @@ def file_changed(fname):
     return False
 
 
+def update_file_hash(fname):
+    fname = os.path.abspath(fname)
+    global code_hash_updated
+    new_hash = get_file_hash(fname)
+    if fname not in code_hash or new_hash != code_hash[fname]:
+        code_hash_updated = True
+        code_hash[fname] = new_hash
+
+
 def find_include(inc):
     for path in INC_PATHS:
         fname = os.path.relpath(os.path.join(
@@ -224,7 +233,13 @@ def find_include(inc):
     return None
 
 
+def is_c_file(fname):
+    return os.path.splitext(fname)[-1] not in ['.cpp', '.c', '.cu']
+
+
 def update_dependant(fname):
+    if is_c_file(fname):
+        return
     fname = os.path.abspath(fname)
     global dependant_updated
     dependant_updated = True
@@ -239,6 +254,8 @@ def update_dependant(fname):
 
 
 def dependant_changed(fname):
+    if is_c_file(fname):
+        return False
     fname = os.path.abspath(fname)
     if fname not in dependant:
         update_dependant(fname)

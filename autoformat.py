@@ -1,4 +1,5 @@
 import os
+from mobula.build_utils import build_context, file_changed, update_file_hash
 
 
 def find_all_file(path, exts):
@@ -16,16 +17,23 @@ def find_all_file(path, exts):
 
 def clang_format(fnames):
     for fname in fnames:
-        os.system('clang-format -style=google -i {}'.format(fname))
+        if file_changed(fname):
+            print('Format {}'.format(fname))
+            os.system('clang-format -style=google -i {}'.format(fname))
+            update_file_hash(fname)
 
 
 def autopep8(fnames):
     for fname in fnames:
-        os.system('autopep8 --in-place {}'.format(fname))
+        if file_changed(fname):
+            print('Format {}'.format(fname))
+            os.system('autopep8 --in-place {}'.format(fname))
+            update_file_hash(fname)
 
 
-cpp_res = find_all_file('./', ['.cpp', '.h'])
-clang_format(cpp_res)
+with build_context():
+    cpp_res = find_all_file('./', ['.cpp', '.h'])
+    clang_format(cpp_res)
 
-py_res = find_all_file('./', ['.py'])
-autopep8(py_res)
+    py_res = find_all_file('./', ['.py'])
+    autopep8(py_res)
