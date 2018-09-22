@@ -16,6 +16,8 @@ def asnumpy(data):
         return data.asnumpy()
     if hasattr(data, 'numpy'):
         return data.numpy()
+    if isinstance(data, (list, tuple)):
+        return np.array(data)
     raise TypeError('Unknown Type: {}'.format(type(data)))
 
 
@@ -42,35 +44,44 @@ def assert_almost_equal(a, b, rtol=1e-5, atol=1e-8):
             axes = [-1] if data.ndim == 1 else [-1, -2]
             shape = data.shape
             slice_list = list(idx)
+            sidx = list(idx[-2:])
             for i in axes:
                 axis_len = shape[i]
                 axis_i = slice_list[i]
                 start = max(0, axis_i - R + 1)
                 stop = min(axis_len, axis_i + R)
                 slice_list[i] = slice(start, stop)
+                sidx[i] -= start
 
             def str_slice_list(slice_list):
                 return ', '.join([str(s) if not isinstance(s, slice) else
                                   '{}:{}'.format(s.start, s.stop) for s in slice_list])
+            sdata = data.round(5)
+            '''
+            if data.ndim == 1:
+                sdata[sidx[-1]] = str(sdata[sidx[-1]])
+            else:
+                sdata[sidx[-2]][sidx[-1]] = str(sdata[sidx[-2]][sidx[-1]])
+            '''
             return '{name}[{slice_list}]:\n{data}\n'.format(name=name, slice_list=str_slice_list(slice_list),
-                                                            data=data[tuple(slice_list)])
+                                                            data=sdata)
 
         R = 5
         out += 'Location of maximum error: {}\n'.format(idx)
-        out += '{}\n{}\n{}'.format(idx,
+        out += '{}\n{}\n{}'.format(info,
                                    get_array_R(
                                        a, 'a', idx, R),
                                    get_array_R(
                                        b, 'b', idx, R),
-                                   info
                                    )
         raise AssertionError(out)
 
     # Check Absolute Error
     if max_abs_error > atol:
         # If absolute error >= atol, raise AssertionError,
-        raise_error(abs_error, 'Maximum Absolute Error > atol: {} vs {}'.
-                    format(max_abs_error, atol))
+        idx = abs_error.argmax()
+        raise_error(abs_error, 'Maximum Absolute Error({}) > atol({}): {} vs {}'.
+                    format(max_abs_error, atol, a.ravel()[idx], b.ravel()[idx]))
 
     # Compute Relative Error |(a-b)/b|
     try:
@@ -83,8 +94,8 @@ def assert_almost_equal(a, b, rtol=1e-5, atol=1e-8):
     # Check Relative Error
     if max_relative_error > rtol:
         # If relative error >= rtol, raise AssertionError,
-        raise_error(relative_error, 'Maximum Relative Error > rtol: {} vs {}'.
-                    format(max_relative_error, rtol))
+        raise_error(relative_error, 'Maximum Relative Error({}) > rtol({}): {} vs {}'.
+                    format(max_relative_error, rtol, a.ravel()[idx], b.ravel()[idx]))
 
 
 def list_gpus():

@@ -81,7 +81,11 @@ def source_to_o(build_path, src_obj, compiler=config.CXX, cflags=CFLAGS):
             for path in INC_PATHS:
                 p = os.path.join(ENV_PATH, path)
                 inc_flags.add_string('-I{}'.format(p))
-            command = 'cl /O2 %s -c %s -Fo%s' % (inc_flags, src, build_name)
+            cflags_sp = str(cflags).split()
+            def_flags = ' '.join(
+                [s for s in cflags_sp if len(s) > 2 and s[:2] == '-D'])
+            command = 'cl /O2 %s %s -c %s -Fo%s' % (
+                def_flags, inc_flags, src, build_name)
         else:
             command = '%s %s %s -c -o %s' % (compiler, src, cflags, build_name)
         commands.append(command)

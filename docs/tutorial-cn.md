@@ -22,7 +22,7 @@ MobulaOP项目当前的特性有：
 - 3. 在编写自定义层的过程中，用户有更多的注意力关注在运算的实现上；
 - 4. 对MXNet有更多的支持，使用MobulaOP可以更方便地创建自定义算子(Custom Operator).
 
-MobulaOP暂时只支持Linux系统，之后会加入对Windows等系统的支持。
+MobulaOP支持Linux和Windows系统。
 
 下面，我想简单地介绍一下[MobulaOP](https://github.com/wkcn/MobulaOP)的使用方法。
 
