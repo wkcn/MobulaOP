@@ -1,27 +1,15 @@
+import ctypes
 from .build_utils import OS_IS_LINUX
 
-if OS_IS_LINUX:
-    def get_real_ctype_name(ctype_name):
-        '''
-        ctypes.c_int32: c_int
-        ctypes.c_int64: c_long
-        '''
-        if ctype_name == 'long':
-            ctype_name = 'int64_t'
-        return ctype_name
-else:
-    # Windows
-    def get_real_ctype_name(ctype_name):
-        '''
-        ctypes.c_int32: c_long
-        ctypes.c_int64: c_longlong
-        '''
-        if ctype_name == 'long':
-            ctype_name = 'int'
-        elif ctype_name == 'longlong':
-            ctype_name = 'int64_t'
-        return ctype_name
-
+CTYPE_INTS = [ctypes.c_short, ctypes.c_int, ctypes.c_long, ctypes.c_longlong]
+CTYPE_UINTS = [ctypes.c_ushort, ctypes.c_uint, ctypes.c_ulong, ctypes.c_ulonglong]
+def get_ctype_name(ctype):
+    # ctype.__name__ = 'c_xxx'
+    if ctype in CTYPE_INTS[2:]:
+        return 'int{}_t'.format(ctypes.sizeof(ctype) * 8)
+    if ctype in CTYPE_UINTS[2:]:
+        return 'uint{}_t'.format(ctypes.sizeof(ctype) * 8)
+    return ctype.__name__[2:]
 
 class DType:
     _DTYPE_LIST_ = dict()  # () -> inst
@@ -32,15 +20,15 @@ class DType:
         self.__reset__()
 
     def __reset__(self):
-        name = self.ctype.__name__
-        self.is_pointer = False
-        if name[:2] == 'LP':
-            # pointer
+        if self.ctype.__name__[:2] == 'LP':
             self.is_pointer = True
-            ctype_name = name[5:]
-            ctype_name = get_real_ctype_name(ctype_name)
+            basic_type = self.ctype._type_
         else:
-            ctype_name = name[2:]
+            self.is_pointer = False
+            basic_type = self.ctype
+
+        ctype_name = get_ctype_name(basic_type)
+
         if self.is_const:
             ctype_name = 'const {}'.format(ctype_name)
         if self.is_pointer:
