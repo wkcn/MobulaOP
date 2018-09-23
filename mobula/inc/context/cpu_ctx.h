@@ -6,12 +6,7 @@
 #include <cstring>
 #include <mutex>
 #include <thread>
-
-#ifdef __x86_64__
-typedef uint64_t PointerValue;
-#else
-typedef uint32_t PointerValue;
-#endif
+#include "../ctypes.h"
 
 namespace mobula {
 

@@ -14,4 +14,10 @@ typedef char* char_p;
 typedef wchar_t* wchar_p;
 typedef void* void_p;
 
+#ifdef __x86_64__
+typedef uint64_t PointerValue;
+#else
+typedef uint32_t PointerValue;
+#endif
+
 #endif  // MOBULA_INC_CTYPES_H_

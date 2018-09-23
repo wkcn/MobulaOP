@@ -72,6 +72,6 @@ def test_const_template():
 def test_void_pointer():
     pv = 3939
     p = ctypes.c_void_p(pv)
-    out = np.zeros(1, dtype=np.int32)
+    out = np.zeros(1, dtype=np.long)
     mobula.func.test_void_pointer(1, p, out)
     assert out == pv
