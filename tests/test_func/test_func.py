@@ -67,3 +67,11 @@ def test_const_template():
         a = np.empty(shape)
         mobula.func.test_const_template(a.size, c_value, a)
         assert_almost_equal(np.tile(value, shape), a, atol=atol)
+
+
+def test_void_pointer():
+    pv = 3939
+    p = ctypes.c_void_p(pv)
+    out = np.zeros(1, dtype=np.int32)
+    mobula.func.test_void_pointer(1, p, out)
+    assert out == pv

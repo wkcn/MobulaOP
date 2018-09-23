@@ -108,8 +108,8 @@ class MobulaFunc:
             """
             assert isinstance(p, (DType, TemplateType)),\
                 TypeError('Unknown Data Type: {}'.format(type(p)))
-            backend = glue.backend.get_var_backend(a)
             if p.is_pointer:
+                backend = glue.backend.get_var_backend(a)
                 # multiple-dim array
                 if p.is_const:
                     backend_inputs.append(a)
@@ -144,7 +144,7 @@ class MobulaFunc:
                     ctype = type(a) if hasattr(
                         a, '_type_') else UnknownCType(p.tname)
                 else:
-                    pa = p.ctype(a)
+                    pa = a if isinstance(a, ctypes.c_void_p) else p.ctype(a)
                     ctype = p.ctype
             return pa, dev_id, ctype
 

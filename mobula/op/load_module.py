@@ -57,7 +57,7 @@ def parse_parameter_decl(decl):
     Parameters
     ----------
     decl : str
-        The code of parameter declaration
+        The C++ code of parameter declaration
 
     Returns
     -------
@@ -78,15 +78,21 @@ def parse_parameter_decl(decl):
         sp = sp[1:]
     else:
         is_const = False
+
+    # type_name and variable_name in C++ code
     type_name = sp[0]
     var_name = sp[1]
 
-    ctype_name = 'c_{}'.format(type_name)
-    if hasattr(ctypes, ctype_name):
-        ctype = getattr(ctypes, ctype_name)
-        if is_pointer:
-            ctype = ctypes.POINTER(ctype)
-        return DType(ctype, is_const=is_const), var_name
+    if type_name == 'void':
+        assert is_pointer == True
+        return DType(ctypes.c_void_p, is_const=is_const), var_name
+    else:
+        ctype_name = 'c_{}'.format(type_name)
+        if hasattr(ctypes, ctype_name):
+            ctype = getattr(ctypes, ctype_name)
+            if is_pointer:
+                ctype = ctypes.POINTER(ctype)
+            return DType(ctype, is_const=is_const), var_name
     # template type
     return TemplateType(tname=type_name, is_pointer=is_pointer, is_const=is_const), var_name
 

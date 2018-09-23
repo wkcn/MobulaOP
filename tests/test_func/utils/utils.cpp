@@ -21,4 +21,9 @@ MOBULA_KERNEL test_const_template_kernel(const int n, const T1 value, T2* out) {
   parfor(n, [&](int i) { out[i] = static_cast<T2>(value); });
 }
 
+MOBULA_KERNEL test_void_pointer_kernel(const int n, const void *p, int* out) {
+  parfor(n, [&](int) {});
+  *out = reinterpret_cast<uint64_t>(p);
+}
+
 }  // namespace mobula

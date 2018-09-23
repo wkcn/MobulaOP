@@ -1,4 +1,5 @@
 from .build_utils import OS_IS_LINUX
+
 if OS_IS_LINUX:
     def get_real_ctype_name(ctype_name):
         '''
