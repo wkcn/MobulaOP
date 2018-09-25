@@ -2,7 +2,10 @@ import ctypes
 from .build_utils import OS_IS_LINUX
 
 CTYPE_INTS = [ctypes.c_short, ctypes.c_int, ctypes.c_long, ctypes.c_longlong]
-CTYPE_UINTS = [ctypes.c_ushort, ctypes.c_uint, ctypes.c_ulong, ctypes.c_ulonglong]
+CTYPE_UINTS = [ctypes.c_ushort, ctypes.c_uint,
+               ctypes.c_ulong, ctypes.c_ulonglong]
+
+
 def get_ctype_name(ctype):
     # ctype.__name__ = 'c_xxx'
     if ctype in CTYPE_INTS[2:]:
@@ -10,6 +13,7 @@ def get_ctype_name(ctype):
     if ctype in CTYPE_UINTS[2:]:
         return 'uint{}_t'.format(ctypes.sizeof(ctype) * 8)
     return ctype.__name__[2:]
+
 
 class DType:
     _DTYPE_LIST_ = dict()  # () -> inst

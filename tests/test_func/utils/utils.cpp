@@ -22,7 +22,7 @@ MOBULA_KERNEL test_const_template_kernel(const int n, const T1 value, T2* out) {
 }
 
 template <typename T>
-MOBULA_KERNEL test_void_pointer_kernel(const int n, const void *p, T* out) {
+MOBULA_KERNEL test_void_pointer_kernel(const int n, const void* p, T* out) {
   parfor(n, [&](int) {});
   *out = reinterpret_cast<T>(p);
 }

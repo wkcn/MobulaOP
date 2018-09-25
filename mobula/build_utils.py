@@ -73,6 +73,9 @@ def update_build_path(build_path):
     global code_hash, code_hash_filename, code_hash_updated
     global dependant, dependant_filename, dependant_updated
 
+    if not os.path.exists(build_path):
+        os.makedirs(build_path)
+
     config.BUILD_PATH = build_path
 
     code_hash = dict()

@@ -1,5 +1,5 @@
 import os
-from mobula.build_utils import build_context, file_changed, update_file_hash
+from mobula.build_utils import build_context, file_changed, update_file_hash, update_build_path
 
 
 def find_all_file(path, exts):
@@ -32,6 +32,7 @@ def autopep8(fnames):
 
 
 if __name__ == '__main__':
+    update_build_path('./autoformat_code')
     with build_context():
         cpp_res = find_all_file('./', ['.cpp', '.h'])
         clang_format(cpp_res)
