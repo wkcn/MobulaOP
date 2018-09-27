@@ -75,3 +75,8 @@ def test_void_pointer():
     out = np.zeros(1, dtype=np.long)
     mobula.func.test_void_pointer(1, p, out)
     assert out == pv
+
+
+def test_build():
+    mobula.func.mul_elemwise.build(['float'], 'cpu')
+    mobula.func.mul_elemwise.build(dict(T='int'), 'cpu')

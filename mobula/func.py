@@ -193,6 +193,60 @@ class MobulaFunc:
             source[:] = target
         return rtn
 
+    def build(self, template_types, ctx):
+        """Build this function
+
+        Parameters
+        ----------
+        template_types: list or tuple or dict
+            list:
+                a list of template type Names
+            tuple:
+                a tuple of template type Names
+            dict:
+                a mapping from template name to type name
+        ctx: str
+            context Name
+
+        Examples:
+        mobula.func.add.build(['float'], 'cpu')
+        """
+        arg_types = []
+        if isinstance(template_types, (list, tuple)):
+            template_mapping = dict()  # tname -> ctype
+            for t in self.par_type:
+                if isinstance(t, TemplateType):
+                    tname = t.tname
+                    if tname in template_mapping:
+                        ctype = template_mapping[tname]
+                    else:
+                        ctype = getattr(ctypes, 'c_{}'.format(
+                            template_types.pop(0)))
+                        template_mapping[tname] = ctype
+                    arg_types.append(t(ctype))
+                else:
+                    arg_types.append(t)
+            assert not template_types, Exception('redundant type')
+        else:
+            assert isinstance(template_types, dict), TypeError(
+                'The type of template_types should be list or tuple or dict.')
+            template_name = set()
+            for t in self.par_type:
+                if isinstance(t, TemplateType):
+                    tname = t.tname
+                    assert tname in template_types, KeyError(
+                        'Unknown Template Type: {}'.format(tname))
+                    template_name.add(tname)
+                    ctype = getattr(ctypes, 'c_{}'.format(
+                        template_types[tname]))
+                    arg_types.append(t(ctype))
+                else:
+                    arg_types.append(t)
+            assert len(template_name) == len(template_types), Exception(
+                'Different template name: {} vs {}'.format(template_name, set(template_types.keys())))
+        func = self.func
+        func.loader(func, arg_types, ctx, **func.loader_kwargs)
+
 
 def bind(functions):
     for k, func in functions.items():

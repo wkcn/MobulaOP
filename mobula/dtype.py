@@ -16,8 +16,6 @@ def get_ctype_name(ctype):
 
 
 class DType:
-    _DTYPE_LIST_ = dict()  # () -> inst
-
     def __init__(self, ctype, is_const=False):
         self.ctype = ctype
         self.is_const = is_const
@@ -63,3 +61,8 @@ class TemplateType:
             const='const ' if self.is_const else '',
             tname=self.tname,
             pointer='*' if self.is_pointer else '')
+
+    def __call__(self, ctype):
+        if self.is_pointer:
+            ctype = ctypes.POINTER(ctype)
+        return DType(ctype, is_const=self.is_const)
