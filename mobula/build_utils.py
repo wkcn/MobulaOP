@@ -18,7 +18,7 @@ if not hasattr(Queue.Queue, 'clear'):
 
 OS_NAME = platform.system()
 OS_IS_WINDOWS = OS_NAME == 'Windows'
-OS_IS_LINUX = OS_NAME == 'Linux'
+OS_IS_LINUX = OS_NAME in ['Linux', 'Darwin']
 assert OS_IS_WINDOWS or OS_IS_LINUX,\
     Exception('Unsupported Operator System: {}'.format(OS_NAME))
 
