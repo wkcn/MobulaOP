@@ -78,5 +78,5 @@ def test_void_pointer():
 
 
 def test_build():
-    mobula.func.mul_elemwise.build(['float'], 'cpu')
-    mobula.func.mul_elemwise.build(dict(T='int'), 'cpu')
+    mobula.func.mul_elemwise.build('cpu', ['float'])
+    mobula.func.mul_elemwise.build('cpu', dict(T='int'))

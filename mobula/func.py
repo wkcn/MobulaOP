@@ -193,23 +193,23 @@ class MobulaFunc:
             source[:] = target
         return rtn
 
-    def build(self, template_types, ctx):
+    def build(self, ctx, template_types=[]):
         """Build this function
 
         Parameters
         ----------
-        template_types: list or tuple or dict
+        ctx: str
+            context Name
+        template_types: list or tuple or dict, default: []
             list:
                 a list of template type Names
             tuple:
                 a tuple of template type Names
             dict:
                 a mapping from template name to type name
-        ctx: str
-            context Name
 
         Examples:
-        mobula.func.add.build(['float'], 'cpu')
+        mobula.func.add.build('cpu', ['float'])
         """
         arg_types = []
         if isinstance(template_types, (list, tuple)):
