@@ -30,7 +30,7 @@ using std::abs;
 using std::max;
 using std::min;
 
-#if HOST_NUM_THREADS > 1 or USING_OPENMP
+#if HOST_NUM_THREADS > 1 || USING_OPENMP
 constexpr int NUM_MOBULA_ATOMIC_ADD_MUTEXES = HOST_NUM_THREADS * 8;
 static std::mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
 inline MOBULA_DEVICE float atomic_add(const float val, float *address) {
