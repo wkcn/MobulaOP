@@ -83,7 +83,7 @@ def test_infer_type_for_const():
 def test_void_pointer():
     pv = 3939
     p = ctypes.c_void_p(pv)
-    out = np.zeros(1, dtype=np.int_)
+    out = np.zeros(1, dtype=np.int64)
     mobula.func.test_void_pointer(1, p, out)
     assert out == pv
 
