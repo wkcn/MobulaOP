@@ -86,81 +86,83 @@ class MobulaFunc:
         dev_id = None
         noncontiguous_list = []
         temp_list = []
-        backend_inputs = []
-        backend_outputs = []
         arg_types = []
         template_mapping = dict()
 
-        def analyze_element(a, p, backend_inputs, backend_outputs,
-                            noncontiguous_list, template_mapping):
+        # Pre-process
+        for var, ptype in zip(args_gen(), self.par_type):
+            if ptype.is_pointer:
+                if ptype.is_const:
+                    # input
+                    if hasattr(var, 'wait_to_read'):
+                        var.wait_to_read()
+                else:
+                    # output
+                    if hasattr(var, 'wait_to_write'):
+                        var.wait_to_write()
+
+        def analyze_element(var, ptype, noncontiguous_list, template_mapping):
             """Analyze an element
 
             Parameters
             ----------
-            a : variable
-            p : data type
-            backend_inputs: list
-                wait_to_read
-            backend_outputs: list
-                wait_to_write
+            var   : variable
+            ptype : data type
             noncontiguous_list : list
                 the list of noncontiguous variables
+            template_mapping : dict
+                the mapping from template name to ctype
             """
-            assert isinstance(p, (DType, TemplateType)),\
-                TypeError('Unknown Data Type: {}'.format(type(p)))
-            if p.is_pointer:
-                backend = glue.backend.get_var_backend(a)
-                # multiple-dim array
-                if p.is_const:
-                    backend_inputs.append(a)
-                else:
-                    backend_outputs.append(a)
+            assert isinstance(ptype, (DType, TemplateType)),\
+                TypeError('Unknown Data Type: {}'.format(type(ptype)))
+            if ptype.is_pointer:
+                backend = glue.backend.get_var_backend(var)
 
-                pa = backend.get_pointer(a)
-                if isinstance(pa, (list, tuple)):
-                    if p.is_const:
-                        temp_list.append(pa[1])  # hold a reference
+                data = backend.get_pointer(var)
+                if isinstance(data, (list, tuple)):
+                    if ptype.is_const:
+                        temp_list.append(data[1])  # hold a reference
                     else:
-                        noncontiguous_list.append((a, pa[1]))
-                    pa = pa[0]
-                dev_id = backend.dev_id(a)
-                ctype = ctypes.POINTER(backend.get_ctype(a))
+                        noncontiguous_list.append((var, data[1]))
+                    data = data[0]
+                dev_id = backend.dev_id(var)
+                ctype = ctypes.POINTER(backend.get_ctype(var))
 
-                if isinstance(p, DType):
-                    expected_ctype = p.ctype
+                if isinstance(ptype, DType):
+                    expected_ctype = ptype.ctype
                 else:
-                    if p.tname in template_mapping:
-                        expected_ctype = template_mapping[p.tname]
+                    if ptype.tname in template_mapping:
+                        expected_ctype = template_mapping[ptype.tname]
                     else:
-                        template_mapping[p.tname] = expected_ctype = ctype
+                        template_mapping[ptype.tname] = expected_ctype = ctype
                 assert ctype == expected_ctype,\
                     TypeError('Expected Type {} instead of {}'.format(
                         expected_ctype, ctype))
-                pa = ctypes.cast(pa, ctype)
+                data = ctypes.cast(data, ctype)
             else:
                 dev_id = None
-                if isinstance(p, TemplateType):
-                    pa = a
-                    ctype = type(a) if hasattr(
-                        a, '_type_') else UnknownCType(p.tname)
+                if isinstance(ptype, TemplateType):
+                    data = var
+                    ctype = type(var) if hasattr(
+                        var, '_type_') else UnknownCType(ptype.tname)
                 else:
-                    pa = a if isinstance(a, ctypes.c_void_p) else p.ctype(a)
-                    ctype = p.ctype
-            return pa, dev_id, ctype
+                    data = var if isinstance(
+                        var, ctypes.c_void_p) else ptype.ctype(var)
+                    ctype = ptype.ctype
+            return data, dev_id, ctype
 
-        extra_pars = [backend_inputs, backend_outputs,
-                      noncontiguous_list, template_mapping]
+        extra_pars = [noncontiguous_list, template_mapping]
 
-        for a, p in zip(args_gen(), self.par_type):
-            assert not isinstance(p, (list, tuple)),\
+        for var, ptype in zip(args_gen(), self.par_type):
+            assert not isinstance(ptype, (list, tuple)),\
                 Exception('Not supported list or tuple as input variable now')
-            pa, aid, ctype = analyze_element(a, p, *extra_pars)
-            arg_datas.append(pa)
+            data, aid, ctype = analyze_element(var, ptype, *extra_pars)
+            arg_datas.append(data)
             if isinstance(ctype, UnknownCType):
-                ctype.is_const = p.is_const
+                ctype.is_const = ptype.is_const
                 arg_types.append(ctype)
             else:
-                arg_types.append(DType(ctype, is_const=p.is_const))
+                arg_types.append(DType(ctype, is_const=ptype.is_const))
 
             if aid is not None:
                 if dev_id is not None:
@@ -177,13 +179,6 @@ class MobulaFunc:
                 ctype = template_mapping[a.tname]._type_
                 arg_types[i] = DType(ctype, a.is_const)
                 arg_datas[i] = ctype(arg_datas[i])
-
-        for var in backend_inputs:
-            if hasattr(var, 'wait_to_read'):
-                var.wait_to_read()
-        for var in backend_outputs:
-            if hasattr(var, 'wait_to_write'):
-                var.wait_to_write()
 
         rtn = self.func(arg_datas=arg_datas,
                         arg_types=arg_types,
