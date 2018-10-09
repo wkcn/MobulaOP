@@ -69,6 +69,17 @@ def test_const_template():
         assert_almost_equal(np.tile(value, shape), a, atol=atol)
 
 
+def test_infer_type_for_const():
+    ns = [np.int32, np.int64, np.float32, np.float64]
+    N = 3
+    V = 39.39
+    for dtype in ns:
+        out = np.empty(N, dtype=dtype)
+        rv = dtype(V).tolist()
+        mobula.func.infer_type_for_const(N, rv, out)
+        assert_almost_equal(out, rv)
+
+
 def test_void_pointer():
     pv = 3939
     p = ctypes.c_void_p(pv)

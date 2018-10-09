@@ -18,10 +18,19 @@ def asnumpy(data):
         return data.numpy()
     if isinstance(data, (list, tuple)):
         return np.array(data)
-    raise TypeError('Unknown Type: {}'.format(type(data)))
+    raise TypeError('Unsupported Type: {}'.format(type(data)))
 
 
 def assert_almost_equal(a, b, rtol=1e-5, atol=1e-8):
+    def check_value(data, other):
+        if isinstance(data, (int, float)):
+            if hasattr(other, 'shape'):
+                return np.full(other.shape, fill_value=data)
+            else:
+                return np.array(a)
+        return data
+    a = check_value(a, b)
+    b = check_value(b, a)
     a = asnumpy(a)
     b = asnumpy(b)
     # Check Shape

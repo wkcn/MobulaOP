@@ -27,4 +27,9 @@ MOBULA_KERNEL test_void_pointer_kernel(const int n, const void* p, T* out) {
   *out = reinterpret_cast<T>(p);
 }
 
+template <typename T>
+MOBULA_KERNEL infer_type_for_const_kernel(const int n, T value, T* out) {
+  parfor(n, [&](int i) { out[i] = value; });
+}
+
 }  // namespace mobula
