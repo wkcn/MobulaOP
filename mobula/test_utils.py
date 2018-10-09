@@ -7,6 +7,8 @@ ENV_PATH = os.path.dirname(__file__)
 
 if sys.version_info[0] < 3:
     FileNotFoundError = IOError
+else:
+    long = int
 
 
 def asnumpy(data):
@@ -23,7 +25,7 @@ def asnumpy(data):
 
 def assert_almost_equal(a, b, rtol=1e-5, atol=1e-8):
     def check_value(data, other):
-        if isinstance(data, (int, float)):
+        if isinstance(data, (int, long, float)):
             if hasattr(other, 'shape'):
                 return np.full(other.shape, fill_value=data)
             else:
