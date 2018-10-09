@@ -1,5 +1,4 @@
 import ctypes
-from .build_utils import OS_IS_LINUX
 
 CTYPE_INTS = [ctypes.c_short, ctypes.c_int, ctypes.c_long, ctypes.c_longlong]
 CTYPE_UINTS = [ctypes.c_ushort, ctypes.c_uint,
@@ -16,26 +15,33 @@ def get_ctype_name(ctype):
 
 
 class DType:
+    _EXTRA_ATTRS = dict()
+
     def __init__(self, ctype, is_const=False):
         self.ctype = ctype
         self.is_const = is_const
-        self.__reset__()
+        self.cname, self.is_pointer = self._get_extra_attr()
 
-    def __reset__(self):
-        if self.ctype.__name__[:2] == 'LP':
-            self.is_pointer = True
-            basic_type = self.ctype._type_
-        else:
-            self.is_pointer = False
-            basic_type = self.ctype
+    def _get_extra_attr(self):
+        idcode = (self.ctype, self.is_const)
+        if idcode not in DType._EXTRA_ATTRS:
+            # Assignment for self.is_pointer and self.cname
+            if self.ctype.__name__[:2] == 'LP':
+                is_pointer = True
+                basic_type = self.ctype._type_
+            else:
+                is_pointer = False
+                basic_type = self.ctype
 
-        ctype_name = get_ctype_name(basic_type)
+            ctype_name = get_ctype_name(basic_type)
 
-        if self.is_const:
-            ctype_name = 'const {}'.format(ctype_name)
-        if self.is_pointer:
-            ctype_name += '*'
-        self.cname = ctype_name
+            if self.is_const:
+                ctype_name = 'const {}'.format(ctype_name)
+            if is_pointer:
+                ctype_name += '*'
+            cname = ctype_name
+            DType._EXTRA_ATTRS[idcode] = (cname, is_pointer)
+        return DType._EXTRA_ATTRS[idcode]
 
     def __repr__(self):
         return self.cname
