@@ -89,8 +89,7 @@ class MobulaFunc:
         arg_types = []
         template_mapping = dict()
 
-        # Pre-process
-        for var, ptype in zip(args_gen(), self.par_type):
+        def _var_wait(var, ptype):
             if ptype.is_pointer:
                 if ptype.is_const:
                     # input
@@ -100,6 +99,10 @@ class MobulaFunc:
                     # output
                     if hasattr(var, 'wait_to_write'):
                         var.wait_to_write()
+
+        # Pre-process
+        for var, ptype in zip(args_gen(), self.par_type):
+            _var_wait(var, ptype)
 
         def analyze_element(var, ptype, noncontiguous_list, template_mapping):
             """Analyze an element
@@ -170,6 +173,10 @@ class MobulaFunc:
                         "Don't use multiple devices in a call :-(")
                 else:
                     dev_id = aid
+
+        # Post-process
+        for var, ptype in zip(args_gen(), self.par_type):
+            _var_wait(var, ptype)
 
         # try to know the unknown ctype
         for i, a in enumerate(arg_types):
