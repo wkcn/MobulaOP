@@ -3,4 +3,4 @@
 
 #include "defines.h"
 
-#endif
+#endif  // _MOBULA_OP_H_

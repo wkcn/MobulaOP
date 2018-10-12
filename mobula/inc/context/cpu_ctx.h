@@ -1,12 +1,16 @@
 #ifndef MOBULA_INC_CONTEXT_CPU_CTX_H_
 #define MOBULA_INC_CONTEXT_CPU_CTX_H_
 
+#define MOBULA_KERNEL void
+#define MOBULA_DEVICE
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <mutex>
 #include <thread>
 #include "../ctypes.h"
+#include "./common.h"
 
 namespace mobula {
 
@@ -22,9 +26,6 @@ inline void blas_gemm(const int axis, const bool tA, const bool tB, const int M,
               N, K, alpha, A, lda, B, ldb, beta, C, ldc);
 }
 #endif
-
-#define MOBULA_KERNEL void
-#define MOBULA_DEVICE
 
 using std::abs;
 using std::max;

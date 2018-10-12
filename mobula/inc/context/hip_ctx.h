@@ -1,9 +1,13 @@
 #ifndef MOBULA_INC_CONTEXT_HIP_CTX_H_
 #define MOBULA_INC_CONTEXT_HIP_CTX_H_
 
+#define MOBULA_KERNEL __global__ void
+#define MOBULA_DEVICE __device__
+
 #include <hip/hip_runtime.h>
 #include <algorithm>
 #include <iostream>
+#include "./common.h"
 
 namespace mobula {
 
@@ -39,9 +43,6 @@ inline int HIP_GET_NUM_THREADS(const int n) {
 inline int HIP_GET_BLOCKS(const int n, const int num_threads) {
   return std::min(HIP_MAX_GRID_NUM, n + num_threads - 1) / num_threads;
 }
-
-#define MOBULA_KERNEL __global__ void
-#define MOBULA_DEVICE __device__
 
 template <typename Func>
 class KernelRunner {
@@ -107,23 +108,6 @@ template <typename T>
 T *MemcpyDevToDev(T *dst, const T *src, size_t size) {
   hipMemcpy(dst, src, size, hipMemcpyDeviceToDevice);
   return dst;
-}
-
-inline MOBULA_DEVICE void get_parfor_range(const int n, const int num_threads,
-                                           const int thread_id, int *start,
-                                           int *end) {
-  const int avg_len = n / num_threads;
-  const int rest = n % num_threads;
-  // [start, end)
-  *start = avg_len * thread_id;
-  if (rest > 0) {
-    if (thread_id <= rest) {
-      *start += thread_id;
-    } else {
-      *start += rest;
-    }
-  }
-  *end = *start + avg_len + (thread_id < rest);
 }
 
 // parfor for hip device should be called in hip kernel.

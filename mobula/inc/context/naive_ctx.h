@@ -44,23 +44,6 @@ class KernelRunner {
   int n_;
 };
 
-inline MOBULA_DEVICE void get_parfor_range(const int n, const int num_threads,
-                                           const int thread_id, int *start,
-                                           int *end) {
-  const int avg_len = n / num_threads;
-  const int rest = n % num_threads;
-  // [start, end)
-  *start = avg_len * thread_id;
-  if (rest > 0) {
-    if (thread_id <= rest) {
-      *start += thread_id;
-    } else {
-      *start += rest;
-    }
-  }
-  *end = *start + avg_len + (thread_id < rest);
-}
-
 template <typename Func>
 MOBULA_DEVICE void parfor(const int n, Func F) {
   int start, end;
