@@ -174,10 +174,6 @@ class MobulaFunc:
                 else:
                     dev_id = aid
 
-        # Post-process
-        for var, ptype in zip(args_gen(), self.par_type):
-            _var_wait(var, ptype)
-
         # try to know the unknown ctype
         for i, a in enumerate(arg_types):
             if isinstance(a, UnknownCType):
