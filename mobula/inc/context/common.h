@@ -1,6 +1,10 @@
 #ifndef MOBULA_INC_CONTEXT_COMMON_H_
 #define MOBULA_INC_CONTEXT_COMMON_H_
 
+#include "../logging.h"
+
+namespace mobula {
+
 inline MOBULA_DEVICE void get_parfor_range(const int n, const int num_threads,
                                            const int thread_id, int *start,
                                            int *end) {
@@ -17,5 +21,7 @@ inline MOBULA_DEVICE void get_parfor_range(const int n, const int num_threads,
   }
   *end = *start + avg_len + (thread_id < rest);
 }
+
+}  // namespace mobula
 
 #endif  // MOBULA_INC_CONTEXT_COMMON_H_
