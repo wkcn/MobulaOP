@@ -44,18 +44,46 @@ inline int CUDA_GET_BLOCKS(const int n, const int num_threads) {
   return std::min(CUDA_MAX_GRID_NUM, n + num_threads - 1) / num_threads;
 }
 
-#define KERNEL_RUN(a, n)                                    \
-  const int __cuda_num_threads__ = CUDA_GET_NUM_THREADS(n); \
-  (a)<<<CUDA_GET_BLOCKS(n, __cuda_num_threads__), __cuda_num_threads__>>>
-
-#define CUDA_CHECK(condition)                               \
-  /* Code block avoids redefinition of cudaError_t error */ \
-  do {                                                      \
-    cudaError_t error = condition;                          \
-    if (error != cudaSuccess) {                             \
-      std::cout << cudaGetErrorString(error) << std::endl;  \
-    }                                                       \
+/*!
+ * \brief Check CUDA error.
+ * \param msg Message to print if an error occured.
+ */
+#define CHECK_CUDA_ERROR(msg)                                                \
+  do {                                                                       \
+    cudaError_t e = cudaGetLastError();                                      \
+    CHECK_EQ(e, cudaSuccess) << (msg) << " CUDA: " << cudaGetErrorString(e); \
   } while (0)
+
+/*!
+ * \brief Check CUDA error.
+ * \param condition the return value when calling CUDA function
+ */
+#define CUDA_CHECK(condition)                                  \
+  /* Code block avoids redefinition of cudaError_t error */    \
+  do {                                                         \
+    cudaError_t error = condition;                             \
+    CHECK_EQ(error, cudaSuccess) << cudaGetErrorString(error); \
+  } while (0)
+
+template <typename Func>
+class KernelRunner {
+ public:
+  KernelRunner(Func func, int n) : func_(func), n_(n) {}
+  template <typename... Args>
+  void operator()(Args... args) {
+    const int nthreads = std::min(n_, HOST_NUM_THREADS);
+    const int threadsPerBlock = CUDA_GET_NUM_THREADS(nthreads);
+    const int blocks = CUDA_GET_BLOCKS(nthreads, threadsPerBlock);
+    func_<<<blocks, threadsPerBlock>>>(args...);
+    CHECK_CUDA_ERROR("Run Kernel");
+  }
+
+ private:
+  Func func_;
+  int n_;
+};
+
+#define KERNEL_RUN(a, n) (mobula::KernelRunner<decltype(&(a))>(&(a), (n)))
 
 template <typename T>
 inline __device__ T atomic_add(const T val, T *address);

@@ -1,6 +1,8 @@
 #ifndef MOBULA_INC_CTYPES_H_
 #define MOBULA_INC_CTYPES_H_
 
+namespace mobula {
+
 typedef wchar_t wchar;
 typedef char byte;
 typedef unsigned char ubyte;
@@ -19,5 +21,7 @@ typedef uint64_t PointerValue;
 #else
 typedef uint32_t PointerValue;
 #endif
+
+}  // namespace mobula
 
 #endif  // MOBULA_INC_CTYPES_H_

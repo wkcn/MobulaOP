@@ -44,6 +44,27 @@ inline int HIP_GET_BLOCKS(const int n, const int num_threads) {
   return std::min(HIP_MAX_GRID_NUM, n + num_threads - 1) / num_threads;
 }
 
+/*!
+ * \brief Check HIP error.
+ * \param msg Message to print if an error occured.
+ */
+#define CHECK_HIP_ERROR(msg)                                              \
+  do {                                                                    \
+    hipError_t e = hipGetLastError();                                     \
+    CHECK_EQ(e, hipSuccess) << (msg) << " HIP: " << hipGetErrorString(e); \
+  } while (0)
+
+/*!
+ * \brief Check HIP error.
+ * \param condition the return value when calling HIP function
+ */
+#define HIP_CHECK(condition)                                 \
+  /* Code block avoids redefinition of hipError_t error */   \
+  do {                                                       \
+    hipError_t error = condition;                            \
+    CHECK_EQ(error, hipSuccess) << hipGetErrorString(error); \
+  } while (0)
+
 template <typename Func>
 class KernelRunner {
  public:
@@ -55,6 +76,7 @@ class KernelRunner {
     const int blocks = HIP_GET_BLOCKS(nthreads, threadsPerBlock);
     hipLaunchKernelGGL(func_, dim3(blocks), dim3(threadsPerBlock), 0, 0,
                        args...);
+    CHECK_HIP_ERROR("Run Kernel");
   }
 
  private:
@@ -63,14 +85,6 @@ class KernelRunner {
 };
 
 #define KERNEL_RUN(a, n) (mobula::KernelRunner<decltype(&(a))>(&(a), (n)))
-
-#define HIP_CHECK(condition)                              \
-  do {                                                    \
-    hipError_t error = condition;                         \
-    if (error != hipSuccess) {                            \
-      std::cout << hipGetErrorString(error) << std::endl; \
-    }                                                     \
-  } while (0)
 
 template <typename T>
 inline __device__ T atomic_add(const T val, T *address);
