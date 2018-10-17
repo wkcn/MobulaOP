@@ -89,16 +89,22 @@ class MobulaFunc:
         arg_types = []
         template_mapping = dict()
 
+        def wait_to_read(var):
+            if hasattr(var, 'wait_to_read'):
+                var.wait_to_read()
+
+        def wait_to_write(var):
+            if hasattr(var, 'wait_to_write'):
+                var.wait_to_write()
+
         def _var_wait(var, ptype):
             if ptype.is_pointer:
                 if ptype.is_const:
                     # input
-                    if hasattr(var, 'wait_to_read'):
-                        var.wait_to_read()
+                    wait_to_read(var)
                 else:
                     # output
-                    if hasattr(var, 'wait_to_write'):
-                        var.wait_to_write()
+                    wait_to_write(var)
 
         # Pre-process
         for var, ptype in zip(args_gen(), self.par_type):
@@ -123,10 +129,13 @@ class MobulaFunc:
 
                 data = backend.get_pointer(var)
                 if isinstance(data, (list, tuple)):
+                    # data = (contiguous_array_pointer, contiguous_array_object)
                     if ptype.is_const:
                         temp_list.append(data[1])  # hold a reference
+                        wait_to_read(data[1])
                     else:
                         noncontiguous_list.append((var, data[1]))
+                        wait_to_write(data[1])
                     data = data[0]
                 dev_id = backend.dev_id(var)
                 ctype = ctypes.POINTER(backend.get_ctype(var))
