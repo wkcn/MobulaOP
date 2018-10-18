@@ -5,9 +5,9 @@ namespace mobula {}
 #if USING_CUDA
 void set_device(const int device_id) {
   int current_device;
-  CUDA_CHECK(cudaGetDevice(&current_device));
+  CHECK_CUDA(cudaGetDevice(&current_device));
   if (current_device != device_id) {
-    CUDA_CHECK(cudaSetDevice(device_id));
+    CHECK_CUDA(cudaSetDevice(device_id));
   }
 }
 #elif USING_HIP

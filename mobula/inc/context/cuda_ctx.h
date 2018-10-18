@@ -58,11 +58,10 @@ inline int CUDA_GET_BLOCKS(const int n, const int num_threads) {
  * \brief Check CUDA error.
  * \param condition the return value when calling CUDA function
  */
-#define CUDA_CHECK(condition)                                  \
+#define CHECK_CUDA(condition)                                  \
   /* Code block avoids redefinition of cudaError_t error */    \
   do {                                                         \
-    cudaError_t error = condition;                             \
-    CHECK_EQ(error, cudaSuccess) << cudaGetErrorString(error); \
+    CHECK_EQ(condition, cudaSuccess) << cudaGetErrorString(condition); \
   } while (0)
 
 template <typename Func>
@@ -74,7 +73,11 @@ class KernelRunner {
     const int nthreads = std::min(n_, HOST_NUM_THREADS);
     const int threadsPerBlock = CUDA_GET_NUM_THREADS(nthreads);
     const int blocks = CUDA_GET_BLOCKS(nthreads, threadsPerBlock);
-    func_<<<blocks, threadsPerBlock>>>(args...);
+    cudaStream_t stream;
+    CHECK_CUDA(cudaStreamCreate(&stream));
+    func_<<<blocks, threadsPerBlock, 0, stream>>>(args...);
+    CHECK_CUDA(cudaStreamSynchronize(stream));
+    CHECK_CUDA(cudaStreamDestroy(stream));
     CHECK_CUDA_ERROR("Run Kernel");
   }
 
