@@ -28,9 +28,9 @@ def test_almost_equal_value():
     assert_almost_equal(a, b, atol=atol)
     b[0, 0, 0] += atol
     b[0, 1, 2] -= atol
-    assert_almost_equal(a, b, rtol=1, atol=atol * 2.0)
+    assert_almost_equal(a, b, rtol=np.inf, atol=atol * 2.0)
     check_almost_euqal_expection_raise(
-        a, b, 'Absolute Error Check failed', rtol=1, atol=atol/2.0)
+        a, b, 'Absolute Error Check failed', rtol=np.inf, atol=atol/2.0)
     eps = np.finfo(b.dtype).eps
     rtol = np.max(np.abs((a - b) / (b + eps)))
     assert_almost_equal(a, b, rtol=rtol * 2.0, atol=atol * 2.0)
