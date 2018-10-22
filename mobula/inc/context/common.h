@@ -5,6 +5,9 @@
 
 namespace mobula {
 
+template <typename T>
+void UNUSED_EXPR(T &&) {}
+
 inline MOBULA_DEVICE void get_parfor_range(const int n, const int num_threads,
                                            const int thread_id, int *start,
                                            int *end) {

@@ -54,8 +54,8 @@ inline int HIP_GET_BLOCKS(const int n, const int num_threads) {
  * \brief Check HIP error.
  * \param condition the return value when calling HIP function
  */
-#define CHECK_HIP(condition)                                         \
-    CHECK_EQ(condition, hipSuccess) << hipGetErrorString(condition)
+#define CHECK_HIP(condition) \
+  CHECK_EQ(condition, hipSuccess) << hipGetErrorString(condition)
 
 template <typename Func>
 class KernelRunner {
@@ -84,6 +84,16 @@ class KernelRunner {
   int n_;
 };
 
+#define KERNEL_RUN_BEGIN(device_id)             \
+  {                                             \
+    int last_device_id;                         \
+    CHECK_HIP(hipGetDevice(&last_device_id));   \
+    if (last_device_id != device_id)            \
+        CHECK_HIP(hipSetDevice(device_id) \
+#define KERNEL_RUN_END(device_id) \
+    if (last_device_id != device_id) \
+        CHECK_HIP(hipSetDevice(last_device_id); \
+  }
 #define KERNEL_RUN(a, n) (mobula::KernelRunner<decltype(&(a))>(&(a), (n)))
 
 template <typename T>

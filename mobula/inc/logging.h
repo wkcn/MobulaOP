@@ -11,7 +11,8 @@ class MobulaLogger {
  public:
   MobulaLogger(const std::string name, bool is_fatal)
       : name_(name), is_fatal_(is_fatal) {}
-  MobulaLogger& operator<<(std::string msg) {
+  template <typename T>
+  MobulaLogger& operator<<(const T msg) {
     buffer_ << msg;
     return *this;
   }
