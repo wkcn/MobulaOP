@@ -4,15 +4,11 @@
 #define MOBULA_KERNEL __global__ void
 #define MOBULA_DEVICE __device__
 
-#include <hip/hip_runtime.h>
-#include <algorithm>
-#include <iostream>
-#include "./common.h"
+#include "./hip_ctx_header.h"
 
 namespace mobula {
 
 #if USING_CBLAS
-#include <hipblas.h>
 static hipblasHandle_t HIPBLAS_HANDLE;
 static struct HIPBLAS_INIT {
   HIPBLAS_INIT() { hipblasCreate(&HIPBLAS_HANDLE); }
@@ -58,12 +54,8 @@ inline int HIP_GET_BLOCKS(const int n, const int num_threads) {
  * \brief Check HIP error.
  * \param condition the return value when calling HIP function
  */
-#define HIP_CHECK(condition)                                 \
-  /* Code block avoids redefinition of hipError_t error */   \
-  do {                                                       \
-    hipError_t error = condition;                            \
-    CHECK_EQ(error, hipSuccess) << hipGetErrorString(error); \
-  } while (0)
+#define CHECK_HIP(condition) \
+  CHECK_EQ(condition, hipSuccess) << hipGetErrorString(condition)
 
 template <typename Func>
 class KernelRunner {
@@ -74,8 +66,16 @@ class KernelRunner {
     const int nthreads = std::min(n_, HOST_NUM_THREADS);
     const int threadsPerBlock = HIP_GET_NUM_THREADS(nthreads);
     const int blocks = HIP_GET_BLOCKS(nthreads, threadsPerBlock);
-    hipLaunchKernelGGL(func_, dim3(blocks), dim3(threadsPerBlock), 0, 0,
+    hipStream_t stream;
+    CHECK_HIP(hipStreamCreate(&stream));
+#if USING_HIP
+    hipLaunchKernelGGL(func_, dim3(blocks), dim3(threadsPerBlock), 0, stream,
                        args...);
+#else
+    func_<<<blocks, threadsPerBlock, 0, stream>>>(args...);
+#endif
+    CHECK_HIP(hipStreamSynchronize(stream));
+    CHECK_HIP(hipStreamDestroy(stream));
     CHECK_HIP_ERROR("Run Kernel");
   }
 
@@ -84,6 +84,16 @@ class KernelRunner {
   int n_;
 };
 
+#define KERNEL_RUN_BEGIN(device_id)             \
+  {                                             \
+    int last_device_id;                         \
+    CHECK_HIP(hipGetDevice(&last_device_id));   \
+    if (last_device_id != device_id)            \
+        CHECK_HIP(hipSetDevice(device_id)
+#define KERNEL_RUN_END(device_id) \
+    if (last_device_id != device_id) \
+        CHECK_HIP(hipSetDevice(last_device_id); \
+  }
 #define KERNEL_RUN(a, n) (mobula::KernelRunner<decltype(&(a))>(&(a), (n)))
 
 template <typename T>

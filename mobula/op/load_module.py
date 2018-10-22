@@ -246,6 +246,8 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
 
         if cpp_fname not in TEMPLATE_INST_MAP:
             map_data = load_js_map(template_inst_fname)
+            assert map_data.get('version') == OP_LOAD_MODULE_BUILD_VERSION, Exception(
+                'unmatched wrapper file :-(. Please remove `build` directory in custom operator, and rebuild it.')
             build_id = map_data.get('build_id', 0)
             tmap = map_data.get('functions', dict())
             TEMPLATE_BUILD_ID_MAP[cpp_fname] = build_id
@@ -293,8 +295,10 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
                 nthread = ord_cfunc.arg_names[0]
                 args_inst = ', '.join(ord_cfunc.arg_names)
                 code_buffer += '''
-MOBULA_DLL void %s(%s) {
-    KERNEL_RUN(%s, %s)(%s);
+MOBULA_DLL void %s(const int device_id, %s) {
+  KERNEL_RUN_BEGIN(device_id);
+  KERNEL_RUN(%s, %s)(%s);
+  KERNEL_RUN_END(device_id);
 }''' % (func_idcode_hash, args_def, '{}_kernel'.format(func_name), nthread, args_inst)
 
             # generate template functions code
@@ -331,8 +335,10 @@ MOBULA_DLL void %s(%s) {
                 args_inst = ', '.join(cfunc.arg_names)
                 template_post = '<%s>' % (', '.join(template_inst))
                 code = '''
-MOBULA_DLL void %s(%s) {
-    KERNEL_RUN(%s, %s)(%s);
+MOBULA_DLL void %s(const int device_id, %s) {
+  KERNEL_RUN_BEGIN(device_id);
+  KERNEL_RUN(%s, %s)(%s);
+  KERNEL_RUN_END(device_id);
 }''' % (func_idcode_hash, args_def, '({}_kernel{})'.
                     format(func_name, template_post), nthread, args_inst)
                 tmap[idcode] = code

@@ -2,24 +2,16 @@
 
 namespace mobula {}
 
-#if USING_CUDA
+#if USING_HIP || USING_CUDA
 void set_device(const int device_id) {
   int current_device;
-  CUDA_CHECK(cudaGetDevice(&current_device));
+  CHECK_HIP(hipGetDevice(&current_device));
   if (current_device != device_id) {
-    CUDA_CHECK(cudaSetDevice(device_id));
+    CHECK_HIP(hipSetDevice(device_id));
   }
 }
-#elif USING_HIP
-void set_device(const int device_id) {
-  int current_device;
-  HIP_CHECK(hipGetDevice(&current_device));
-  if (current_device != device_id) {
-    HIP_CHECK(hipSetDevice(device_id));
-  }
-}
-#else   // USING_CUDA else
+#else
 void set_device(const int /*device_id*/) {
   throw "Doesn't support setting device on CPU mode";
 }
-#endif  // USING_CUDA endif
+#endif  // USING_HIP || USING_CUDA

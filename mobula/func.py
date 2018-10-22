@@ -31,13 +31,6 @@ for gpu_ctx in ['cuda', 'hip']:
         break
 
 
-def set_device(dev_id):
-    if gpu_lib is None:
-        raise Exception('Either mobula_op_cuda.so or mobula_op_hip.so not found. \
-                Please `make cuda` or `make hip` for MobulaOP')
-    gpu_lib.set_device(dev_id)
-
-
 class CFuncDef:
     def __init__(self, func_name, arg_names=[], arg_types=None, rtn_type=None,
                  template_list=[], loader=None, loader_kwargs=None):
@@ -52,12 +45,12 @@ class CFuncDef:
     def __call__(self, arg_datas, arg_types, dev_id):
         if dev_id is None:
             ctx = 'cpu'
+            dev_id = -1
         else:
-            set_device(dev_id)
             ctx = gpu_ctx_name
         # function loader
         func = self.loader(self, arg_types, ctx, **self.loader_kwargs)
-        return func(*arg_datas)
+        return func(dev_id, *arg_datas)
 
 
 class MobulaFunc:

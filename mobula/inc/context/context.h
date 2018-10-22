@@ -5,9 +5,7 @@
 
 #include "../api.h"
 
-#if USING_CUDA
-#include "./cuda_ctx.h"
-#elif USING_HIP
+#if USING_HIP || USING_CUDA
 #include "./hip_ctx.h"
 #else
 #include "./cpu_ctx.h"

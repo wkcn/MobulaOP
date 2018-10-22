@@ -11,7 +11,8 @@ class MobulaLogger {
  public:
   MobulaLogger(const std::string name, bool is_fatal)
       : name_(name), is_fatal_(is_fatal) {}
-  MobulaLogger& operator<<(std::string msg) {
+  template <typename T>
+  MobulaLogger& operator<<(const T msg) {
     buffer_ << msg;
     return *this;
   }
@@ -38,7 +39,7 @@ class MobulaLogger {
 #define CHECK_BINARY_OP(op, x, y) \
   if (!((x)op(y))) LOG(FATAL) << "Check Failed: " #x " " #op " " #y " "
 
-#define CHECK_EQ(x, y) CHECK_BINARY_OP(==, (x), (y))
+#define CHECK_EQ(x, y) CHECK_BINARY_OP(==, x, y)
 
 }  // namespace mobula
 
