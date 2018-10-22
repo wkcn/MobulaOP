@@ -89,7 +89,7 @@ class KernelRunner {
     int last_device_id;                         \
     CHECK_HIP(hipGetDevice(&last_device_id));   \
     if (last_device_id != device_id)            \
-        CHECK_HIP(hipSetDevice(device_id) \
+        CHECK_HIP(hipSetDevice(device_id)
 #define KERNEL_RUN_END(device_id) \
     if (last_device_id != device_id) \
         CHECK_HIP(hipSetDevice(last_device_id); \

@@ -246,6 +246,8 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
 
         if cpp_fname not in TEMPLATE_INST_MAP:
             map_data = load_js_map(template_inst_fname)
+            assert map_data.get('version') == OP_LOAD_MODULE_BUILD_VERSION, Exception(
+                'unmatched wrapper file :-(. Please remove `build` directory in custom operator, and rebuild it.')
             build_id = map_data.get('build_id', 0)
             tmap = map_data.get('functions', dict())
             TEMPLATE_BUILD_ID_MAP[cpp_fname] = build_id
