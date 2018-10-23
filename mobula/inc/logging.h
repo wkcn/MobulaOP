@@ -17,7 +17,7 @@ class MobulaLogger {
     return *this;
   }
   ~MobulaLogger() {
-    std::cout << '[' << name_ << ']' << buffer_.str() << std::endl;
+    std::cout << "[" << name_ << "] " << buffer_.str() << std::endl;
     if (is_fatal_) exit(-1);
   }
 
@@ -37,9 +37,14 @@ class MobulaLogger {
   if (!(x)) LOG(FATAL)
 
 #define CHECK_BINARY_OP(op, x, y) \
-  if (!((x)op(y))) LOG(FATAL) << "Check Failed: " #x " " #op " " #y " "
+  if (!((x)op(y))) LOG(FATAL) << __FILE__ << ":" << __LINE__ << " Check Failed: " #x " " #op " " #y " "
 
 #define CHECK_EQ(x, y) CHECK_BINARY_OP(==, x, y)
+#define CHECK_NE(x, y) CHECK_BINARY_OP(!=, x, y)
+#define CHECK_LE(x, y) CHECK_BINARY_OP(<=, x, y)
+#define CHECK_GE(x, y) CHECK_BINARY_OP(>=, x, y)
+#define CHECK_LT(x, y) CHECK_BINARY_OP(<, x, y)
+#define CHECK_GT(x, y) CHECK_BINARY_OP(>, x, y)
 
 }  // namespace mobula
 
