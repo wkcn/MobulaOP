@@ -45,12 +45,14 @@ class KernelRunner {
 };
 
 template <typename Func>
-MOBULA_DEVICE void parfor(const int n, Func F) {
-  int start, end;
-  get_parfor_range(n, thread_local_n, thread_local_i, &start, &end);
-  for (int i = start; i < end; ++i) {
-    F(i);
-  }
+MOBULA_DEVICE void parfor(const size_t n, Func F) {
+  INDEX_TYPE_SWITCH(n, {
+    index_t start, end;
+    get_parfor_range(n, thread_local_n, thread_local_i, &start, &end);
+    for (index_t i = start; i < end; ++i) {
+      F(i);
+    }
+  });
 }
 
 #define KERNEL_RUN(a, n) (mobula::KernelRunner<decltype(&(a))>(&(a), (n)))
@@ -58,10 +60,12 @@ MOBULA_DEVICE void parfor(const int n, Func F) {
 #else  // HOST_NUM_THREADS > 1 else
 
 template <typename Func>
-MOBULA_DEVICE void parfor(const int n, Func F) {
-  for (int i = 0; i < n; ++i) {
-    F(i);
-  }
+MOBULA_DEVICE void parfor(const size_t n, Func F) {
+  INDEX_TYPE_SWITCH(n, {
+    for (index_t i = 0; i < static_cast<index_t>(n); ++i) {
+      F(i);
+    }
+  });
 }
 
 #define KERNEL_RUN(a, n) (a)

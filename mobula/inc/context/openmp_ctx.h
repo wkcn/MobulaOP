@@ -8,11 +8,13 @@ namespace mobula {
 #define KERNEL_RUN(a, n) (a)
 
 template <typename Func>
-MOBULA_DEVICE void parfor(const int n, Func F) {
-#pragma omp parallel for
-  for (int i = 0; i < n; ++i) {
-    F(i);
-  }
+MOBULA_DEVICE void parfor(const size_t n, Func F) {
+  INDEX_TYPE_SWITCH(n, {
+    _Pragma("omp parallel for") for (index_t i = 0; i < static_cast<index_t>(n);
+                                     ++i) {
+      F(i);
+    }
+  });
 }
 
 }  // namespace mobula

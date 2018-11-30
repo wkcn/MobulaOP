@@ -11,7 +11,8 @@ ctx = mx.cpu(0)
 dtype = np.float32
 N, C, H, W = 2, 3, 4, 4
 
-data = mx.nd.array(np.arange(N*C*H*W).astype(dtype).reshape((N, C, H, W)))
+data = mx.nd.array(
+    np.arange(N * C * H * W).astype(dtype).reshape((N, C, H, W)))
 rois = mx.nd.array(np.array([[0, 1, 1, 3, 3]], dtype=dtype))
 
 data.attach_grad()

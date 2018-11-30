@@ -19,7 +19,8 @@ def clang_format(fnames):
     for fname in fnames:
         if file_changed(fname):
             print('Format {}'.format(fname))
-            os.system('clang-format -style=google -i {}'.format(fname))
+            script = 'clang-format -style="{BasedOnStyle: Google, Standard: Cpp11}" -i ' + fname
+            os.system(script)
             update_file_hash(fname)
 
 
@@ -27,7 +28,7 @@ def autopep8(fnames):
     for fname in fnames:
         if file_changed(fname):
             print('Format {}'.format(fname))
-            os.system('autopep8 --in-place {}'.format(fname))
+            os.system('autopep8 --ignore E402 --in-place {}'.format(fname))
             update_file_hash(fname)
 
 

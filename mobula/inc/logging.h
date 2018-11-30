@@ -36,8 +36,10 @@ class MobulaLogger {
 #define CHECK(x) \
   if (!(x)) LOG(FATAL)
 
-#define CHECK_BINARY_OP(op, x, y) \
-  if (!((x)op(y))) LOG(FATAL) << __FILE__ << ":" << __LINE__ << " Check Failed: " #x " " #op " " #y " "
+#define CHECK_BINARY_OP(op, x, y)           \
+  if (!((x)op(y)))                          \
+  LOG(FATAL) << __FILE__ << ":" << __LINE__ \
+             << " Check Failed: " #x " " #op " " #y " "
 
 #define CHECK_EQ(x, y) CHECK_BINARY_OP(==, x, y)
 #define CHECK_NE(x, y) CHECK_BINARY_OP(!=, x, y)

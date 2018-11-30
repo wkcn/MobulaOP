@@ -26,7 +26,6 @@ for gpu_ctx in ['cuda', 'hip']:
     gpu_lib_fname = os.path.join(os.path.dirname(__file__), 'build',
                                  'mobula_op_{}.so'.format(gpu_ctx))
     if os.path.exists(gpu_lib_fname):
-        gpu_lib = ctypes.CDLL(gpu_lib_fname)
         gpu_ctx_name = gpu_ctx
         break
 
