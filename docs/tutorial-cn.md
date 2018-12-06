@@ -22,7 +22,7 @@ MobulaOP项目当前的特性有：
 - 3. 在编写自定义层的过程中，用户有更多的注意力关注在运算的实现上；
 - 4. 对MXNet有更多的支持，使用MobulaOP可以更方便地创建自定义算子(Custom Operator).
 
-MobulaOP支持Linux和Windows系统。
+MobulaOP支持Linux、Windows和MacOS系统。
 
 下面，我想简单地介绍一下[MobulaOP](https://github.com/wkcn/MobulaOP)的使用方法。
 
@@ -35,7 +35,7 @@ git clone https://github.com/wkcn/MobulaOP
 cd MobulaOP
 # 安装依赖库numpy, pyyaml和easydict
 pip install -r requirements.txt
-# 进行编译，如果需要在GPU下使用，在选项中输入y
+# 进行编译
 sh build.sh
 # 将MobulaOP文件夹加入PYTHONPATH环境变量中
 export PYTHONPATH=$PYTHONPATH:$(pwd)
@@ -203,7 +203,7 @@ MobulaOP加载`MulElemWise`模块后，分析了`MulElemWise`文件夹下的`Mul
 
 当`mobula.op.MulElemWise(a, b)`执行时，MobulaOP会根据变量类型，自动编译所需要的动态链接库，并返回结果。
 
-`mobula.op.MulElemWise`也可以接受MXNet的符号(Symbol)、Numpy数组或PyTorch Tensor.
+`mobula.op.MulElemWise`也可以接受MXNet的符号(Symbol)、NumPy数组或PyTorch Tensor.
 
 例子：
 MXNet的符号(Symbol): 
@@ -213,13 +213,20 @@ b_sym = mx.sym.Variable('b')
 c_sym = mobula.op.MulElemWise(a_sym, b_sym)
 ```
 
-Numpy数组：
+NumPy数组：
 ```python
 a_np = np.array([1,2,3])
 b_np = np.array([4,5,6])
-# 由于Numpy不支持记录梯度，因此需要一个实例记录梯度
+# 由于NumPy不支持记录梯度，因此需要一个实例记录梯度
 op = mobula.op.MulElemWise[np.ndarray]()
 c_np = op(a_np, b_np)
+```
+
+PyTorch Tensor:
+```
+a = torch.tensor([1, 2, 3], requires_grad=True)
+b = torch.tensor([4, 5, 6], requires_grad=True)
+c = mobula.op.MulElemWise(a, b)  # c = a + b
 ```
 
 如何在Gluon内使用MobulaOP定义的算子呢？

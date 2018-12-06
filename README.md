@@ -13,7 +13,7 @@ You can write custom operators by Python/C++/C/CUDA/HIP/TVM without rebuilding d
 
 [[中文教程](docs/tutorial-cn.md)]
 
-[[Documentation (Work In Progress)]()]
+[[Tutorial](docs/tutorial-en.md)]
 
 - Add an addition operator [[Code](examples/MyFirstOP.py)]
 
