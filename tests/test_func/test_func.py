@@ -3,7 +3,6 @@ from mobula.test_utils import assert_almost_equal
 import numpy as np
 import os
 import ctypes
-import unittest
 mobula.op.load('./utils', os.path.dirname(__file__))
 
 
@@ -28,7 +27,7 @@ def test_func_kwargs():
     b = np.random.random((5, 5))
     c = np.empty((5, 5))
     mobula.func.mul_elemwise(n=a.size, a=a, b=b, c=c)
-    assert_almost_equal(a*b, c)
+    assert_almost_equal(a * b, c)
 
 
 def test_default_value_op():
@@ -37,9 +36,9 @@ def test_default_value_op():
     value = np.random.random((5, 5))
     op = mobula.op.default_add_op[np.ndarray](value=value)
     c = op(a, b)
-    assert_almost_equal(a+b, c)
+    assert_almost_equal(a + b, c)
     c = op(a)  # a+b[default=value]
-    assert_almost_equal(a+value, c)
+    assert_almost_equal(a + value, c)
 
 
 def test_thread():
@@ -56,7 +55,7 @@ def test_thread():
     assert_almost_equal(np.arange(n * 2) * 2, out_4)
     assert_almost_equal(np.arange(n * 3) * 3, out_5)
 
-@unittest.skip('bug in new CI')
+
 def test_const_template():
     shape = (5, 5)
     value = 3939
@@ -70,7 +69,6 @@ def test_const_template():
         assert_almost_equal(np.tile(value, shape), a, atol=atol)
 
 
-@unittest.skip('bug in new CI')
 def test_infer_type_for_const():
     ns = [np.int32, np.int64, np.float32, np.float64]
     N = 3

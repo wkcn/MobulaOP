@@ -458,19 +458,19 @@ def get_functions_from_cpp(cpp_fname):
 
 
 def load(module_name, path=''):
-    '''Load Operator Module
+    """Load Operator Module
 
     Parameters
     ----------
-    module_name : str
+    module_name: str
         The name of Operator Module
-    path : str
+    path: str
         The path of Operator Module [default = current path]
 
     Returns
     -------
-    op : Operator Module if exists
-    '''
+    op: Operator Module if exists
+    """
     op_name = os.path.basename(module_name)
     if not path:
         # Find Operator Module in custom directory first

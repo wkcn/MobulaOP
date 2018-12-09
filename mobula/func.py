@@ -17,7 +17,7 @@ def get_idcode_hash(idcode):
     sp = idcode.split(':')
     func_name = sp[0]
     md5 = hashlib.md5()
-    md5.update(idcode[len(func_name)+1:].encode('utf-8'))
+    md5.update(idcode[len(func_name) + 1:].encode('utf-8'))
     return '{}_{}'.format(func_name, md5.hexdigest()[:8])
 
 
@@ -57,6 +57,13 @@ class MobulaFunc:
     """
 
     def __init__(self, name, func):
+        """
+        Parameters:
+        -----------
+        name: str
+            function name
+        func: CFuncDef
+        """
         self.name = name
         self.par_name = func.arg_names
         self.par_type = func.arg_types
@@ -107,16 +114,17 @@ class MobulaFunc:
 
             Parameters
             ----------
-            var   : variable
-            ptype : data type
-            noncontiguous_list : list
+            var: input variable
+            ptype: DType|TemplateType
+            noncontiguous_list: list
                 the list of noncontiguous variables
-            template_mapping : dict
+            template_mapping: dict
                 the mapping from template name to ctype
             """
             assert isinstance(ptype, (DType, TemplateType)),\
                 TypeError('Unknown Data Type: {}'.format(type(ptype)))
             if ptype.is_pointer:
+                # `var` is a tensor
                 backend = glue.backend.get_var_backend(var)
 
                 data = backend.get_pointer(var)
@@ -144,6 +152,7 @@ class MobulaFunc:
                         expected_ctype, ctype))
                 data = ctypes.cast(data, ctype)
             else:
+                # `var` is a number
                 dev_id = None
                 if isinstance(ptype, TemplateType):
                     data = var
@@ -248,6 +257,13 @@ class MobulaFunc:
 
 
 def bind(functions):
+    """Bind Functions to mobula.func.<function name>
+
+    Parameters
+    ----------
+    functions: dict
+        name -> CFuncDef
+    """
     for k, func in functions.items():
         assert k not in globals(), "Duplicated function name %s" % k
         globals()[k] = MobulaFunc(k, func)

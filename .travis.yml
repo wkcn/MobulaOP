@@ -1,5 +1,7 @@
 sudo: false 
 
+dist: xenial
+
 cache: pip
 
 language: python
