@@ -107,7 +107,7 @@ void im2col(const DType* data_im, const int channels, const int height,
   int width_col =
       (width + 2 * pad_w - (dilation_w * (kernel_w - 1) + 1)) / stride_w + 1;
   int num_kernels = channels * kernel_h * kernel_w * height_col * width_col;
-  KERNEL_RUN(im2col_kernel<DType>, num_kernels)
+  KERNEL_RUN(im2col_kernel<DType>)
   (num_kernels, data_im, height, width, kernel_h, kernel_w, pad_h, pad_w,
    stride_h, stride_w, dilation_h, dilation_w, height_col, width_col, data_col);
 }
@@ -123,7 +123,7 @@ void col2im(const DType* data_col, const int channels, const int height,
   int width_col =
       (width + 2 * pad_w - (dilation_w * (kernel_w - 1) + 1)) / stride_w + 1;
   int num_kernels = channels * height * width;
-  KERNEL_RUN(col2im_kernel<DType>, num_kernels)
+  KERNEL_RUN(col2im_kernel<DType>)
   (num_kernels, data_col, channels, height, width, kernel_h, kernel_w, pad_h,
    pad_w, stride_h, stride_w, dilation_h, dilation_w, height_col, width_col,
    data_im);

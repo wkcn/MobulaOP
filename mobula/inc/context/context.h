@@ -5,6 +5,7 @@
 
 #include "../api.h"
 
+#define MOBULA_FUNC
 #if USING_HIP || USING_CUDA
 #include "./hip_ctx.h"
 #else

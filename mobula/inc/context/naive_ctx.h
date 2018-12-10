@@ -16,23 +16,23 @@ static thread_local int thread_local_n;
 
 template <typename Func, typename... Args>
 void thread_func_wrapper(Func func, const int i, const int nthreads,
-                         Args... args) {
+                         const int n, Args... args) {
   thread_local_i = i;
   thread_local_n = nthreads;
-  func(args...);
+  func(n, args...);
 }
 
 template <typename Func>
 class KernelRunner {
  public:
-  KernelRunner(Func func, int n) : func_(func), n_(n) {}
+  KernelRunner(Func func) : func_(func) {}
   template <typename... Args>
-  void operator()(Args... args) {
-    const int nthreads = std::min(n_, HOST_NUM_THREADS);
+  void operator()(const int n, Args... args) {
+    const int nthreads = std::min(n, HOST_NUM_THREADS);
     std::vector<std::thread> threads(nthreads);
     for (int i = 0; i < nthreads; ++i) {
       threads[i] = std::thread(thread_func_wrapper<Func, Args...>, func_, i,
-                               nthreads, args...);
+                               nthreads, n, args...);
     }
     for (int i = 0; i < nthreads; ++i) {
       threads[i].join();
@@ -41,7 +41,6 @@ class KernelRunner {
 
  private:
   Func func_;
-  int n_;
 };
 
 template <typename Func>
@@ -55,7 +54,7 @@ MOBULA_DEVICE void parfor(const size_t n, Func F) {
   });
 }
 
-#define KERNEL_RUN(a, n) (mobula::KernelRunner<decltype(&(a))>(&(a), (n)))
+#define KERNEL_RUN(a) (mobula::KernelRunner<decltype(&(a))>(&(a)))
 
 #else  // HOST_NUM_THREADS > 1 else
 
@@ -68,7 +67,7 @@ MOBULA_DEVICE void parfor(const size_t n, Func F) {
   });
 }
 
-#define KERNEL_RUN(a, n) (a)
+#define KERNEL_RUN(a) (a)
 
 #endif  // HOST_NUM_THREADS > 1
 

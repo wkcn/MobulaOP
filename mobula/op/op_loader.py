@@ -31,9 +31,15 @@ else:
     import imp
     load_module = load_module_py2
 
-MOBULA_KERNEL_REG = re.compile(r'^\s*MOBULA_KERNEL.*?')
-MOBULA_KERNEL_FUNC_REG = re.compile(
-    r'^\s*MOBULA_KERNEL\s*(.*?)\s*\((.*?)\)(?:.*?)*')
+
+def get_func_head_reg(name):
+    return re.compile(r'^\s*{}\s*(.*)'.format(name))
+
+
+MOBULA_KERNEL_REG = get_func_head_reg('MOBULA_(KERNEL|FUNC)')
+
+FUNC_REG = re.compile(
+    r'^\s*(.*?)\s*\((.*?)\)(?:.*?)*')
 CPP_TEMPLATE_REG = re.compile(r'^\s*template\s*\<(.*?)\>\s*')
 
 
@@ -115,12 +121,12 @@ def parse_parameters_list(plist):
         [(DType|TemplateType, variable name), ...]
     """
 
-    g = MOBULA_KERNEL_FUNC_REG.search(plist)
+    g = FUNC_REG.search(plist)
     head, plist = g.groups()
     head_split = re.split(r'\s+', head)
     plist_split = re.split(r'\s*,\s*', plist)
     func_name = head_split[-1]
-    rtn_type = None
+    rtn_type = head_split[-2] if len(head_split) == 3 else None
     pars_list = []
     for decl in plist_split:
         dtype, pname = parse_parameter_decl(decl)
@@ -138,12 +144,34 @@ TEMPLATE_BUILD_ID_MAP = dict()
 
 
 def get_template_inst_fname(build_path, name):
+    """Get the filename of the json file which records build information
+    Parameters:
+    -----------
+    build_path: str
+        build path
+    name: str
+        module name
+
+    Returns:
+    --------
+    the filename of json file
+    """
     fname = '{}_template.js'.format(name)
     fpath = os.path.join(build_path, fname)
     return fpath
 
 
 def load_js_map(fname):
+    """Load json file which records build information.
+    Parameters:
+    -----------
+    fname: str
+        the filename of a json file.
+    Returns:
+    --------
+    dict
+        build information.
+    """
     if os.path.exists(fname):
         return json.loads(open(fname).read())
     return dict(version=OP_LOAD_MODULE_BUILD_VERSION)
@@ -209,6 +237,95 @@ extern "C" {
     source_to_so_ctx(build_path, srcs, target_name, ctx, buildin_cpp)
 
 
+def generate_kernel_code(func_idcode_hash, args_def, func_name, nthread, args_inst):
+    return '''
+MOBULA_DLL void %s(const int device_id, %s) {
+KERNEL_RUN_BEGIN(device_id);
+KERNEL_RUN(%s)(%s);
+KERNEL_RUN_END(device_id);
+}''' % (func_idcode_hash, args_def, func_name, args_inst)
+
+
+def generate_func_code(func_idcode_hash, rtn_type, args_def, func_name, args_inst):
+    if rtn_type is None:
+        rtn_type = 'void'
+    code = '''
+MOBULA_DLL %s %s(%s) {
+''' % (rtn_type, func_idcode_hash, args_def)
+    if rtn_type != 'void':
+        code += '  return '
+    code += '%s(%s);\n}\n' % (func_name, args_inst)
+    return code
+
+
+def generate_ordinary_code(cpp_info):
+    code_buffer = ''
+    # generate ordinary functions code
+    for func_name, ord_cfunc in cpp_info.function_args.items():
+        if ord_cfunc.template_list:
+            continue
+        func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types)
+        func_idcode_hash = get_idcode_hash(func_idcode)
+        args_def = ', '.join(['{ctype} {name}'.format(
+            ctype=dtype.cname,
+            name=name
+        ) for dtype, name in zip(ord_cfunc.arg_types, ord_cfunc.arg_names)])
+        args_inst = ', '.join(ord_cfunc.arg_names)
+        nthread = ord_cfunc.arg_names[0]
+        func_kind = ord_cfunc.func_kind
+        if func_kind == 'KERNEL':
+            code_buffer += generate_kernel_code(
+                func_idcode_hash, args_def, '{}_kernel'.format(func_name), nthread, args_inst)
+    return code_buffer
+
+
+def update_template_inst_map(idcode, tmap, cfunc, arg_types):
+    # template function
+    func_name = cfunc.func_name
+    func_idcode_hash = get_idcode_hash(idcode)
+    # Check Template Type Mapping
+    template_mapping = dict()
+    for rtype, dtype in zip(arg_types, cfunc.arg_types):
+        if not isinstance(dtype, TemplateType):
+            continue
+        tname = dtype.tname
+        rtype = str(rtype).replace(
+            'const', '').replace('*', '').strip()
+        if tname in template_mapping:
+            assert template_mapping[tname] == rtype,\
+                Exception('Excepted template type {} instead of {}'.
+                          format(template_mapping[tname], rtype))
+        else:
+            template_mapping[tname] = rtype
+    assert len(template_mapping) == len(cfunc.template_list),\
+        Exception('Template List: {}, mapping: {}'.
+                  format(cfunc.template_list, template_mapping))
+
+    args_def = ', '.join(['{ctype} {name}'.format(
+        ctype=dtype.cname,
+        name=name
+    ) for dtype, name in zip(arg_types, cfunc.arg_names)])
+
+    template_inst = [template_mapping[tname]
+                     for tname in cfunc.template_list]
+    args_inst = ', '.join(cfunc.arg_names)
+    template_post = '<%s>' % (', '.join(template_inst))
+    rtn_type = cfunc.rtn_type
+    if rtn_type in template_mapping:
+        rtn_type = template_mapping[rtn_type]
+
+    nthread = cfunc.arg_names[0]
+
+    func_kind = cfunc.func_kind
+    if func_kind == 'KERNEL':
+        code = generate_kernel_code(func_idcode_hash, args_def, '({}_kernel{})'.format(
+            func_name, template_post), nthread, args_inst)
+    else:
+        code = generate_func_code(
+            func_idcode_hash, rtn_type, args_def, func_name + template_post, args_inst)
+    tmap[idcode] = code
+
+
 def op_loader(cfunc, arg_types, ctx, cpp_info):
     '''Import Operator Loader
     It's actual to load the operator
@@ -231,9 +348,12 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
     idcode = get_func_idcode(cfunc.func_name, arg_types)
     if ctx not in CTX_FUNC_MAP:
         CTX_FUNC_MAP[ctx] = dict()
+    # func_map: dict mapping idcode to CFunction
     func_map = CTX_FUNC_MAP[ctx]
+
     if idcode not in func_map:
-        # load func
+        '''load function if idcode is not loaded
+        '''
         cpp_fname = cpp_info.cpp_fname
         cpp_path, cpp_basename = os.path.split(cpp_fname)
         build_path = os.path.join(cpp_path, 'build')
@@ -245,12 +365,15 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
             build_path, os.path.splitext(cpp_basename)[0])
 
         if cpp_fname not in TEMPLATE_INST_MAP:
+            # map_data is a dict which records build information
             map_data = load_js_map(template_inst_fname)
-            assert map_data.get('version') == OP_LOAD_MODULE_BUILD_VERSION, Exception(
-                """Unmatched wrapper file (%s vs %s):-(.
-Please remove `build` directory in custom operator, and rebuild it.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERSION))
+            assert map_data.get('version') <= OP_LOAD_MODULE_BUILD_VERSION, Exception(
+                """Unsupported higher version %s of wrapper file (Current MobulaOP ver: %s) :-(.
+Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERSION))
             build_id = map_data.get('build_id', 0)
-            tmap = map_data.get('functions', dict())
+            is_old_version = map_data.get(
+                'version') < OP_LOAD_MODULE_BUILD_VERSION
+            tmap = dict() if is_old_version else map_data.get('functions', dict())
             TEMPLATE_BUILD_ID_MAP[cpp_fname] = build_id
             TEMPLATE_INST_MAP[cpp_fname] = tmap
         else:
@@ -258,19 +381,16 @@ Please remove `build` directory in custom operator, and rebuild it.""" % (map_da
             build_id = TEMPLATE_BUILD_ID_MAP[cpp_fname]
 
         so_prefix = get_so_prefix(cpp_fname)
+        # The filename of build target
         dll_fname = '{}_{}_{}.so'.format(so_prefix, ctx, build_id)
 
         need_to_rebuild = True
         if file_changed(cpp_fname):
-            need_to_rebuild = True
             tmap.clear()
         else:
             if os.path.exists(dll_fname):
                 # Try to load in template_inst_map
-                if use_template:
-                    if idcode in tmap:
-                        need_to_rebuild = False
-                else:
+                if not use_template or idcode in tmap:
                     need_to_rebuild = False
 
         removed_dll_fname = None
@@ -282,70 +402,12 @@ Please remove `build` directory in custom operator, and rebuild it.""" % (map_da
                 build_id = TEMPLATE_BUILD_ID_MAP[cpp_fname]
                 dll_fname = '{}_{}_{}.so'.format(so_prefix, ctx, build_id)
             # build code
-            code_buffer = ''
-            # generate ordinary functions code
-            for func_name, ord_cfunc in cpp_info.function_args.items():
-                if ord_cfunc.template_list:
-                    continue
-                func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types)
-                func_idcode_hash = get_idcode_hash(func_idcode)
-                args_def = ', '.join(['{ctype} {name}'.format(
-                    ctype=dtype.cname,
-                    name=name
-                ) for dtype, name in zip(ord_cfunc.arg_types, ord_cfunc.arg_names)])
-                nthread = ord_cfunc.arg_names[0]
-                args_inst = ', '.join(ord_cfunc.arg_names)
-                code_buffer += '''
-MOBULA_DLL void %s(const int device_id, %s) {
-  KERNEL_RUN_BEGIN(device_id);
-  KERNEL_RUN(%s, %s)(%s);
-  KERNEL_RUN_END(device_id);
-}''' % (func_idcode_hash, args_def, '{}_kernel'.format(func_name), nthread, args_inst)
-
-            # generate template functions code
-            if use_template and idcode not in tmap:
-                # template function
-                func_name = cfunc.func_name
-                func_idcode_hash = get_idcode_hash(idcode)
-                # Check Template Type Mapping
-                template_mapping = dict()
-                for rtype, dtype in zip(arg_types, cfunc.arg_types):
-                    if not isinstance(dtype, TemplateType):
-                        continue
-                    tname = dtype.tname
-                    rtype = str(rtype).replace(
-                        'const', '').replace('*', '').strip()
-                    if tname in template_mapping:
-                        assert template_mapping[tname] == rtype,\
-                            Exception('Excepted template type {} instead of {}'.
-                                      format(template_mapping[tname], rtype))
-                    else:
-                        template_mapping[tname] = rtype
-                assert len(template_mapping) == len(cfunc.template_list),\
-                    Exception('Template List: {}, mapping: {}'.
-                              format(cfunc.template_list, template_mapping))
-
-                args_def = ', '.join(['{ctype} {name}'.format(
-                    ctype=dtype.cname,
-                    name=name
-                ) for dtype, name in zip(arg_types, cfunc.arg_names)])
-
-                nthread = cfunc.arg_names[0]
-                template_inst = [template_mapping[tname]
-                                 for tname in cfunc.template_list]
-                args_inst = ', '.join(cfunc.arg_names)
-                template_post = '<%s>' % (', '.join(template_inst))
-                code = '''
-MOBULA_DLL void %s(const int device_id, %s) {
-  KERNEL_RUN_BEGIN(device_id);
-  KERNEL_RUN(%s, %s)(%s);
-  KERNEL_RUN_END(device_id);
-}''' % (func_idcode_hash, args_def, '({}_kernel{})'.
-                    format(func_name, template_post), nthread, args_inst)
-                tmap[idcode] = code
-
-            for code in tmap.values():
-                code_buffer += code
+            code_buffer = generate_ordinary_code(cpp_info)
+            if use_template:
+                if idcode not in tmap:
+                    update_template_inst_map(idcode, tmap, cfunc, arg_types)
+                # add template instances code into code_buffer
+                code_buffer += ''.join(tmap.values())
 
             with build_context():
                 build_lib(cpp_fname, code_buffer, ctx, dll_fname)
@@ -381,7 +443,7 @@ MOBULA_DLL void %s(const int device_id, %s) {
         if removed_dll_fname is not None:
             try:
                 os.remove(removed_dll_fname)
-            except:
+            except Exception:
                 pass
 
     return func_map[idcode]
@@ -390,6 +452,7 @@ MOBULA_DLL void %s(const int device_id, %s) {
 def get_functions_from_cpp(cpp_fname):
     unmatched_brackets = 0
     func_def = ''
+    func_kind = ''
     func_started = False
     templates = None
     template_list = []
@@ -403,6 +466,7 @@ def get_functions_from_cpp(cpp_fname):
             u = MOBULA_KERNEL_REG.search(line)
             if u is not None:
                 func_def = ''
+                func_kind = u.groups()[0]
                 func_started = True
         # In a declaration of a function
         if func_started:
@@ -429,13 +493,20 @@ def get_functions_from_cpp(cpp_fname):
                 if not use_template:
                     template_list[:] = []
 
-                assert kernel_name.endswith('_kernel'),\
-                    Exception('the postfix of a MOBULA_KERNEL name must be `_kernel`, \
-                        e.g. addition_forward_kernel')
-                func_name = kernel_name[:-len('_kernel')]
+                if func_kind == 'KERNEL':
+                    assert kernel_name.endswith('_kernel'),\
+                        Exception('the postfix of a MOBULA_KERNEL name must be `_kernel`, \
+                            e.g. addition_forward_kernel')
+                    func_name = kernel_name[:-len('_kernel')]
+                elif func_kind == 'FUNC':
+                    func_name = kernel_name
+                else:
+                    raise Exception(
+                        'Unknown function kind: MOBULA_{}'.format(func_kind))
 
                 # Arguments
                 funcdef_args = edict(func_name=func_name,
+                                     func_kind=func_kind,
                                      arg_names=[t[1] for t in par_list],
                                      arg_types=[t[0] for t in par_list],
                                      rtn_type=rtn_type,

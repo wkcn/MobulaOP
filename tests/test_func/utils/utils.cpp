@@ -32,4 +32,10 @@ MOBULA_KERNEL infer_type_for_const_kernel(const int n, T value, T* out) {
   parfor(n, [&](int i) { out[i] = value; });
 }
 
+template <typename T>
+MOBULA_FUNC T set_and_return(const T* a, T* b) {
+  b[0] = a[0];
+  return a[0];
+}
+
 }  // namespace mobula

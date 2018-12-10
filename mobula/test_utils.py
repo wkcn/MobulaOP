@@ -128,7 +128,7 @@ def list_gpus():
             result = subprocess.check_output(
                 [cmd, "-L"], universal_newlines=True)
             break
-        except:
+        except Exception:
             pass
     else:
         return range(0)

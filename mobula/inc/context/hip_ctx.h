@@ -60,19 +60,19 @@ inline int HIP_GET_BLOCKS(const int n, const int num_threads) {
 template <typename Func>
 class KernelRunner {
  public:
-  KernelRunner(Func func, int n) : func_(func), n_(n) {}
+  KernelRunner(Func func) : func_(func) {}
   template <typename... Args>
-  void operator()(Args... args) {
-    const int nthreads = std::min(n_, HOST_NUM_THREADS);
+  void operator()(const int n, Args... args) {
+    const int nthreads = std::min(n, HOST_NUM_THREADS);
     const int threadsPerBlock = HIP_GET_NUM_THREADS(nthreads);
     const int blocks = HIP_GET_BLOCKS(nthreads, threadsPerBlock);
     hipStream_t stream;
     CHECK_HIP(hipStreamCreate(&stream));
 #if USING_HIP
-    hipLaunchKernelGGL(func_, dim3(blocks), dim3(threadsPerBlock), 0, stream,
+    hipLaunchKernelGGL(func_, dim3(blocks), dim3(threadsPerBlock), 0, stream, n,
                        args...);
 #else
-    func_<<<blocks, threadsPerBlock, 0, stream>>>(args...);
+    func_<<<blocks, threadsPerBlock, 0, stream>>>(n, args...);
 #endif
     CHECK_HIP(hipStreamSynchronize(stream));
     CHECK_HIP(hipStreamDestroy(stream));
@@ -81,7 +81,6 @@ class KernelRunner {
 
  private:
   Func func_;
-  int n_;
 };
 
 #define KERNEL_RUN_BEGIN(device_id)           \
@@ -92,7 +91,7 @@ class KernelRunner {
 #define KERNEL_RUN_END(device_id)                                           \
   if (last_device_id != device_id) CHECK_HIP(hipSetDevice(last_device_id)); \
   }
-#define KERNEL_RUN(a, n) (mobula::KernelRunner<decltype(&(a))>(&(a), (n)))
+#define KERNEL_RUN(a) (mobula::KernelRunner<decltype(&(a))>(&(a)))
 
 template <typename T>
 inline __device__ T atomic_add(const T val, T *address);

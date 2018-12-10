@@ -3,7 +3,7 @@ import sys
 import multiprocessing
 try:
     from .build_utils import *
-except:
+except Exception:
     from build_utils import *
 
 NUM_CPU_CORE = multiprocessing.cpu_count()
@@ -11,6 +11,8 @@ HOST_NUM_THREADS = config.HOST_NUM_THREADS if config.HOST_NUM_THREADS > 0 else N
 COMMON_FLAGS = Flags().add_definition('HOST_NUM_THREADS', HOST_NUM_THREADS)
 if config.USING_OPTIMIZATION:
     COMMON_FLAGS.add_string('-O3')
+if config.DEBUG:
+    COMMON_FLAGS.add_string('-g')
 COMMON_FLAGS.add_definition('USING_CBLAS', config.USING_CBLAS)
 INC_PATHS.append('inc')
 for path in INC_PATHS:
@@ -185,6 +187,9 @@ def run_rule(name):
 
 
 if __name__ == '__main__':
+    assert len(sys.argv) >= 2, AssertionError(
+        'Please add building flag, e.g. python build.py all\nValid flags: {}'.format(' | '.join(BUILD_FLAGS.keys())))
+    pass_argv(sys.argv)
     SRCS = wildcard(['src'], 'cpp')
     with build_context():
         run_rule(sys.argv[1])

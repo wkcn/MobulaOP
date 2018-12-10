@@ -19,7 +19,7 @@ def register_backend(glue_name, types_name):
     glue = None
     try:
         glue = importlib.import_module('.' + glue_name, __package__)
-    except:
+    except Exception:
         pass
     if glue is not None:
         for t in types_name:

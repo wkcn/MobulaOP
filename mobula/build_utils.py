@@ -1,8 +1,10 @@
+import ast
 import os
 import threading
 import hashlib
 import platform
 import re
+import sys
 import yaml
 from easydict import EasyDict as edict
 from subprocess import Popen, PIPE
@@ -31,6 +33,17 @@ with open(CONFIG_PATH) as fin:
     config = edict(yaml.load(fin))
 
 
+def pass_argv(argv):
+    # Read Config from argv
+    for p in argv:
+        if p[0] == '-' and '=' in p:
+            k, v = p[1:].split('=')
+            k = k.strip()
+            assert k in config, KeyError('Key `%s` not found in config' % k)
+            config[k] = ast.literal_eval(v)
+            print('Set %s to %s' % (k, v))
+
+
 def save_code_hash(obj, fname):
     with open(fname, 'w') as f:
         for k, v in obj.items():
@@ -44,7 +57,7 @@ def load_code_hash(fname):
             for line in f:
                 sp = line.split(' ')
                 data[sp[0]] = sp[1].strip()
-    except:
+    except Exception:
         pass
     return data
 
@@ -64,7 +77,7 @@ def load_dependant(fname):
             for line in f:
                 sp = line.strip().split(' ')
                 data[sp[0]] = sp[1].split(',')
-    except:
+    except Exception:
         pass
     return data
 
@@ -334,6 +347,6 @@ def add_path(path, files):
 def command_exists(command):
     try:
         Popen([command], stdout=PIPE, stderr=PIPE, stdin=PIPE)
-    except:
+    except Exception:
         return False
     return True

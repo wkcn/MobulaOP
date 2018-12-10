@@ -153,7 +153,7 @@ OpGen:
 '''
 try:
     import numpy as np
-    NPDTYPE2CTYPE_MAP = dict()
+    NP_DTYPE_NAME2CTYPE = dict()
     pairs = [
         (np.dtype('int8'), ctypes.c_int8),
         (np.dtype('int16'), ctypes.c_int16),
@@ -163,11 +163,10 @@ try:
         (np.dtype('float64'), ctypes.c_double),  # alias: np.float
     ]
     for dtype, ctype in pairs:
-        NPDTYPE2CTYPE_MAP[dtype] = ctype
-        NPDTYPE2CTYPE_MAP[dtype.type] = ctype
+        NP_DTYPE_NAME2CTYPE[dtype.name] = ctype
 
     def NPDTYPE2CTYPE(dtype):
-        ctype = NPDTYPE2CTYPE_MAP.get(dtype, None)
+        ctype = NP_DTYPE_NAME2CTYPE.get(np.dtype(dtype).name, None)
         assert ctype is not None, TypeError('Unknown Type: {}'.format(dtype))
         return ctype
 except ImportError:

@@ -31,9 +31,10 @@ for gpu_ctx in ['cuda', 'hip']:
 
 
 class CFuncDef:
-    def __init__(self, func_name, arg_names=[], arg_types=None, rtn_type=None,
+    def __init__(self, func_name, func_kind, arg_names=[], arg_types=None, rtn_type=None,
                  template_list=[], loader=None, loader_kwargs=None):
         self.func_name = func_name
+        self.func_kind = func_kind
         self.arg_names = arg_names
         self.arg_types = arg_types
         self.rtn_type = rtn_type
@@ -49,7 +50,9 @@ class CFuncDef:
             ctx = gpu_ctx_name
         # function loader
         func = self.loader(self, arg_types, ctx, **self.loader_kwargs)
-        return func(dev_id, *arg_datas)
+        if self.func_kind == 'KERNEL':
+            return func(dev_id, *arg_datas)
+        return func(*arg_datas)
 
 
 class MobulaFunc:
