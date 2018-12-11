@@ -1,3 +1,3 @@
-__version__ = 2.03
+__version__ = 2.04
 
-OP_LOAD_MODULE_BUILD_VERSION = 2.03
+OP_LOAD_MODULE_BUILD_VERSION = __version__

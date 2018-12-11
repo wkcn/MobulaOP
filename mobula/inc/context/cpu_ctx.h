@@ -83,9 +83,7 @@ T *MemcpyDevToDev(T *dst, const T *src, size_t size) {
 #define KERNEL_RUN_BEGIN(device_id) \
   {                                 \
     UNUSED_EXPR(device_id)
-#define KERNEL_RUN_END(device_id) \
-  UNUSED_EXPR(device_id);         \
-  }
+#define KERNEL_RUN_END() }
 
 #if USING_OPENMP
 #include "./openmp_ctx.h"

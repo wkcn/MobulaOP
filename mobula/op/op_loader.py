@@ -242,7 +242,7 @@ def generate_kernel_code(func_idcode_hash, args_def, func_name, nthread, args_in
 MOBULA_DLL void %s(const int device_id, %s) {
 KERNEL_RUN_BEGIN(device_id);
 KERNEL_RUN(%s)(%s);
-KERNEL_RUN_END(device_id);
+KERNEL_RUN_END();
 }''' % (func_idcode_hash, args_def, func_name, args_inst)
 
 
