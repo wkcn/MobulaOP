@@ -273,7 +273,7 @@ def generate_ordinary_code(cpp_info):
         args_inst = ', '.join(ord_cfunc.arg_names)
         nthread = ord_cfunc.arg_names[0]
         func_kind = ord_cfunc.func_kind
-        if func_kind == 'KERNEL':
+        if func_kind == CFuncDef.KERNEL:
             code_buffer += generate_kernel_code(
                 func_idcode_hash, args_def, '{}_kernel'.format(func_name), nthread, args_inst)
     return code_buffer
@@ -317,7 +317,7 @@ def update_template_inst_map(idcode, tmap, cfunc, arg_types):
     nthread = cfunc.arg_names[0]
 
     func_kind = cfunc.func_kind
-    if func_kind == 'KERNEL':
+    if func_kind == CFuncDef.KERNEL:
         code = generate_kernel_code(func_idcode_hash, args_def, '({}_kernel{})'.format(
             func_name, template_post), nthread, args_inst)
     else:
@@ -466,7 +466,14 @@ def get_functions_from_cpp(cpp_fname):
             u = MOBULA_KERNEL_REG.search(line)
             if u is not None:
                 func_def = ''
-                func_kind = u.groups()[0]
+                func_kind_str = u.groups()[0]
+                if func_kind_str == 'KERNEL':
+                    func_kind = CFuncDef.KERNEL
+                elif func_kind_str == 'FUNC':
+                    func_kind = CFuncDef.FUNC
+                else:
+                    raise TypeError(
+                        'Unknown kind of function: %s' % func_kind_str)
                 func_started = True
         # In a declaration of a function
         if func_started:
@@ -493,16 +500,16 @@ def get_functions_from_cpp(cpp_fname):
                 if not use_template:
                     template_list[:] = []
 
-                if func_kind == 'KERNEL':
+                if func_kind == CFuncDef.KERNEL:
                     assert kernel_name.endswith('_kernel'),\
                         Exception('the postfix of a MOBULA_KERNEL name must be `_kernel`, \
                             e.g. addition_forward_kernel')
                     func_name = kernel_name[:-len('_kernel')]
-                elif func_kind == 'FUNC':
+                elif func_kind == CFuncDef.FUNC:
                     func_name = kernel_name
                 else:
                     raise Exception(
-                        'Unknown function kind: MOBULA_{}'.format(func_kind))
+                        'Unknown function kind: {}'.format(func_kind))
 
                 # Arguments
                 funcdef_args = edict(func_name=func_name,

@@ -7,8 +7,8 @@
 
 namespace mobula {
 
-template <typename T>
-void UNUSED_EXPR(T &&) {}
+template <typename... Args>
+void UNUSED(Args &&...) {}
 
 #define INDEX_TYPE_SWITCH(N, ...)                                 \
   do {                                                            \

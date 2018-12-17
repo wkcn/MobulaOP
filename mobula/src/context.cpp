@@ -1,4 +1,5 @@
 #include "context/context.h"
+#include <stdexcept>
 
 namespace mobula {}
 
@@ -12,6 +13,7 @@ void set_device(const int device_id) {
 }
 #else
 void set_device(const int /*device_id*/) {
-  throw "Doesn't support setting device on CPU mode";
+  throw std::runtime_error("Doesn't support setting device on CPU mode");
 }
+
 #endif  // USING_HIP || USING_CUDA

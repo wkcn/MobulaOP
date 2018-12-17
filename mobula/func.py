@@ -31,6 +31,9 @@ for gpu_ctx in ['cuda', 'hip']:
 
 
 class CFuncDef:
+    KERNEL = 1
+    FUNC = 2
+
     def __init__(self, func_name, func_kind, arg_names=[], arg_types=None, rtn_type=None,
                  template_list=[], loader=None, loader_kwargs=None):
         self.func_name = func_name
@@ -50,7 +53,7 @@ class CFuncDef:
             ctx = gpu_ctx_name
         # function loader
         func = self.loader(self, arg_types, ctx, **self.loader_kwargs)
-        if self.func_kind == 'KERNEL':
+        if self.func_kind == self.KERNEL:
             return func(dev_id, *arg_datas)
         return func(*arg_datas)
 
@@ -68,111 +71,47 @@ class MobulaFunc:
         func: CFuncDef
         """
         self.name = name
-        self.par_name = func.arg_names
-        self.par_type = func.arg_types
         self.func = func
 
+        self.wait_to_read_list = []
+        self.wait_to_write_list = []
+        for i, ptype in enumerate(self.func.arg_types):
+            if ptype.is_pointer:
+                if ptype.is_const:
+                    self.wait_to_read_list.append(i)
+                else:
+                    self.wait_to_write_list.append(i)
+
     def __call__(self, *args, **kwargs):
-        def args_gen():
-            i = 0
-            for a in args:
-                yield a
-                i += 1
-            num_pars = len(self.par_name)
-            while i < num_pars:
-                yield kwargs[self.par_name[i]]
-                i += 1
+        # move kwargs into args
+        args = list(args)
+        for name in self.func.arg_names[len(args):]:
+            args.append(kwargs[name])
 
         # type check
         arg_datas = []
         dev_id = None
-        noncontiguous_list = []
-        temp_list = []
+        noncont_var_list = []
+        temp_var_list = []
         arg_types = []
         template_mapping = dict()
 
-        def wait_to_read(var):
-            if hasattr(var, 'wait_to_read'):
-                var.wait_to_read()
-
-        def wait_to_write(var):
-            if hasattr(var, 'wait_to_write'):
-                var.wait_to_write()
-
-        def _var_wait(var, ptype):
-            if ptype.is_pointer:
-                if ptype.is_const:
-                    # input
-                    wait_to_read(var)
-                else:
-                    # output
-                    wait_to_write(var)
-
         # Pre-process
-        for var, ptype in zip(args_gen(), self.par_type):
-            _var_wait(var, ptype)
+        for i in self.wait_to_read_list:
+            self._wait_to_read(args[i])
+        for i in self.wait_to_write_list:
+            self._wait_to_write(args[i])
 
-        def analyze_element(var, ptype, noncontiguous_list, template_mapping):
-            """Analyze an element
-
-            Parameters
-            ----------
-            var: input variable
-            ptype: DType|TemplateType
-            noncontiguous_list: list
-                the list of noncontiguous variables
-            template_mapping: dict
-                the mapping from template name to ctype
-            """
-            assert isinstance(ptype, (DType, TemplateType)),\
-                TypeError('Unknown Data Type: {}'.format(type(ptype)))
+        for var, ptype in zip(args, self.func.arg_types):
             if ptype.is_pointer:
-                # `var` is a tensor
-                backend = glue.backend.get_var_backend(var)
-
-                data = backend.get_pointer(var)
-                if isinstance(data, (list, tuple)):
-                    # data = (contiguous_array_pointer, contiguous_array_object)
-                    if ptype.is_const:
-                        temp_list.append(data[1])  # hold a reference
-                        wait_to_read(data[1])
-                    else:
-                        noncontiguous_list.append((var, data[1]))
-                        wait_to_write(data[1])
-                    data = data[0]
-                dev_id = backend.dev_id(var)
-                ctype = ctypes.POINTER(backend.get_ctype(var))
-
-                if isinstance(ptype, DType):
-                    expected_ctype = ptype.ctype
-                else:
-                    if ptype.tname in template_mapping:
-                        expected_ctype = template_mapping[ptype.tname]
-                    else:
-                        template_mapping[ptype.tname] = expected_ctype = ctype
-                assert ctype == expected_ctype,\
-                    TypeError('Expected Type {} instead of {}'.format(
-                        expected_ctype, ctype))
-                data = ctypes.cast(data, ctype)
+                # The type of `var` is Tensor.
+                data, var_dev_id, ctype = self._get_tensor_info(
+                    var, ptype, noncont_var_list, temp_var_list, template_mapping)
             else:
-                # `var` is a number
-                dev_id = None
-                if isinstance(ptype, TemplateType):
-                    data = var
-                    ctype = type(var) if hasattr(
-                        var, '_type_') else UnknownCType(ptype.tname)
-                else:
-                    data = var if isinstance(
-                        var, ctypes.c_void_p) else ptype.ctype(var)
-                    ctype = ptype.ctype
-            return data, dev_id, ctype
+                # The type of `var` is Scalar.
+                data, var_dev_id, ctype = self._get_scalar_info(
+                    var, ptype, template_mapping)
 
-        extra_pars = [noncontiguous_list, template_mapping]
-
-        for var, ptype in zip(args_gen(), self.par_type):
-            assert not isinstance(ptype, (list, tuple)),\
-                Exception('Not supported list or tuple as input variable now')
-            data, aid, ctype = analyze_element(var, ptype, *extra_pars)
             arg_datas.append(data)
             if isinstance(ctype, UnknownCType):
                 ctype.is_const = ptype.is_const
@@ -180,12 +119,13 @@ class MobulaFunc:
             else:
                 arg_types.append(DType(ctype, is_const=ptype.is_const))
 
-            if aid is not None:
+            # update `dev_id`
+            if var_dev_id is not None:
                 if dev_id is not None:
-                    assert aid == dev_id, ValueError(
+                    assert var_dev_id == dev_id, ValueError(
                         "Don't use multiple devices in a call :-(")
                 else:
-                    dev_id = aid
+                    dev_id = var_dev_id
 
         # try to know the unknown ctype
         for i, a in enumerate(arg_types):
@@ -200,9 +140,104 @@ class MobulaFunc:
                         arg_types=arg_types,
                         dev_id=dev_id)
 
-        for source, target in noncontiguous_list:
+        for source, target in noncont_var_list:
             source[:] = target
         return rtn
+
+    @staticmethod
+    def _wait_to_read(var):
+        if hasattr(var, 'wait_to_read'):
+            var.wait_to_read()
+
+    @staticmethod
+    def _wait_to_write(var):
+        if hasattr(var, 'wait_to_write'):
+            var.wait_to_write()
+
+    @staticmethod
+    def _get_tensor_info(var, ptype, noncont_var_list, temp_var_list, template_mapping):
+        """Get tensor info
+
+        Parameters
+        ----------
+        var: object
+            input variable
+        ptype: DType | TemplateType
+            the type of argument
+        noncont_var_list: list
+            the list of noncontiguous variables
+        template_mapping: dict
+            the mapping from template name to ctype
+
+        Returns
+        -------
+        data: ctyoes.c_void_p
+            the pointer of data
+        dev_id: int | None
+            the id of device
+        ctype: ctypes.POINTER | ctypes.c_*
+            the ctype of data
+        """
+
+        backend = glue.backend.get_var_backend(var)
+        data = backend.get_pointer(var)
+        if isinstance(data, (list, tuple)):
+            # data = (contiguous_array_pointer, contiguous_array_object)
+            if ptype.is_const:
+                temp_var_list.append(data[1])  # hold a reference
+                MobulaFunc._wait_to_read(data[1])
+            else:
+                noncont_var_list.append((var, data[1]))
+                MobulaFunc._wait_to_write(data[1])
+            data = data[0]
+        dev_id = backend.dev_id(var)
+        ctype = ctypes.POINTER(backend.get_ctype(var))
+        if isinstance(ptype, DType):
+            expected_ctype = ptype.ctype
+        else:
+            if ptype.tname in template_mapping:
+                expected_ctype = template_mapping[ptype.tname]
+            else:
+                template_mapping[ptype.tname] = expected_ctype = ctype
+        assert ctype == expected_ctype,\
+            TypeError('Expected Type {} instead of {}'.format(
+                expected_ctype, ctype))
+        data = ctypes.cast(data, ctype)
+        return data, dev_id, ctype
+
+    @staticmethod
+    def _get_scalar_info(var, ptype, template_mapping):
+        """Get scalar info
+
+        Parameters
+        ----------
+        var: object
+            input variable
+        ptype: DType | TemplateType
+            the type of argument
+        template_mapping: dict
+            the mapping from template name to ctype
+
+        Returns
+        -------
+        data: ctyoes.c_void_p
+            the pointer of data
+        dev_id: int | None
+            the id of device
+        ctype: ctypes.POINTER | ctypes.c_*
+            the ctype of data
+        """
+
+        dev_id = None
+        if isinstance(ptype, TemplateType):
+            data = var
+            ctype = type(var) if hasattr(
+                var, '_type_') else UnknownCType(ptype.tname)
+        else:
+            data = var if isinstance(
+                var, ctypes.c_void_p) else ptype.ctype(var)
+            ctype = ptype.ctype
+        return data, dev_id, ctype
 
     def build(self, ctx, template_types=[]):
         """Build this function
@@ -223,9 +258,10 @@ class MobulaFunc:
         mobula.func.add.build('cpu', ['float'])
         """
         arg_types = []
+        par_type = self.func.arg_types
         if isinstance(template_types, (list, tuple)):
             template_mapping = dict()  # tname -> ctype
-            for t in self.par_type:
+            for t in par_type:
                 if isinstance(t, TemplateType):
                     tname = t.tname
                     if tname in template_mapping:
@@ -242,7 +278,7 @@ class MobulaFunc:
             assert isinstance(template_types, dict), TypeError(
                 'The type of template_types should be list or tuple or dict.')
             template_name = set()
-            for t in self.par_type:
+            for t in par_type:
                 if isinstance(t, TemplateType):
                     tname = t.tname
                     assert tname in template_types, KeyError(
