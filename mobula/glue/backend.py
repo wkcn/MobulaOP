@@ -1,7 +1,8 @@
 import importlib
 
-dtypes = dict()  # input_type -> glue.{backend_name}
-glues = dict()  # backend_name -> glue.{backend_name}
+DTYPE_TO_GLUE = dict()  # dtype -> glue
+GLUE_NAME_TO_GLUE = dict()  # glue_name -> glue
+PKG_NAME_TO_GLUE_ARGS = dict()  # package_name -> (glue_name, types_name)
 
 
 def check_backend(b):
@@ -13,7 +14,8 @@ def check_backend(b):
     assert hasattr(b.OpGen, 'register')
 
 
-def register_backend(glue_name, types_name):
+def _register_backend_real(glue_name, types_name):
+    global DTYPE_TO_GLUE, GLUE_NAME_TO_GLUE
     if not isinstance(types_name, list):
         types_name = [types_name]
     glue = None
@@ -28,26 +30,49 @@ def register_backend(glue_name, types_name):
                 e = importlib.import_module(sp[0])
                 for s in sp[1:]:
                     e = getattr(e, s)
-                dtypes[e] = glue
+                # create generators cache
+                glue.gen_cache = dict()
+                DTYPE_TO_GLUE[e] = glue
             except ImportError as e:
                 pass
             check_backend(glue)
-            glues[glue_name] = glue
+            GLUE_NAME_TO_GLUE[glue_name] = glue
+
+
+def register_backend(glue_name, types_name):
+    global PKG_NAME_TO_GLUE_ARGS
+    pkg_name = None
+    for cls_name in types_name:
+        _pkg_name = cls_name.split('.')[0]
+        if pkg_name is None:
+            pkg_name = _pkg_name
+        else:
+            assert pkg_name == _pkg_name, TypeError(
+                'The name of package should be the same in `types_name`')
+    PKG_NAME_TO_GLUE_ARGS[pkg_name] = (glue_name, types_name)
 
 
 # register backends
 register_backend('mx', ['mxnet.nd.NDArray', 'mxnet.sym.Symbol'])
 register_backend('np', ['numpy.ndarray'])
 register_backend('th', ['torch.Tensor'])
-assert dtypes, RuntimeError('No supported backend :-(')
 
-# create generators cache
-for b in dtypes.values():
-    b.gen_cache = dict()
+
+def get_var_type_backend(v_type):
+    global DTYPE_TO_GLUE, PKG_NAME_TO_GLUE_ARGS
+    backend = DTYPE_TO_GLUE.get(v_type, None)
+    if backend is not None:
+        return backend
+    pkg_name = v_type.__module__.split('.')[0]
+    if pkg_name not in PKG_NAME_TO_GLUE_ARGS:
+        return None
+    # try to register backend
+    _register_backend_real(*PKG_NAME_TO_GLUE_ARGS[pkg_name])
+    return DTYPE_TO_GLUE.get(v_type, None)
 
 
 def get_var_backend(v):
-    return dtypes.get(type(v), None)
+    return get_var_type_backend(type(v))
 
 
 def get_args_backend(*args, **kwargs):

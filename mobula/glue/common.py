@@ -96,7 +96,7 @@ class MobulaOperator(object):
         return backend.op_gen(b, op=self.op, name=self.name)(*args, **new_kwargs)
 
     def __getitem__(self, input_type):
-        b = backend.dtypes.get(input_type, None)
+        b = backend.get_var_type_backend(input_type)
         assert b is not None, ValueError(
             'The backend of {} is not found'.format(input_type))
 
