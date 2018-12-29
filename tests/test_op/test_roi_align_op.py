@@ -275,8 +275,8 @@ def test_roi_align_value():
                       spatial_scale, sampling_ratio, dy.asnumpy())
     assert_almost_equal(dx, bottom_diff)
 
-    atol = 1e-5
-    rtol = 1e-5
+    atol = 1e-3
+    rtol = 1e-3
     assert_almost_equal(output.asnumpy(), real_output, atol=atol, rtol=rtol)
     assert_almost_equal(data.grad.asnumpy(), dx, atol=atol, rtol=rtol)
     assert_almost_equal(rois.grad.asnumpy(), drois, atol=atol, rtol=rtol)

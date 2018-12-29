@@ -29,7 +29,7 @@ LDFLAGS = Flags('-lpthread -shared')
 if config.USING_CBLAS:
     LDFLAGS.add_string('-lopenblas')
 
-CU_FLAGS = Flags('-std=c++11 -x cu -Wno-deprecated-gpu-targets -dc \
+CU_FLAGS = Flags('-std=c++11 -x cu -Wno-deprecated-gpu-targets -dc -D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES \
 --expt-extended-lambda').\
     add_definition('USING_CUDA', 1).\
     add_definition('USING_HIP', 0).\
