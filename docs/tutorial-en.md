@@ -242,7 +242,7 @@ class MulElemWiseBlock(mx.gluon.nn.HybridBlock):
         return mobula.op.MulElemWise(a, b)
 ```
 
-The aforementioned codes can be seen at the docs directory of MobulaOP. [Code](https://github.com/wkcn/MobulaOP/tree/master/docs).
+The aforementioned codes can be seen at [the docs directory](https://github.com/wkcn/MobulaOP/tree/master/docs).
 
 I hope that MobulaOP will help you :)
 

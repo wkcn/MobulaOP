@@ -238,7 +238,7 @@ class MulElemWiseBlock(mx.gluon.nn.HybridBlock):
         return mobula.op.MulElemWise(a, b)
 ```
 
-这就是MobulaOP的简单使用介绍，上述代码可以在项目的文档部分(docs)[查看](https://github.com/wkcn/MobulaOP/tree/master/docs)。
+这就是MobulaOP的简单使用介绍，上述代码可以在项目的[文档部分(docs)](https://github.com/wkcn/MobulaOP/tree/master/docs)查看。
 
 希望MobulaOP能够对大家有帮助。
 
