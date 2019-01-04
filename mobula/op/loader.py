@@ -216,7 +216,6 @@ using namespace mobula;
 #include "%s"
 extern "C" {
 %s
-
 }''' % (cpp_fname, git_hash, create_time, os.path.join('../..', cpp_basename), code_buffer)
 
     build_path_ctx = os.path.join(build_path, ctx)
@@ -240,10 +239,11 @@ extern "C" {
 def generate_kernel_code(func_idcode_hash, args_def, func_name, nthread, args_inst):
     return '''
 MOBULA_DLL void %s(const int device_id, %s) {
-KERNEL_RUN_BEGIN(device_id);
-KERNEL_RUN(%s)(%s);
-KERNEL_RUN_END();
-}''' % (func_idcode_hash, args_def, func_name, args_inst)
+  KERNEL_RUN_BEGIN(device_id);
+  KERNEL_RUN(%s)(%s);
+  KERNEL_RUN_END();
+}
+''' % (func_idcode_hash, args_def, func_name, args_inst)
 
 
 def generate_func_code(func_idcode_hash, rtn_type, args_def, func_name, args_inst):
