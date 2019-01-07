@@ -1,9 +1,6 @@
 import os
 import sys
-import subprocess
 import numpy as np
-
-ENV_PATH = os.path.dirname(__file__)
 
 if sys.version_info[0] < 3:
     FileNotFoundError = IOError
@@ -11,7 +8,7 @@ else:
     long = int
 
 
-def asnumpy(data):
+def _asnumpy(data):
     if isinstance(data, np.ndarray):
         return data
     if hasattr(data, 'asnumpy'):
@@ -33,8 +30,8 @@ def assert_almost_equal(a, b, rtol=1e-5, atol=1e-8):
         return data
     a = check_value(a, b)
     b = check_value(b, a)
-    a = asnumpy(a)
-    b = asnumpy(b)
+    a = _asnumpy(a)
+    b = _asnumpy(b)
     # Check Shape
     # If the shapes don't match, raise AssertionError and print the shapes
     assert a.shape == b.shape,\
@@ -110,44 +107,5 @@ def assert_almost_equal(a, b, rtol=1e-5, atol=1e-8):
                     format(max_relative_error, rtol, a.ravel()[idx], b.ravel()[idx]))
 
 
-def list_gpus():
-    """Return a list of GPUs
-        Adapted from [MXNet](https://github.com/apache/incubator-mxnet)
-
-    Returns
-    -------
-    list of int:
-        If there are n GPUs, then return a list [0,1,...,n-1]. Otherwise returns
-        [].
-    """
-    result = ''
-    nvidia_smi = ['nvidia-smi', '/usr/bin/nvidia-smi',
-                  '/usr/local/nvidia/bin/nvidia-smi']
-    for cmd in nvidia_smi:
-        try:
-            result = subprocess.check_output(
-                [cmd, "-L"], universal_newlines=True)
-            break
-        except Exception:
-            pass
-    else:
-        return range(0)
-    return range(len([i for i in result.split('\n') if 'GPU' in i]))
-
-
 def assert_file_exists(fname):
     assert os.path.exists(fname), IOError("{} not found".format(fname))
-
-
-def get_git_hash():
-    try:
-        line = open(os.path.join(ENV_PATH, '..', '.git/HEAD')
-                    ).readline().strip()
-        ref = line[5:] if line[:4] == 'ref:' else line
-        return open(os.path.join('.git', ref)).readline().strip()[:7]
-    except FileNotFoundError:
-        return 'custom'
-
-
-FLT_MIN = 1.175494351e-38
-FLT_MAX = 3.402823466e+38

@@ -1,5 +1,5 @@
 import mobula
-from mobula.test_utils import assert_almost_equal
+from mobula.testing import assert_almost_equal
 # Import Custom Operator Dynamically
 import os
 mobula.op.load('./TemplateOP', path=os.path.dirname(__file__))

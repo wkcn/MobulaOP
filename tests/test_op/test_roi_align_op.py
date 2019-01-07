@@ -1,7 +1,7 @@
 import mxnet as mx
 import numpy as np
 import mobula
-from mobula.test_utils import assert_almost_equal
+from mobula.testing import assert_almost_equal
 
 mobula.op.load('ROIAlign')
 

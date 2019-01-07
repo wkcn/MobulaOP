@@ -1,5 +1,5 @@
 import mobula
-from mobula.test_utils import assert_almost_equal
+from mobula.testing import assert_almost_equal
 import numpy as np
 
 
