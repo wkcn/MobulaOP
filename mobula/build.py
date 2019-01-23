@@ -1,4 +1,5 @@
 """Building Implementation"""
+import os
 import sys
 import multiprocessing
 try:
@@ -29,8 +30,8 @@ LDFLAGS = Flags('-lpthread -shared')
 if config.USING_CBLAS:
     LDFLAGS.add_string('-lopenblas')
 
-CU_FLAGS = Flags('-std=c++11 -x cu -Wno-deprecated-gpu-targets -dc -D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES \
---expt-extended-lambda').\
+CU_FLAGS = Flags('-std=c++11 -x cu -Wno-deprecated-gpu-targets -dc \
+-D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES --expt-extended-lambda').\
     add_definition('USING_CUDA', 1).\
     add_definition('USING_HIP', 0).\
     add_string(COMMON_FLAGS)
@@ -188,7 +189,8 @@ def run_rule(name):
 
 if __name__ == '__main__':
     assert len(sys.argv) >= 2, AssertionError(
-        'Please add building flag, e.g. python build.py all\nValid flags: {}'.format(' | '.join(BUILD_FLAGS.keys())))
+        'Please add building flag, e.g. python build.py all\nValid flags: {}'.
+        format(' | '.join(BUILD_FLAGS.keys())))
     pass_argv(sys.argv)
     SRCS = wildcard(['src'], 'cpp')
     with build_context():

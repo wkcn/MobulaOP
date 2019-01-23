@@ -1,20 +1,27 @@
+"""Backend Manager."""
 import importlib
 
-DTYPE_TO_GLUE = dict()  # dtype -> glue
-GLUE_NAME_TO_GLUE = dict()  # glue_name -> glue
+DTYPE_TO_GLUE = dict()  # dtype -> glue_mod
+GLUE_NAME_TO_GLUE = dict()  # glue_name -> glue_mod
 PKG_NAME_TO_GLUE_ARGS = dict()  # package_name -> (glue_name, types_name)
 
 
-def check_backend(b):
+def _check_glue(glue_mod):
+    """Check Glue Module.
+
+    Parameters
+    ----------
+    glue_mod: module
+    """
     func_names = ['get_pointer', 'get_ctype', 'dev_id', 'OpGen']
     for name in func_names:
-        assert hasattr(b, name), AttributeError(
+        assert hasattr(glue_mod, name), AttributeError(
             'Attribute {} not found'.format(name))
-    assert hasattr(b.OpGen, '__call__')
-    assert hasattr(b.OpGen, 'register')
+    assert hasattr(glue_mod.OpGen, '__call__')
+    assert hasattr(glue_mod.OpGen, 'register')
 
 
-def _register_backend_real(glue_name, types_name):
+def _register_glue_real(glue_name, types_name):
     global DTYPE_TO_GLUE, GLUE_NAME_TO_GLUE
     if not isinstance(types_name, list):
         types_name = [types_name]
@@ -24,22 +31,31 @@ def _register_backend_real(glue_name, types_name):
     except Exception:
         pass
     if glue is not None:
-        for t in types_name:
-            sp = t.split('.')
+        for tname in types_name:
+            tname_sp = tname.split('.')
             try:
-                e = importlib.import_module(sp[0])
-                for s in sp[1:]:
-                    e = getattr(e, s)
+                module = importlib.import_module(tname_sp[0])
+                for sub_name in tname_sp[1:]:
+                    module = getattr(module, sub_name)
                 # create generators cache
                 glue.gen_cache = dict()
-                DTYPE_TO_GLUE[e] = glue
-            except ImportError as e:
+                DTYPE_TO_GLUE[module] = glue
+            except ImportError:
                 pass
-            check_backend(glue)
+            _check_glue(glue)
             GLUE_NAME_TO_GLUE[glue_name] = glue
 
 
-def register_backend(glue_name, types_name):
+def register_glue(glue_name, types_name):
+    """Register a glue module.
+
+    Parameters
+    ----------
+    glue_name: str
+        The name of glue module.
+    types_name: list of str
+        The list of inputs' class names.
+    """
     global PKG_NAME_TO_GLUE_ARGS
     pkg_name = None
     for cls_name in types_name:
@@ -52,50 +68,97 @@ def register_backend(glue_name, types_name):
     PKG_NAME_TO_GLUE_ARGS[pkg_name] = (glue_name, types_name)
 
 
-# register backends
-register_backend('mx', ['mxnet.nd.NDArray', 'mxnet.sym.Symbol'])
-register_backend('np', ['numpy.ndarray'])
-register_backend('th', ['torch.Tensor'])
+# register glue modules.
+register_glue('mx', ['mxnet.nd.NDArray', 'mxnet.sym.Symbol'])
+register_glue('np', ['numpy.ndarray'])
+register_glue('th', ['torch.Tensor'])
 
 
-def get_var_type_backend(v_type):
+def get_var_type_glue(vtype):
+    """Get glue module from variable's type.
+
+    Parameters
+    ----------
+    vtype: data type
+
+    Returns
+    -------
+    Glue Module if glue exists, otherwise None.
+    """
     global DTYPE_TO_GLUE, PKG_NAME_TO_GLUE_ARGS
-    backend = DTYPE_TO_GLUE.get(v_type, None)
-    if backend is not None:
-        return backend
-    pkg_name = v_type.__module__.split('.')[0]
+    glue_mod = DTYPE_TO_GLUE.get(vtype, None)
+    if glue_mod is not None:
+        return glue_mod
+    pkg_name = vtype.__module__.split('.')[0]
     if pkg_name not in PKG_NAME_TO_GLUE_ARGS:
         return None
-    # try to register backend
-    _register_backend_real(*PKG_NAME_TO_GLUE_ARGS[pkg_name])
-    return DTYPE_TO_GLUE.get(v_type, None)
+    # try to register glue_mod
+    _register_glue_real(*PKG_NAME_TO_GLUE_ARGS[pkg_name])
+    return DTYPE_TO_GLUE.get(vtype, None)
 
 
-def get_var_backend(v):
-    return get_var_type_backend(type(v))
+def get_var_glue(var):
+    """Get glue module from variable.
+
+    Parameters
+    ----------
+    var: variable
+
+    Returns
+    -------
+    Glue Module if glue exists, otherwise None.
+    """
+
+    return get_var_type_glue(type(var))
 
 
-def get_args_backend(*args, **kwargs):
-    b = None
+def get_args_glue(*args, **kwargs):
+    """Get glue module from args and kwargs.
 
-    def args_gen():
-        for a in args:
-            yield a
-        for a in kwargs.values():
-            yield a
-    for a in args_gen():
-        t = get_var_backend(a)
-        if t is not None:
-            if b is not None:
-                assert b == t,\
+    Parameters
+    ----------
+    *args
+    **kwargs
+
+    Returns
+    -------
+    Glue Module if glue exists, otherwise None.
+    """
+    glue_mod = None
+
+    def args_iter():
+        for arg in args:
+            yield arg
+        for arg in kwargs.values():
+            yield arg
+
+    for arg in args_iter():
+        tmp_glue_mod = get_var_glue(arg)
+        if tmp_glue_mod is not None:
+            if glue_mod is not None:
+                assert glue_mod == tmp_glue_mod,\
                     TypeError('Support only 1 backend in a call, now: [%s, %s]'
-                              % (str(b), str(t)))
+                              % (str(glue_mod), str(tmp_glue_mod)))
             else:
-                b = t
-    return b
+                glue_mod = tmp_glue_mod
+    return glue_mod
 
 
-def op_gen(b, op, name):
-    if name not in b.gen_cache:
-        b.gen_cache[name] = b.OpGen(op=op, name=name)
-    return b.gen_cache[name]
+def op_gen(glue_mod, op, name):
+    """ Get operator generator of glue module.
+
+    Parameters
+    ----------
+    glue_mod: Glue Module
+    op: object
+        The object of custom operator.
+    name: str
+        The name of custom operator.
+
+    Returns
+    -------
+    The operator generator of glue module.
+    """
+    if name not in glue_mod.gen_cache:
+        glue_mod.gen_cache[name] = glue_mod.OpGen(op=op, name=name)
+    return glue_mod.gen_cache[name]

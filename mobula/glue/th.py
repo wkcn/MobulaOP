@@ -113,7 +113,7 @@ class OpGen(object):
                 F=property(lambda self: torch),
             )
 
-            torch_nn_module_dict.update(inputs_func)
+            torch_nn_module_dict.update(INPUT_FUNCS)
 
             torch_nn_module = type('_%s_TORCH_NN_MODULE' % op_name,
                                    (torch.nn.Module, op),

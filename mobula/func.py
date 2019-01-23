@@ -1,3 +1,7 @@
+"""A `Module` implement the `MobulaFunc` class."""
+__all__ = ['MobulaFunc', 'bind']
+
+
 import ctypes
 import os
 import hashlib
@@ -6,6 +10,19 @@ from .dtype import DType, TemplateType, UnknownCType
 
 
 def get_func_idcode(func_name, arg_types):
+    """Get Function IDCode
+
+    Parameters
+    ----------
+    func_name: str
+        the name of function
+    arg_types: list of DType
+
+    Returns
+    -------
+    idcode: str
+        IDCode
+    """
     arg_types_str = ','.join([e.cname for e in arg_types])
     idcode = '{func_name}:{arg_types_str}'.format(
         func_name=func_name,
@@ -14,28 +31,44 @@ def get_func_idcode(func_name, arg_types):
 
 
 def get_idcode_hash(idcode):
-    sp = idcode.split(':')
-    func_name = sp[0]
+    """Get the hash string of IDCode
+
+    Parameters
+    ----------
+    idcode: str
+    arg_types: list of DType
+
+    Returns
+    -------
+    Hash String of IDCode: str
+    """
+    idcode_sp = idcode.split(':')
+    func_name = idcode_sp[0]
     md5 = hashlib.md5()
     md5.update(idcode[len(func_name) + 1:].encode('utf-8'))
     return '{}_{}'.format(func_name, md5.hexdigest()[:8])
 
 
-gpu_ctx_name = None
+GPU_CTX_NAME = None
 for gpu_ctx in ['cuda', 'hip']:
     gpu_lib_fname = os.path.join(os.path.dirname(__file__), 'build',
                                  'mobula_op_{}.so'.format(gpu_ctx))
     if os.path.exists(gpu_lib_fname):
-        gpu_ctx_name = gpu_ctx
+        GPU_CTX_NAME = gpu_ctx
         break
 
 
 class CFuncDef:
+    """The definition of CFunction."""
     KERNEL = 1
     FUNC = 2
 
-    def __init__(self, func_name, func_kind, arg_names=[], arg_types=None, rtn_type=None,
-                 template_list=[], loader=None, loader_kwargs=None):
+    def __init__(self, func_name, func_kind, arg_names=None, arg_types=None, rtn_type=None,
+                 template_list=None, loader=None, loader_kwargs=None):
+        if arg_names is None:
+            arg_names = list()
+        if template_list is None:
+            template_list = list()
         self.func_name = func_name
         self.func_kind = func_kind
         self.arg_names = arg_names
@@ -50,7 +83,7 @@ class CFuncDef:
             ctx = 'cpu'
             dev_id = -1
         else:
-            ctx = gpu_ctx_name
+            ctx = GPU_CTX_NAME
         # function loader
         func = self.loader(self, arg_types, ctx, **self.loader_kwargs)
         if self.func_kind == self.KERNEL:
@@ -60,16 +93,15 @@ class CFuncDef:
 
 class MobulaFunc:
     """An encapsulation for CFunction
+
+    Parameters:
+    -----------
+    name: str
+        function name
+    func: CFuncDef
     """
 
     def __init__(self, name, func):
-        """
-        Parameters:
-        -----------
-        name: str
-            function name
-        func: CFuncDef
-        """
         self.name = name
         self.func = func
 
@@ -109,8 +141,7 @@ class MobulaFunc:
                     var, ptype, noncont_var_list, temp_var_list, template_mapping)
             else:
                 # The type of `var` is Scalar.
-                data, var_dev_id, ctype = self._get_scalar_info(
-                    var, ptype, template_mapping)
+                data, var_dev_id, ctype = self._get_scalar_info(var, ptype)
 
             arg_datas.append(data)
             if isinstance(ctype, UnknownCType):
@@ -128,12 +159,12 @@ class MobulaFunc:
                     dev_id = var_dev_id
 
         # try to know the unknown ctype
-        for i, a in enumerate(arg_types):
-            if isinstance(a, UnknownCType):
-                assert a.tname in template_mapping,\
-                    Exception('Unknown template name: {}'.format(a.tname))
-                ctype = template_mapping[a.tname]._type_
-                arg_types[i] = DType(ctype, a.is_const)
+        for i, vtype in enumerate(arg_types):
+            if isinstance(vtype, UnknownCType):
+                assert vtype.tname in template_mapping,\
+                    Exception('Unknown template name: {}'.format(vtype.tname))
+                ctype = template_mapping[vtype.tname]._type_
+                arg_types[i] = DType(ctype, vtype.is_const)
                 arg_datas[i] = ctype(arg_datas[i])
 
         rtn = self.func(arg_datas=arg_datas,
@@ -179,8 +210,8 @@ class MobulaFunc:
             the ctype of data
         """
 
-        backend = glue.backend.get_var_backend(var)
-        data = backend.get_pointer(var)
+        glue_mod = glue.backend.get_var_glue(var)
+        data = glue_mod.get_pointer(var)
         if isinstance(data, (list, tuple)):
             # data = (contiguous_array_pointer, contiguous_array_object)
             if ptype.is_const:
@@ -190,8 +221,8 @@ class MobulaFunc:
                 noncont_var_list.append((var, data[1]))
                 MobulaFunc._wait_to_write(data[1])
             data = data[0]
-        dev_id = backend.dev_id(var)
-        ctype = ctypes.POINTER(backend.get_ctype(var))
+        dev_id = glue_mod.dev_id(var)
+        ctype = ctypes.POINTER(glue_mod.get_ctype(var))
         if isinstance(ptype, DType):
             expected_ctype = ptype.ctype
         else:
@@ -206,7 +237,7 @@ class MobulaFunc:
         return data, dev_id, ctype
 
     @staticmethod
-    def _get_scalar_info(var, ptype, template_mapping):
+    def _get_scalar_info(var, ptype):
         """Get scalar info
 
         Parameters
@@ -215,8 +246,6 @@ class MobulaFunc:
             input variable
         ptype: DType | TemplateType
             the type of argument
-        template_mapping: dict
-            the mapping from template name to ctype
 
         Returns
         -------
@@ -239,7 +268,7 @@ class MobulaFunc:
             ctype = ptype.ctype
         return data, dev_id, ctype
 
-    def build(self, ctx, template_types=[]):
+    def build(self, ctx, template_types=None):
         """Build this function
 
         Parameters
@@ -247,50 +276,51 @@ class MobulaFunc:
         ctx: str
             context Name
         template_types: list or tuple or dict, default: []
-            list:
-                a list of template type Names
-            tuple:
-                a tuple of template type Names
-            dict:
-                a mapping from template name to type name
+            list: a list of template type Names
+            tuple: a tuple of template type Names
+            dict: a mapping from template name to type name
 
-        Examples:
-        mobula.func.add.build('cpu', ['float'])
+        Examples
+        --------
+        >>> mobula.func.add.build('cpu', ['float'])
         """
         arg_types = []
         par_type = self.func.arg_types
+        if template_types is None:
+            template_types = list()
         if isinstance(template_types, (list, tuple)):
             template_mapping = dict()  # tname -> ctype
-            for t in par_type:
-                if isinstance(t, TemplateType):
-                    tname = t.tname
+            for vtype in par_type:
+                if isinstance(vtype, TemplateType):
+                    tname = vtype.tname
                     if tname in template_mapping:
                         ctype = template_mapping[tname]
                     else:
                         ctype = getattr(ctypes, 'c_{}'.format(
                             template_types.pop(0)))
                         template_mapping[tname] = ctype
-                    arg_types.append(t(ctype))
+                    arg_types.append(vtype(ctype))
                 else:
-                    arg_types.append(t)
+                    arg_types.append(vtype)
             assert not template_types, Exception('redundant type')
         else:
             assert isinstance(template_types, dict), TypeError(
                 'The type of template_types should be list or tuple or dict.')
             template_name = set()
-            for t in par_type:
-                if isinstance(t, TemplateType):
-                    tname = t.tname
+            for vtype in par_type:
+                if isinstance(vtype, TemplateType):
+                    tname = vtype.tname
                     assert tname in template_types, KeyError(
                         'Unknown Template Type: {}'.format(tname))
                     template_name.add(tname)
                     ctype = getattr(ctypes, 'c_{}'.format(
                         template_types[tname]))
-                    arg_types.append(t(ctype))
+                    arg_types.append(vtype(ctype))
                 else:
-                    arg_types.append(t)
+                    arg_types.append(vtype)
             assert len(template_name) == len(template_types), Exception(
-                'Different template name: {} vs {}'.format(template_name, set(template_types.keys())))
+                'Different template name: {} vs {}'.format(
+                    template_name, set(template_types.keys())))
         func = self.func
         func.loader(func, arg_types, ctx, **func.loader_kwargs)
 

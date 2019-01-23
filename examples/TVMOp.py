@@ -45,9 +45,9 @@ class TVMAddOp:
         }
 
     def forward(self, x, y):
-        b = mobula.glue.backend.get_var_backend(x)
-        backend = (b.__name__.split('.')[-1])
-        device_type = 'cpu' if b.dev_id(x) is None else 'gpu'
+        glue_mod = mobula.glue.backend.get_var_glue(x)
+        backend = (glue_mod.__name__.split('.')[-1])
+        device_type = 'cpu' if glue_mod.dev_id(x) is None else 'gpu'
 
         self.func[backend][device_type](x, y, self.Y[0])
 

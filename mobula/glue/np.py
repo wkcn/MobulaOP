@@ -108,7 +108,7 @@ class OpGen(object):
         )
         if hasattr(self.op, '__init__'):
             np_op_dict['__init__'] = self.op.__init__
-        np_op_dict.update(inputs_func)
+        np_op_dict.update(INPUT_FUNCS)
         np_op = type('_%s_NP_OP' % self.name,
                      (self.op, object),
                      np_op_dict)

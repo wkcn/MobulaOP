@@ -90,7 +90,7 @@ class OpGen(object):
                 _backward=op.backward,
                 F=property(lambda self: mx.nd),
             )
-            mx_op_dict.update(inputs_func)
+            mx_op_dict.update(INPUT_FUNCS)
             mx_op = type('_%s_MX_OP' % op_name,
                          (mx.operator.CustomOp, op),
                          mx_op_dict)

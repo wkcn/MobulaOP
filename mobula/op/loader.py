@@ -1,3 +1,4 @@
+"""Operator Loader."""
 import os
 import sys
 import re
@@ -12,46 +13,79 @@ from ..dtype import DType, TemplateType
 from ..version import OP_LOAD_MODULE_BUILD_VERSION
 
 
-def load_module_py2(name, pathname):
-    module = imp.load_source(name, pathname)
-    return module
-
-
-def load_module_py3(name, pathname):
-    spec = importlib.util.spec_from_file_location(name, pathname)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
 if sys.version_info[0] >= 3:
     import importlib
-    load_module = load_module_py3
+
+    def load_module(name, pathname):
+        """Load Module.
+
+        Paramters
+        ---------
+        name: str
+            the name of module.
+        pathname:
+            the name of path.
+
+        Returns
+        -------
+        Module
+        """
+        spec = importlib.util.spec_from_file_location(name, pathname)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
 else:
     import imp
-    load_module = load_module_py2
+
+    def load_module(name, pathname):
+        """Load Module.
+
+        Paramters
+        ---------
+        name: str
+            the name of module.
+        pathname:
+            the name of path.
+
+        Returns
+        -------
+        Module
+        """
+        module = imp.load_source(name, pathname)
+        return module
 
 
-def get_func_head_reg(name):
+def _get_func_head_reg(name):
+    """Get a pattern object for CFunction Head.
+
+    Paramters
+    ---------
+    name: str
+        Function name.
+
+    Returns
+    -------
+    A pattern object
+    """
     return re.compile(r'^\s*{}\s*(.*)'.format(name))
 
 
-MOBULA_KERNEL_REG = get_func_head_reg('MOBULA_(KERNEL|FUNC)')
+MOBULA_KERNEL_REG = _get_func_head_reg('MOBULA_(KERNEL|FUNC)')
 
 FUNC_REG = re.compile(
     r'^\s*(.*?)\s*\((.*?)\)(?:.*?)*')
 CPP_TEMPLATE_REG = re.compile(r'^\s*template\s*\<(.*?)\>\s*')
 
 
-def get_template_decl(code):
-    u = CPP_TEMPLATE_REG.search(code)
-    if u is None:
+def _get_template_decl(code):
+    match = CPP_TEMPLATE_REG.search(code)
+    if match is None:
         return None
-    blocks = u.groups()[0].split(',')
+    blocks = match.groups()[0].split(',')
     templates = []
     for block in blocks:
-        sp = block.split()
-        dtype, dname = sp
+        block_sp = block.split()
+        dtype, dname = block_sp
         if dtype.strip() == 'typename':
             templates.append(dname.strip())
     return templates
@@ -78,27 +112,30 @@ def parse_parameter_decl(decl):
     if is_pointer:
         decl = decl.replace('*', '')
     decl = decl.strip()
-    sp = decl.split(' ')
-    if sp[0] == 'const':
+    decl_sp = decl.split(' ')
+    if decl_sp[0] == 'const':
         is_const = True
-        sp = sp[1:]
+        decl_sp = decl_sp[1:]
     else:
         is_const = False
 
     # type_name and variable_name in C++ code
-    type_name = sp[0]
-    var_name = sp[1]
+    type_name = decl_sp[0]
+    var_name = decl_sp[1]
 
+    # void* func(...)
     if type_name == 'void':
-        assert is_pointer == True
+        assert is_pointer
         return DType(ctypes.c_void_p, is_const=is_const), var_name
-    else:
-        ctype_name = 'c_{}'.format(type_name)
-        if hasattr(ctypes, ctype_name):
-            ctype = getattr(ctypes, ctype_name)
-            if is_pointer:
-                ctype = ctypes.POINTER(ctype)
-            return DType(ctype, is_const=is_const), var_name
+
+    # ctype func(...)
+    ctype_name = 'c_{}'.format(type_name)
+    if hasattr(ctypes, ctype_name):
+        ctype = getattr(ctypes, ctype_name)
+        if is_pointer:
+            ctype = ctypes.POINTER(ctype)
+        return DType(ctype, is_const=is_const), var_name
+
     # template type
     return TemplateType(tname=type_name, is_pointer=is_pointer, is_const=is_const), var_name
 
@@ -121,8 +158,8 @@ def parse_parameters_list(plist):
         [(DType|TemplateType, variable name), ...]
     """
 
-    g = FUNC_REG.search(plist)
-    head, plist = g.groups()
+    match = FUNC_REG.search(plist)
+    head, plist = match.groups()
     head_split = re.split(r'\s+', head)
     plist_split = re.split(r'\s*,\s*', plist)
     func_name = head_split[-1]
@@ -161,7 +198,7 @@ def get_template_inst_fname(build_path, name):
     return fpath
 
 
-def load_js_map(fname):
+def _load_js_map(fname):
     """Load json file which records build information.
     Parameters:
     -----------
@@ -177,28 +214,43 @@ def load_js_map(fname):
     return dict(version=OP_LOAD_MODULE_BUILD_VERSION)
 
 
-def save_js_map(fname, data):
+def _save_js_map(fname, data):
     with open(fname, 'w') as fout:
         fout.write(json.dumps(data))
 
 
 class CPPInfo:
+    """The class of the C++ file's information.
+
+    Parameters
+    ----------
+    cpp_fname: str
+        the filename of C++ file.
+    """
+
     def __init__(self, cpp_fname):
         self.cpp_fname = cpp_fname
         self.function_args = dict()
         self.dll = None
 
     def load_dll(self, dll_fname):
+        """Load Dynamic-Link Library(*.so or *.dll).
+
+        Parameters
+        ----------
+        dll_fname:
+            The name of Dynamic-Link Library.
+        """
         # keep reference
         self.dll = ctypes.CDLL(dll_fname)
 
 
-def get_so_prefix(fname):
+def _get_so_prefix(fname):
     path, name = os.path.split(fname)
     return os.path.join(path, 'build', os.path.splitext(name)[0])
 
 
-def build_lib(cpp_fname, code_buffer, ctx, target_name):
+def _build_lib(cpp_fname, code_buffer, ctx, target_name):
     cpp_path, cpp_basename = os.path.split(cpp_fname)
     build_path = os.path.join(cpp_path, 'build')
     create_time = time.strftime('%a %Y-%m-%d %H:%M:%S %Z', time.localtime())
@@ -236,7 +288,7 @@ extern "C" {
     source_to_so_ctx(build_path, srcs, target_name, ctx, buildin_cpp)
 
 
-def generate_kernel_code(func_idcode_hash, args_def, func_name, nthread, args_inst):
+def _generate_kernel_code(func_idcode_hash, args_def, func_name, args_inst):
     return '''
 MOBULA_DLL void %s(const int device_id, %s) {
   KERNEL_RUN_BEGIN(device_id);
@@ -246,7 +298,7 @@ MOBULA_DLL void %s(const int device_id, %s) {
 ''' % (func_idcode_hash, args_def, func_name, args_inst)
 
 
-def generate_func_code(func_idcode_hash, rtn_type, args_def, func_name, args_inst):
+def _generate_func_code(func_idcode_hash, rtn_type, args_def, func_name, args_inst):
     if rtn_type is None:
         rtn_type = 'void'
     code = '''
@@ -258,7 +310,7 @@ MOBULA_DLL %s %s(%s) {
     return code
 
 
-def generate_ordinary_code(cpp_info):
+def _generate_ordinary_code(cpp_info):
     code_buffer = ''
     # generate ordinary functions code
     for func_name, ord_cfunc in cpp_info.function_args.items():
@@ -271,15 +323,14 @@ def generate_ordinary_code(cpp_info):
             name=name
         ) for dtype, name in zip(ord_cfunc.arg_types, ord_cfunc.arg_names)])
         args_inst = ', '.join(ord_cfunc.arg_names)
-        nthread = ord_cfunc.arg_names[0]
         func_kind = ord_cfunc.func_kind
         if func_kind == CFuncDef.KERNEL:
-            code_buffer += generate_kernel_code(
-                func_idcode_hash, args_def, '{}_kernel'.format(func_name), nthread, args_inst)
+            code_buffer += _generate_kernel_code(
+                func_idcode_hash, args_def, '{}_kernel'.format(func_name), args_inst)
     return code_buffer
 
 
-def update_template_inst_map(idcode, tmap, cfunc, arg_types):
+def _update_template_inst_map(idcode, tmap, cfunc, arg_types):
     # template function
     func_name = cfunc.func_name
     func_idcode_hash = get_idcode_hash(idcode)
@@ -314,32 +365,30 @@ def update_template_inst_map(idcode, tmap, cfunc, arg_types):
     if rtn_type in template_mapping:
         rtn_type = template_mapping[rtn_type]
 
-    nthread = cfunc.arg_names[0]
-
     func_kind = cfunc.func_kind
     if func_kind == CFuncDef.KERNEL:
-        code = generate_kernel_code(func_idcode_hash, args_def, '({}_kernel{})'.format(
-            func_name, template_post), nthread, args_inst)
+        code = _generate_kernel_code(func_idcode_hash, args_def, '({}_kernel{})'.format(
+            func_name, template_post), args_inst)
     else:
-        code = generate_func_code(
+        code = _generate_func_code(
             func_idcode_hash, rtn_type, args_def, func_name + template_post, args_inst)
     tmap[idcode] = code
 
 
 def op_loader(cfunc, arg_types, ctx, cpp_info):
-    '''Import Operator Loader
-    It's actual to load the operator
+    '''Import Operator Loader.
+    It's actual to load the operator.
 
     Parameters
     ----------
-    cfunc : CFuncDef
-        the definition of function to call
-    arg_types : list whose element is DType or TemplateType
-        argument declaration list
-    ctx : str
-        building context
-    cpp_info : CPPInfo
-        related to cfunc
+    cfunc: CFuncDef
+        The definition of function to call.
+    arg_types: list of {DType|TemplateType}
+        Argument declaration list.
+    ctx: str
+        Building context.
+    cpp_info: CPPInfo
+        Related to cfunc.
 
     Returns
     -------
@@ -352,8 +401,7 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
     func_map = CTX_FUNC_MAP[ctx]
 
     if idcode not in func_map:
-        '''load function if idcode is not loaded
-        '''
+        # load function if idcode is not loaded
         cpp_fname = cpp_info.cpp_fname
         cpp_path, cpp_basename = os.path.split(cpp_fname)
         build_path = os.path.join(cpp_path, 'build')
@@ -366,7 +414,7 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
 
         if cpp_fname not in TEMPLATE_INST_MAP:
             # map_data is a dict which records build information
-            map_data = load_js_map(template_inst_fname)
+            map_data = _load_js_map(template_inst_fname)
             assert map_data.get('version') <= OP_LOAD_MODULE_BUILD_VERSION, Exception(
                 """Unsupported higher version %s of wrapper file (Current MobulaOP ver: %s) :-(.
 Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERSION))
@@ -380,7 +428,7 @@ Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERS
             tmap = TEMPLATE_INST_MAP[cpp_fname]
             build_id = TEMPLATE_BUILD_ID_MAP[cpp_fname]
 
-        so_prefix = get_so_prefix(cpp_fname)
+        so_prefix = _get_so_prefix(cpp_fname)
         # The filename of build target
         dll_fname = '{}_{}_{}.so'.format(so_prefix, ctx, build_id)
 
@@ -402,19 +450,19 @@ Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERS
                 build_id = TEMPLATE_BUILD_ID_MAP[cpp_fname]
                 dll_fname = '{}_{}_{}.so'.format(so_prefix, ctx, build_id)
             # build code
-            code_buffer = generate_ordinary_code(cpp_info)
+            code_buffer = _generate_ordinary_code(cpp_info)
             if use_template:
                 if idcode not in tmap:
-                    update_template_inst_map(idcode, tmap, cfunc, arg_types)
+                    _update_template_inst_map(idcode, tmap, cfunc, arg_types)
                 # add template instances code into code_buffer
                 code_buffer += ''.join(tmap.values())
 
             with build_context():
-                build_lib(cpp_fname, code_buffer, ctx, dll_fname)
+                _build_lib(cpp_fname, code_buffer, ctx, dll_fname)
             # update tmap
             map_data = dict(version=OP_LOAD_MODULE_BUILD_VERSION,
                             build_id=build_id, functions=tmap)
-            save_js_map(template_inst_fname, map_data)
+            _save_js_map(template_inst_fname, map_data)
 
         # load all functions in the dll
         cpp_info.load_dll(dll_fname)
@@ -449,24 +497,23 @@ Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERS
     return func_map[idcode]
 
 
-def get_functions_from_cpp(cpp_fname):
+def _get_functions_from_cpp(cpp_fname):
     unmatched_brackets = 0
     func_def = ''
     func_kind = ''
     func_started = False
-    templates = None
     template_list = []
     cpp_info = CPPInfo(cpp_fname=cpp_fname)
     function_args = cpp_info.function_args
     for line in open(cpp_fname):
         if not func_started:
-            current_template_list = get_template_decl(line)
+            current_template_list = _get_template_decl(line)
             if current_template_list is not None:
                 template_list = current_template_list
-            u = MOBULA_KERNEL_REG.search(line)
-            if u is not None:
+            match = MOBULA_KERNEL_REG.search(line)
+            if match is not None:
                 func_def = ''
-                func_kind_str = u.groups()[0]
+                func_kind_str = match.groups()[0]
                 if func_kind_str == 'KERNEL':
                     func_kind = CFuncDef.KERNEL
                 elif func_kind_str == 'FUNC':
@@ -482,7 +529,6 @@ def get_functions_from_cpp(cpp_fname):
             if unmatched_brackets == 0:
                 func_def = func_def.replace('\n', '').replace('\r', '')
                 func_started = False
-                templates = None
                 rtn_type, kernel_name, par_list = parse_parameters_list(
                     func_def)
                 # template name check
@@ -530,8 +576,8 @@ def get_functions_from_cpp(cpp_fname):
         Exception('# unmatched brackets: {}'.format(unmatched_brackets))
 
     # Load dynamic file
-    functions = dict([(name, CFuncDef(**kwargs))
-                      for name, kwargs in function_args.items()])
+    functions = dict(
+        (name, CFuncDef(**kwargs)) for name, kwargs in function_args.items())
     return functions
 
 
@@ -544,10 +590,6 @@ def load(module_name, path=''):
         The name of Operator Module
     path: str
         The path of Operator Module [default = current path]
-
-    Returns
-    -------
-    op: Operator Module if exists
     """
     op_name = os.path.basename(module_name)
     if not path:
@@ -562,7 +604,7 @@ def load(module_name, path=''):
     if os.path.exists(cpp_fname):
         found = True
         # Get functions
-        functions = get_functions_from_cpp(cpp_fname)
+        functions = _get_functions_from_cpp(cpp_fname)
         bind(functions)
 
     py_fname = os.path.join(path, op_name + '.py')
@@ -572,7 +614,7 @@ def load(module_name, path=''):
     if os.path.exists(py_fname):
         found = True
         # Create Operator
-        module = load_module(op_name, py_fname)
+        load_module(op_name, py_fname)
     assert found,\
-        IOError("{}.cpp or {}.py or __init__.py not found in the path {}".
-                format(op_name, op_name, path))
+        IOError("{op_name}.cpp or {op_name}.py or __init__.py not found\
+ in the path {path}".format(op_name=op_name, path=path))
