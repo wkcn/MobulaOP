@@ -162,3 +162,7 @@ def op_gen(glue_mod, op, name):
     if name not in glue_mod.gen_cache:
         glue_mod.gen_cache[name] = glue_mod.OpGen(op=op, name=name)
     return glue_mod.gen_cache[name]
+
+
+def get_glue_modules():
+    return GLUE_NAME_TO_GLUE.values()

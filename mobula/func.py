@@ -7,6 +7,7 @@ import os
 import hashlib
 from . import glue
 from .dtype import DType, TemplateType, UnknownCType
+from .build_utils import config
 
 
 def get_func_idcode(func_name, arg_types):
@@ -78,7 +79,7 @@ class CFuncDef:
         self.loader = loader
         self.loader_kwargs = loader_kwargs
 
-    def __call__(self, arg_datas, arg_types, dev_id):
+    def __call__(self, arg_datas, arg_types, dev_id, glue_mod=None, using_async=False):
         if dev_id is None:
             ctx = 'cpu'
             dev_id = -1
@@ -86,6 +87,10 @@ class CFuncDef:
             ctx = GPU_CTX_NAME
         # function loader
         func = self.loader(self, arg_types, ctx, **self.loader_kwargs)
+        if using_async and glue_mod is not None:
+            async_name = getattr(glue_mod, 'async_name', None)
+            if async_name is not None:
+                return getattr(func, async_name)(*arg_datas)
         if self.func_kind == self.KERNEL:
             return func(dev_id, *arg_datas)
         return func(*arg_datas)
@@ -128,17 +133,22 @@ class MobulaFunc:
         arg_types = []
         template_mapping = dict()
 
-        # Pre-process
-        for i in self.wait_to_read_list:
-            self._wait_to_read(args[i])
-        for i in self.wait_to_write_list:
-            self._wait_to_write(args[i])
+        glue_mod = self._get_glue_mod(args)
+        using_async = config.USING_ASYNC_EXEC and glue_mod is not None and hasattr(
+            glue_mod, 'get_async_func')
+
+        if not using_async:
+            # Pre-process
+            for i in self.wait_to_read_list:
+                self._wait_to_read(args[i])
+            for i in self.wait_to_write_list:
+                self._wait_to_write(args[i])
 
         for var, ptype in zip(args, self.func.arg_types):
             if ptype.is_pointer:
                 # The type of `var` is Tensor.
                 data, var_dev_id, ctype = self._get_tensor_info(
-                    var, ptype, noncont_var_list, temp_var_list, template_mapping)
+                    var, ptype, noncont_var_list, temp_var_list, template_mapping, using_async)
             else:
                 # The type of `var` is Scalar.
                 data, var_dev_id, ctype = self._get_scalar_info(var, ptype)
@@ -169,7 +179,9 @@ class MobulaFunc:
 
         rtn = self.func(arg_datas=arg_datas,
                         arg_types=arg_types,
-                        dev_id=dev_id)
+                        dev_id=dev_id,
+                        glue_mod=glue_mod,
+                        using_async=using_async)
 
         for source, target in noncont_var_list:
             source[:] = target
@@ -186,7 +198,7 @@ class MobulaFunc:
             var.wait_to_write()
 
     @staticmethod
-    def _get_tensor_info(var, ptype, noncont_var_list, temp_var_list, template_mapping):
+    def _get_tensor_info(var, ptype, noncont_var_list, temp_var_list, template_mapping, using_async=False):
         """Get tensor info
 
         Parameters
@@ -199,6 +211,8 @@ class MobulaFunc:
             the list of noncontiguous variables
         template_mapping: dict
             the mapping from template name to ctype
+        using_async: bool
+            whether to use asynchronous execution
 
         Returns
         -------
@@ -211,15 +225,18 @@ class MobulaFunc:
         """
 
         glue_mod = glue.backend.get_var_glue(var)
-        data = glue_mod.get_pointer(var)
+        data = glue_mod.get_async_pointer(
+            var) if using_async else glue_mod.get_pointer(var)
         if isinstance(data, (list, tuple)):
             # data = (contiguous_array_pointer, contiguous_array_object)
             if ptype.is_const:
+                if not using_async:
+                    MobulaFunc._wait_to_read(data[1])
                 temp_var_list.append(data[1])  # hold a reference
-                MobulaFunc._wait_to_read(data[1])
             else:
+                if not using_async:
+                    MobulaFunc._wait_to_write(data[1])
                 noncont_var_list.append((var, data[1]))
-                MobulaFunc._wait_to_write(data[1])
             data = data[0]
         dev_id = glue_mod.dev_id(var)
         ctype = ctypes.POINTER(glue_mod.get_ctype(var))
@@ -267,6 +284,19 @@ class MobulaFunc:
                 var, ctypes.c_void_p) else ptype.ctype(var)
             ctype = ptype.ctype
         return data, dev_id, ctype
+
+    @staticmethod
+    def _get_glue_mod(datas):
+        glue_mod = None
+        for var in datas:
+            glue_mod_ = glue.backend.get_var_glue(var)
+            if glue_mod_ is not None:
+                if glue_mod is None:
+                    glue_mod = glue_mod_
+                else:
+                    if glue_mod_ != glue_mod:
+                        return None
+        return glue_mod
 
     def build(self, ctx, template_types=None):
         """Build this function

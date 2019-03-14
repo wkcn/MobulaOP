@@ -1,4 +1,5 @@
 import mobula
+from mobula.testing import assert_almost_equal
 # Import Custom Operator Dynamically
 import os
 mobula.op.load('./AdditionOP', path=os.path.dirname(__file__))
@@ -20,6 +21,6 @@ def test_addition():
     dc = mx.nd.array([7, 8, 9])
     c.backward(dc)
 
-    assert ((a + b).asnumpy() == c.asnumpy()).all()
-    assert (a.grad.asnumpy() == dc.asnumpy()).all()
-    assert (b.grad.asnumpy() == dc.asnumpy()).all()
+    assert_almost_equal(a + b, c)
+    assert_almost_equal(a.grad, dc)
+    assert_almost_equal(b.grad, dc)

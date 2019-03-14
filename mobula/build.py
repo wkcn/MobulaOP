@@ -10,12 +10,17 @@ except Exception:
 NUM_CPU_CORE = multiprocessing.cpu_count()
 HOST_NUM_THREADS = config.HOST_NUM_THREADS if config.HOST_NUM_THREADS > 0 else NUM_CPU_CORE
 COMMON_FLAGS = Flags().add_definition('HOST_NUM_THREADS', HOST_NUM_THREADS)
+
+if OS_IS_LINUX:
+    COMMON_FLAGS.add_definition('MXNET_GCC_VERSION', config.MXNET_GCC_VERSION)
+
 if config.USING_OPTIMIZATION:
     COMMON_FLAGS.add_string('-O3')
 if config.DEBUG:
     COMMON_FLAGS.add_string('-g')
 COMMON_FLAGS.add_definition('USING_CBLAS', config.USING_CBLAS)
-INC_PATHS.append('inc')
+INC_PATHS.extend(['./inc', '../3rdparty/dlpack',
+                  '../3rdparty/tvm_packed_func'])
 for path in INC_PATHS:
     p = os.path.join(ENV_PATH, path)
     if p:

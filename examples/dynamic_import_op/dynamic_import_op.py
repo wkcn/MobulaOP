@@ -1,6 +1,7 @@
 import sys
 sys.path.append('../../')  # Add MobulaOP Path
 import mobula
+from mobula.testing import assert_almost_equal
 # Import Custom Operator Dynamically
 mobula.op.load('./AdditionOP')
 AdditionOP = mobula.op.AdditionOP
@@ -18,9 +19,9 @@ with mx.autograd.record():
 dc = mx.nd.array([7, 8, 9])
 c.backward(dc)
 
-assert ((a + b).asnumpy() == c.asnumpy()).all()
-assert (a.grad.asnumpy() == dc.asnumpy()).all()
-assert (b.grad.asnumpy() == dc.asnumpy()).all()
+assert_almost_equal(a + b, c)
+assert_almost_equal(a.grad, dc)
+assert_almost_equal(b.grad, dc)
 
 print('Okay :-)')
 print('a + b = c \n {} + {} = {}'.format(a.asnumpy(), b.asnumpy(), c.asnumpy()))

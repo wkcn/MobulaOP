@@ -7,10 +7,11 @@ import ctypes
 import json
 from easydict import EasyDict as edict
 from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash
-from ..build import source_to_so_ctx, build_context, file_changed
+from ..build import config, source_to_so_ctx, build_context, file_changed
 from ..utils import get_git_hash
 from ..dtype import DType, TemplateType
 from ..version import OP_LOAD_MODULE_BUILD_VERSION
+from ..glue.backend import get_glue_modules
 
 
 if sys.version_info[0] >= 3:
@@ -288,8 +289,29 @@ extern "C" {
     source_to_so_ctx(build_path, srcs, target_name, ctx, buildin_cpp)
 
 
-def _generate_kernel_code(func_idcode_hash, args_def, func_name, args_inst):
-    return '''
+def _dtype_to_tvm_value_type(dtype):
+    if dtype.is_pointer:
+        return 'v_handle'
+    if 'int' in dtype.cname:
+        return 'v_int64'
+    return 'v_float64'
+
+
+def _get_args_inst_mx(i, t):
+    s = 'args.values[%d].%s' % (i, _dtype_to_tvm_value_type(t))
+    if t.is_pointer:
+        return 'static_cast<%s>(static_cast<DLTensor*>(%s)->data)' % (t.cname, s)
+    return s
+
+
+def _generate_kernel_code(func_idcode_hash, arg_types, arg_names, func_name):
+    args_def = ', '.join(['{ctype} {name}'.format(
+        ctype=dtype.cname,
+        name=name
+    ) for dtype, name in zip(arg_types, arg_names)])
+    args_inst = ', '.join(arg_names)
+
+    kernel_code = '''
 MOBULA_DLL void %s(const int device_id, %s) {
   KERNEL_RUN_BEGIN(device_id);
   KERNEL_RUN(%s)(%s);
@@ -297,10 +319,57 @@ MOBULA_DLL void %s(const int device_id, %s) {
 }
 ''' % (func_idcode_hash, args_def, func_name, args_inst)
 
+    args_def_async_mx = ', '.join(['{ctype} {name}'.format(
+        ctype='tvm::NDArrayHandle' if dtype.is_pointer else dtype.cname,
+        name=name
+    ) for dtype, name in zip(arg_types, arg_names)])
 
-def _generate_func_code(func_idcode_hash, rtn_type, args_def, func_name, args_inst):
+    using_async_mx = True
+    for dtype in arg_types:
+        if 'void' in dtype.cname:
+            using_async_mx = False
+            break
+    if using_async_mx:
+        args_inst_mx = [_get_args_inst_mx(i, t)
+                        for i, t in enumerate(arg_types)]
+        num_const = 0
+        const_loc = []
+        for i, dtype in enumerate(arg_types):
+            if dtype.is_const and dtype.is_pointer:
+                const_loc.append(i)
+                num_const += 1
+        const_loc_code = 'nullptr' if num_const == 0 else 'std::unique_ptr<int[]>(new int[%d]{%s}).get()' % (
+            num_const, ','.join([str(u) for u in const_loc]))
+        register_mx_code = '''
+MOBULA_DLL tvm::PackedFunc* %s_register_mx() {
+  return RegisterTVMFunc("%s", [](tvm::TVMArgs args, tvm::TVMRetValue*) {
+    KERNEL_RUN_BEGIN(DEV_ID);
+    KERNEL_RUN_STREAM(%s, STRM)(%s);
+    KERNEL_RUN_END();
+  }, %d, %s);
+}
+''' % (func_idcode_hash, func_idcode_hash, func_name, ', '.join(args_inst_mx), num_const, const_loc_code)
+
+        async_mx_code = '''
+MOBULA_DLL void %s_async_mx(tvm::PackedFunc *packed_func, %s) {
+  (*packed_func)(%s);
+}
+''' % (func_idcode_hash, args_def_async_mx, args_inst)
+        kernel_code += register_mx_code
+        kernel_code += async_mx_code
+    return kernel_code
+
+
+def _generate_func_code(func_idcode_hash, rtn_type, arg_types, arg_names, func_name):
     if rtn_type is None:
         rtn_type = 'void'
+
+    args_def = ', '.join(['{ctype} {name}'.format(
+        ctype=dtype.cname,
+        name=name
+    ) for dtype, name in zip(arg_types, arg_names)])
+    args_inst = ', '.join(arg_names)
+
     code = '''
 MOBULA_DLL %s %s(%s) {
 ''' % (rtn_type, func_idcode_hash, args_def)
@@ -318,15 +387,10 @@ def _generate_ordinary_code(cpp_info):
             continue
         func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types)
         func_idcode_hash = get_idcode_hash(func_idcode)
-        args_def = ', '.join(['{ctype} {name}'.format(
-            ctype=dtype.cname,
-            name=name
-        ) for dtype, name in zip(ord_cfunc.arg_types, ord_cfunc.arg_names)])
-        args_inst = ', '.join(ord_cfunc.arg_names)
         func_kind = ord_cfunc.func_kind
         if func_kind == CFuncDef.KERNEL:
             code_buffer += _generate_kernel_code(
-                func_idcode_hash, args_def, '{}_kernel'.format(func_name), args_inst)
+                func_idcode_hash, ord_cfunc.arg_types, ord_cfunc.arg_names, '{}_kernel'.format(func_name))
     return code_buffer
 
 
@@ -352,14 +416,8 @@ def _update_template_inst_map(idcode, tmap, cfunc, arg_types):
         Exception('Template List: {}, mapping: {}'.
                   format(cfunc.template_list, template_mapping))
 
-    args_def = ', '.join(['{ctype} {name}'.format(
-        ctype=dtype.cname,
-        name=name
-    ) for dtype, name in zip(arg_types, cfunc.arg_names)])
-
     template_inst = [template_mapping[tname]
                      for tname in cfunc.template_list]
-    args_inst = ', '.join(cfunc.arg_names)
     template_post = '<%s>' % (', '.join(template_inst))
     rtn_type = cfunc.rtn_type
     if rtn_type in template_mapping:
@@ -367,12 +425,32 @@ def _update_template_inst_map(idcode, tmap, cfunc, arg_types):
 
     func_kind = cfunc.func_kind
     if func_kind == CFuncDef.KERNEL:
-        code = _generate_kernel_code(func_idcode_hash, args_def, '({}_kernel{})'.format(
-            func_name, template_post), args_inst)
+        code = _generate_kernel_code(func_idcode_hash, arg_types, cfunc.arg_names, '({}_kernel{})'.format(
+            func_name, template_post))
     else:
         code = _generate_func_code(
-            func_idcode_hash, rtn_type, args_def, func_name + template_post, args_inst)
+            func_idcode_hash, rtn_type, arg_types, cfunc.arg_names, func_name + template_post)
     tmap[idcode] = code
+
+
+def _add_function(func_map, func_idcode, cpp_info):
+    func_idcode_hash = get_idcode_hash(func_idcode)
+    func = getattr(cpp_info.dll, func_idcode_hash, None)
+    assert func is not None,\
+        Exception('No function `{}` in DLL {}'.format(
+            func_idcode, dll_fname))
+
+    if config.USING_ASYNC_EXEC:
+        # register for MXNet
+        for glue_mod in get_glue_modules():
+            async_name = getattr(glue_mod, 'async_name', None)
+            if async_name is not None:
+                async_func = glue_mod.get_async_func(
+                    cpp_info, func_idcode_hash)
+                if async_func is not None:
+                    setattr(func, async_name, async_func)
+
+    func_map[func_idcode] = func
 
 
 def op_loader(cfunc, arg_types, ctx, cpp_info):
@@ -472,21 +550,11 @@ Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERS
         for func_name, ord_cfunc in cpp_info.function_args.items():
             if not ord_cfunc.template_list:
                 func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types)
-                func_idcode_hash = get_idcode_hash(func_idcode)
-                func = getattr(cpp_info.dll, func_idcode_hash, None)
-                assert func is not None,\
-                    Exception('No function `{}` in DLL {}'.format(
-                        func_idcode, dll_fname))
-                func_map[func_idcode] = func
+                _add_function(func_map, func_idcode, cpp_info)
 
         # template functions
         for func_idcode in tmap.keys():
-            func_idcode_hash = get_idcode_hash(func_idcode)
-            func = getattr(cpp_info.dll, func_idcode_hash, None)
-            assert func is not None,\
-                Exception('No function `{}` in DLL {}'.format(
-                    func_idcode, dll_fname))
-            func_map[func_idcode] = func
+            _add_function(func_map, func_idcode, cpp_info)
 
         if removed_dll_fname is not None:
             try:
@@ -578,6 +646,7 @@ def _get_functions_from_cpp(cpp_fname):
     # Load dynamic file
     functions = dict(
         (name, CFuncDef(**kwargs)) for name, kwargs in function_args.items())
+    # Load dynamic function for MXNet
     return functions
 
 
