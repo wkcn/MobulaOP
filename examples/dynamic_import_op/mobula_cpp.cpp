@@ -1,7 +1,12 @@
 #include "mobula_op.h"
+#include <iostream>
+using namespace std;
 
 int main() {
-  auto lib = mobula::op::load("./AddtionOP");
+  cout << "HELLO" << endl;
+  auto lib = mobula::op::load("./AdditionOP");
+  cout << lib << endl;
+  /*
   auto func = lib.get_function("addtion_op_forward");
 
   const int n = 3;
@@ -16,5 +21,6 @@ int main() {
     cout << c[i];
   }
   cout << endl;
+  */
   return 0;
 }
