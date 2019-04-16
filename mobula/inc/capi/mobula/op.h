@@ -18,7 +18,7 @@ namespace op {
     std::getline(fin, buf);
     enum ParserState {
       kNone,
-      kHead,
+      kFindName,
       kName,
       kPars,
     };
@@ -32,6 +32,7 @@ namespace op {
         if (head == "MOBULA_KERNEL") {
           std::cout << "YES" << std::endl;
           std::cout << buf << std::endl;
+          state = kFindName;
         }
       }
       // std::cout << buf << std::endl;

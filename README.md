@@ -2,7 +2,7 @@
 
 Linux | Windows | Coverage | Badge
 ------|---------|----------|------
-[![Linux Build Status](https://api.travis-ci.org/wkcn/MobulaOP.svg?branch=master)](https://travis-ci.org/wkcn/MobulaOP)|[![Windows Build Status](https://ci.appveyor.com/api/projects/status/bvnavb8k2xnu0wqj/branch/master?svg=true)](https://ci.appveyor.com/project/wkcn/mobulaop/branch/master)|[![Coverage Status](https://coveralls.io/repos/github/wkcn/MobulaOP/badge.svg?branch=master)](https://coveralls.io/github/wkcn/MobulaOP?branch=master)|[![996.icu](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu)
+[![Linux Build Status](https://api.travis-ci.org/wkcn/MobulaOP.svg?branch=master)](https://travis-ci.org/wkcn/MobulaOP)|[![Windows Build Status](https://ci.appveyor.com/api/projects/status/bvnavb8k2xnu0wqj/branch/master?svg=true)](https://ci.appveyor.com/project/wkcn/mobulaop/branch/master)|[![Coverage Status](https://coveralls.io/repos/github/wkcn/MobulaOP/badge.svg?branch=master)](https://coveralls.io/github/wkcn/MobulaOP?branch=master)|[![996.icu](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu)[![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
 
 ## What is it?
 *MobulaOP* is a simple and flexible cross framework operators toolkit.

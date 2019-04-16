@@ -30,8 +30,8 @@ public:
     graphs[N_START].push_back({is_alnum, N_IDENTIFIER});
     graphs[N_START].push_back({is_lslash, N_ANNOTATION_START});
     graphs[N_START].push_back({is_rslash, N_ESCAPE});
-    graphs[N_START].push_back({is_space, N_START}); 
-    graphs[N_START].push_back({is_newline, N_START});
+    graphs[N_START].push_back({is_space, N_SKIP_TO_START}); 
+    graphs[N_START].push_back({is_newline, N_SKIP_TO_START});
     graphs[N_START].push_back({is_any, N_SIGN});
 
     // N_IDENTIFIER 
@@ -43,7 +43,7 @@ public:
     graphs[N_ANNOTATION_START].push_back({is_star, N_ANNOTATION_BLOCK});
 
     // N_ANNOTATION_LINE
-    graphs[N_ANNOTATION_LINE].push_back({is_newline, N_START});
+    graphs[N_ANNOTATION_LINE].push_back({is_newline, N_SKIP_TO_START});
     graphs[N_ANNOTATION_LINE].push_back({is_any, N_ANNOTATION_LINE});
 
     // N_ANNOTATION_BLOCK
@@ -51,7 +51,7 @@ public:
     graphs[N_ANNOTATION_BLOCK].push_back({is_any, N_ANNOTATION_BLOCK});
 
     // N_ANNOTATION_BLOCK_READY_TO_EXIT
-    graphs[N_ANNOTATION_BLOCK_READY_TO_EXIT].push_back({is_lslash, N_START});
+    graphs[N_ANNOTATION_BLOCK_READY_TO_EXIT].push_back({is_lslash, N_SKIP_TO_START});
     graphs[N_ANNOTATION_BLOCK_READY_TO_EXIT].push_back({is_any, N_ANNOTATION_BLOCK});
 
     // N_ESCAPE
@@ -70,21 +70,21 @@ public:
       for (auto &p : pairs) {
         if ((p.first)(c)) {
           Node &next_node = p.second;
-          if (cur_node == N_START) {
-            if (next_node != N_START) {
-              if (!buffer.empty()) {
-                blocks.push_back({T_INDENTIFIER, buffer});
-                buffer.clear();
-              }
-            }
-          }
-          if (next_node == N_READY_TO_START) {
-            cur_node = N_START;
-          } else {
-            buffer += c;
-            cur_node = next_node;
-            ++si;
-          }
+          switch (next_node) {
+            case N_SKIP_TO_START:
+              AddBlock();
+              ++si;
+              cur_node = N_START;
+              break;
+            case N_READY_TO_START:
+              AddBlock();
+              cur_node = N_START;
+              break;
+            default:
+              buffer += c;
+              ++si;
+              cur_node = next_node;
+          };
           failed = false;
           break;
         }
@@ -97,9 +97,16 @@ public:
     return *this;
   }
 private:
+  void AddBlock() {
+    if (buffer.empty()) return;
+    blocks.push_back({T_INDENTIFIER, buffer});
+    buffer.clear();
+  }
+private:
   enum Node {
     N_START = 0,
     N_READY_TO_START,
+    N_SKIP_TO_START,
     N_IDENTIFIER,
     N_ANNOTATION_START,
     N_ANNOTATION_LINE,
