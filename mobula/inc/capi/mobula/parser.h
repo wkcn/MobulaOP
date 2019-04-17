@@ -25,6 +25,7 @@ public:
     FType is_space = [](const char& c){return c == ' ' || c == '\b' || c == '\t' || c == '\r';};
     FType is_newline = [](const char& c){return c == '\n';};
     FType is_star = [](const char& c){return c == '*';};
+    FType is_underline = [](const char& c){return c == '_';};
 
     // N_START
     graphs[N_START].push_back({is_alnum, N_IDENTIFIER});
@@ -36,6 +37,7 @@ public:
 
     // N_IDENTIFIER 
     graphs[N_IDENTIFIER].push_back({is_alnum, N_IDENTIFIER});
+    graphs[N_IDENTIFIER].push_back({is_underline, N_IDENTIFIER});
     graphs[N_IDENTIFIER].push_back({is_any, N_READY_TO_START});
 
     // N_ANNOTATION_START
@@ -51,7 +53,7 @@ public:
     graphs[N_ANNOTATION_BLOCK].push_back({is_any, N_ANNOTATION_BLOCK});
 
     // N_ANNOTATION_BLOCK_READY_TO_EXIT
-    graphs[N_ANNOTATION_BLOCK_READY_TO_EXIT].push_back({is_lslash, N_SKIP_TO_START});
+    graphs[N_ANNOTATION_BLOCK_READY_TO_EXIT].push_back({is_lslash, N_RESERVE_TO_START});
     graphs[N_ANNOTATION_BLOCK_READY_TO_EXIT].push_back({is_any, N_ANNOTATION_BLOCK});
 
     // N_ESCAPE
@@ -71,6 +73,8 @@ public:
         if ((p.first)(c)) {
           Node &next_node = p.second;
           switch (next_node) {
+            case N_RESERVE_TO_START:
+              buffer += c;
             case N_SKIP_TO_START:
               AddBlock();
               ++si;
@@ -105,8 +109,9 @@ private:
 private:
   enum Node {
     N_START = 0,
-    N_READY_TO_START,
-    N_SKIP_TO_START,
+    N_READY_TO_START, // hello+
+    N_RESERVE_TO_START, // /* */
+    N_SKIP_TO_START, // hello[space]
     N_IDENTIFIER,
     N_ANNOTATION_START,
     N_ANNOTATION_LINE,
