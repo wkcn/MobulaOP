@@ -12,7 +12,6 @@ int main() {
   return 0;
 }
 
-
 /*!
  * \file AdditionOP.cpp
  * \brief a C++ addition operator

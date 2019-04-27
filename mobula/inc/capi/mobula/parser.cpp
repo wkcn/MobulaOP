@@ -1,10 +1,7 @@
 #include "parser.h"
 #include <fstream>
 
-std::vector<std::pair<Parser::FType, Parser::Node> > Parser::graphs[NUM_OF_NODES];
-
 int main() {
-  Parser::StaticInit();
   Parser parser;
   std::ifstream fin("code.cpp");
   std::string buffer;
@@ -17,8 +14,17 @@ int main() {
   std::cout << "*****************************" << std::endl;
   int i = 0;
   for (auto &p : parser.blocks) {
-    std::cout << i++ << " = " << p.second << std::endl;
+    std::cout << i++ << " = " << p.first << "-" << p.second << std::endl;
   }
   std::cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << std::endl;
+
+  Parser2 parser2;
+  parser2 << parser.blocks;
+  for (auto &p : parser2.blocks) {
+    for (auto &e : p.second) {
+      std::cout << e.second << std::endl;
+    }
+    std::cout << std::endl;
+  }
   return 0;
 }
