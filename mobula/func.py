@@ -85,6 +85,8 @@ class CFuncDef:
             dev_id = -1
         else:
             ctx = GPU_CTX_NAME
+            assert ctx is not None, RuntimeError(
+                'Please compile MobulaOP GPU: `cd mobula; python build.py cuda` or `cd mobula; python build.py hip`')
         # function loader
         func = self.loader(self, arg_types, ctx, **self.loader_kwargs)
         if using_async and glue_mod is not None:

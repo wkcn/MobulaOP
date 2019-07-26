@@ -140,7 +140,7 @@ def source_to_so_ctx(build_path, srcs, target_name, ctx_name, buildin_cpp=None):
         for fname in buildin_o:
             assert os.path.exists(fname),\
                 Exception(
-                    'File {} not found, please rebuild MobulaOP :-('.format(fname))
+                'File {} not found, please build MobulaOP CPU: `cd mobula; python build.py cpu`:-('.format(fname))
 
     flags = BUILD_FLAGS[ctx_name] + (buildin_o, )
     source_to_so(build_path, srcs, target_name, *flags)
