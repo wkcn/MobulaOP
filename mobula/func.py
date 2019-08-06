@@ -359,7 +359,11 @@ class MobulaFunc:
         func.loader(func, arg_types, ctx, **func.loader_kwargs)
 
 
+_binded_functions = dict()
+
+
 def bind(functions):
+    global _binded_functions
     """Bind Functions to mobula.func.<function name>
 
     Parameters
@@ -368,5 +372,8 @@ def bind(functions):
         name -> CFuncDef
     """
     for k, func in functions.items():
-        assert k not in globals(), "Duplicated function name %s" % k
-        globals()[k] = MobulaFunc(k, func)
+        assert k not in _binded_functions, NameError(
+            'Duplicated function name {}'.format(k))
+        func = MobulaFunc(k, func)
+        globals()[k] = func
+        _binded_functions[k] = func
