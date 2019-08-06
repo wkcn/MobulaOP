@@ -17,7 +17,6 @@ script:
     - pip install -r ./requirements.txt
     - pip install mxnet --pre
     - pip install python-coveralls
-    - sh build.sh
     - nosetests -s --with-coverage
 
 after_success:

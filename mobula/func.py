@@ -57,6 +57,8 @@ for gpu_ctx in ['cuda', 'hip']:
     if os.path.exists(gpu_lib_fname):
         GPU_CTX_NAME = gpu_ctx
         break
+if GPU_CTX_NAME is None:
+    GPU_CTX_NAME = 'cuda'
 
 
 class CFuncDef:

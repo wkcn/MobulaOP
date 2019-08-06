@@ -7,7 +7,7 @@ import ctypes
 import json
 from easydict import EasyDict as edict
 from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash
-from ..build import config, source_to_so_ctx, build_context, file_changed
+from ..build import config, source_to_so_ctx, build_context, file_changed, ENV_PATH
 from ..utils import get_git_hash
 from ..dtype import DType, TemplateType
 from ..version import OP_LOAD_MODULE_BUILD_VERSION
@@ -284,7 +284,7 @@ extern "C" {
     srcs = [cpp_wrapper_fname]
     buildin_cpp = []
     for src in ['defines.cpp', 'context.cpp']:
-        buildin_cpp.append(os.path.join('src', src))
+        buildin_cpp.append(os.path.join(ENV_PATH, 'src', src))
 
     source_to_so_ctx(build_path, srcs, target_name, ctx, buildin_cpp)
 

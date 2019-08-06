@@ -39,6 +39,8 @@ ENV_PATH = os.path.dirname(__file__)
 CONFIG_PATH = os.path.join(ENV_PATH, 'config.yaml')
 with open(CONFIG_PATH) as fin:
     config = edict(yaml.load(fin, Loader=yaml.SafeLoader))
+if not os.path.dirname(config.BUILD_PATH):
+    config.BUILD_PATH = os.path.join(ENV_PATH, config.BUILD_PATH)
 
 if OS_IS_WINDOWS:
     # disable asynchronous execution temporarily

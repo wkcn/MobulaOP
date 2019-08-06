@@ -28,8 +28,6 @@ git clone https://github.com/wkcn/MobulaOP
 cd MobulaOP
 # Install the dependences: numpy, pyyaml and easydict
 pip install -r requirements.txt
-# Compile MobulaOP
-sh build.sh
 # Add the project directory into the environment variable `PYTHONPATH`
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 ```

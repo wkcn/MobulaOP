@@ -35,8 +35,6 @@ git clone https://github.com/wkcn/MobulaOP
 cd MobulaOP
 # 安装依赖库numpy, pyyaml和easydict
 pip install -r requirements.txt
-# 进行编译
-sh build.sh
 # 将MobulaOP文件夹加入PYTHONPATH环境变量中
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 ```

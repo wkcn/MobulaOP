@@ -75,9 +75,9 @@ def source_to_o(build_path, src_obj, compiler=config.CXX, cflags=CFLAGS):
     updated = False
     commands = []
     for src, obj in src_obj:
-        dir_name = os.path.dirname(obj)
+        dir_name, obj_name = os.path.split(obj)
         build_dir_name = os.path.join(build_path, dir_name)
-        build_name = os.path.join(build_path, obj)
+        build_name = os.path.join(build_path, dir_name, obj_name)
         if file_is_latest(src) and os.path.exists(build_name):
             continue
         updated = True
@@ -112,7 +112,6 @@ def o_to_so(target_name, objs, linker, ldflags=LDFLAGS):
 
 def source_to_so(build_path, srcs, target_name, compiler, cflags, ldflags, buildin_o=None):
     objs = change_exts(srcs, [('cpp', 'o')])
-
     if source_to_o(build_path, zip(srcs, objs), compiler, cflags) or\
             not os.path.exists(target_name):
         if buildin_o is not None:
@@ -131,18 +130,22 @@ BUILD_FLAGS = dict(
 def source_to_so_ctx(build_path, srcs, target_name, ctx_name, buildin_cpp=None):
     assert ctx_name in BUILD_FLAGS, ValueError(
         'Unsupported Context: {} -('.format(ctx_name))
+    flags = BUILD_FLAGS[ctx_name]
+    compiler, cflags, ldflags = flags[:3]
 
     buildin_o = []
     if buildin_cpp is not None:
         buildin_path = os.path.join(ENV_PATH, config.BUILD_PATH, ctx_name)
         buildin_o = [os.path.join(buildin_path, fname) for fname in
                      change_exts(buildin_cpp, [('cpp', 'o')])]
+        need_to_build_core = False
         for fname in buildin_o:
-            assert os.path.exists(fname),\
-                Exception(
-                'File {} not found, please build MobulaOP CPU: `cd mobula; python build.py cpu`:-('.format(fname))
+            if not os.path.exists(fname):
+                with build_context():
+                    source_to_o(build_path, zip(
+                        buildin_cpp, buildin_o), compiler, cflags)
+    flags += (buildin_o, )
 
-    flags = BUILD_FLAGS[ctx_name] + (buildin_o, )
     source_to_so(build_path, srcs, target_name, *flags)
 
 
@@ -150,19 +153,22 @@ def cpu_func():
     # cpu
     build_path = os.path.join(config.BUILD_PATH, 'cpu')
     target_name = os.path.join(config.BUILD_PATH, '%s_cpu.so' % config.TARGET)
-    source_to_so_ctx(build_path, SRCS, target_name, 'cpu')
+    srcs = wildcard([os.path.join(ENV_PATH, 'src')], 'cpp')
+    source_to_so_ctx(build_path, srcs, target_name, 'cpu')
 
 
 def cuda_func():
     build_path = os.path.join(config.BUILD_PATH, 'cuda')
     target_name = os.path.join(config.BUILD_PATH, '%s_cuda.so' % config.TARGET)
-    source_to_so_ctx(build_path, SRCS, target_name, 'cuda')
+    srcs = wildcard([os.path.join(ENV_PATH, 'src')], 'cpp')
+    source_to_so_ctx(build_path, srcs, target_name, 'cuda')
 
 
 def hip_func():
     build_path = os.path.join(config.BUILD_PATH, 'hip')
     target_name = os.path.join(config.BUILD_PATH, '%s_hip.so' % config.TARGET)
-    source_to_so_ctx(build_path, SRCS, target_name, 'hip')
+    srcs = wildcard([os.path.join(ENV_PATH, 'src')], 'cpp')
+    source_to_so_ctx(build_path, srcs, target_name, 'hip')
 
 
 def clean_func():
@@ -197,6 +203,5 @@ if __name__ == '__main__':
         'Please add building flag, e.g. python build.py all\nValid flags: {}'.
         format(' | '.join(BUILD_FLAGS.keys())))
     pass_argv(sys.argv)
-    SRCS = wildcard(['src'], 'cpp')
     with build_context():
         run_rule(sys.argv[1])
