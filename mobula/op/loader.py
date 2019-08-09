@@ -265,6 +265,8 @@ def _build_lib(cpp_fname, code_buffer, ctx, target_name):
  */
 #include "mobula_op.h"
 using namespace mobula;
+using namespace tvm;
+using namespace tvm::runtime;
 
 #include "%s"
 extern "C" {
@@ -320,7 +322,7 @@ MOBULA_DLL void %s(const int device_id, %s) {
 ''' % (func_idcode_hash, args_def, func_name, args_inst)
 
     args_def_async_mx = ', '.join(['{ctype} {name}'.format(
-        ctype='tvm::NDArrayHandle' if dtype.is_pointer else dtype.cname,
+        ctype='NDArrayHandle' if dtype.is_pointer else dtype.cname,
         name=name
     ) for dtype, name in zip(arg_types, arg_names)])
 
@@ -341,8 +343,8 @@ MOBULA_DLL void %s(const int device_id, %s) {
         const_loc_code = 'nullptr' if num_const == 0 else 'std::unique_ptr<int[]>(new int[%d]{%s}).get()' % (
             num_const, ','.join([str(u) for u in const_loc]))
         register_mx_code = '''
-MOBULA_DLL tvm::PackedFunc* %s_register_mx() {
-  return RegisterTVMFunc("%s", [](tvm::TVMArgs args, tvm::TVMRetValue*) {
+MOBULA_DLL PackedFunc* %s_register_mx() {
+  return RegisterTVMFunc("%s", [](TVMArgs args, TVMRetValue*) {
     KERNEL_RUN_BEGIN(DEV_ID);
     KERNEL_RUN_STREAM(%s, STRM)(%s);
     KERNEL_RUN_END();
@@ -351,7 +353,7 @@ MOBULA_DLL tvm::PackedFunc* %s_register_mx() {
 ''' % (func_idcode_hash, func_idcode_hash, func_name, ', '.join(args_inst_mx), num_const, const_loc_code)
 
         async_mx_code = '''
-MOBULA_DLL void %s_async_mx(tvm::PackedFunc *packed_func, %s) {
+MOBULA_DLL void %s_async_mx(PackedFunc *packed_func, %s) {
   (*packed_func)(%s);
 }
 ''' % (func_idcode_hash, args_def_async_mx, args_inst)

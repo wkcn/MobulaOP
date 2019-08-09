@@ -50,17 +50,6 @@ def get_idcode_hash(idcode):
     return '{}_{}'.format(func_name, md5.hexdigest()[:8])
 
 
-GPU_CTX_NAME = None
-for gpu_ctx in ['cuda', 'hip']:
-    gpu_lib_fname = os.path.join(os.path.dirname(__file__), 'build',
-                                 'mobula_op_{}.so'.format(gpu_ctx))
-    if os.path.exists(gpu_lib_fname):
-        GPU_CTX_NAME = gpu_ctx
-        break
-if GPU_CTX_NAME is None:
-    GPU_CTX_NAME = 'cuda'
-
-
 class CFuncDef:
     """The definition of CFunction."""
     KERNEL = 1
@@ -86,15 +75,15 @@ class CFuncDef:
             ctx = 'cpu'
             dev_id = -1
         else:
-            ctx = GPU_CTX_NAME
-            assert ctx is not None, RuntimeError(
-                'Please compile MobulaOP GPU: `cd mobula; python build.py cuda` or `cd mobula; python build.py hip`')
+            ctx = config.GPU_BACKEND
         # function loader
         func = self.loader(self, arg_types, ctx, **self.loader_kwargs)
         if using_async and glue_mod is not None:
             async_name = getattr(glue_mod, 'async_name', None)
             if async_name is not None:
-                return getattr(func, async_name)(*arg_datas)
+                async_func = getattr(func, async_name, None)
+                if async_func is not None:
+                    return async_func(*arg_datas)
         if self.func_kind == self.KERNEL:
             return func(dev_id, *arg_datas)
         return func(*arg_datas)
@@ -254,7 +243,6 @@ class MobulaFunc:
         assert ctype == expected_ctype,\
             TypeError('Expected Type {} instead of {}'.format(
                 expected_ctype, ctype))
-        data = ctypes.cast(data, ctype)
         return data, dev_id, ctype
 
     @staticmethod

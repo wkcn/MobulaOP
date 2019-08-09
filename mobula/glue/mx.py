@@ -35,8 +35,9 @@ async_name = 'mx'
 
 
 def get_async_func(cpp_info, func_idcode_hash):
-    cpp_info.dll.SetMXTVMBridge.argtypes = [ctypes.c_void_p]
-    cpp_info.dll.SetMXTVMBridge(_LIB.MXTVMBridge)
+    cpp_info.dll.RegisterMXAPI.argtypes = [ctypes.c_void_p] * 3
+    cpp_info.dll.RegisterMXAPI(
+        _LIB.MXNDArrayGetContext, _LIB.MXNDArrayToDLPack, _LIB.MXEnginePushSyncND)
     register_func_for_mx = getattr(
         cpp_info.dll, func_idcode_hash + '_register_mx', None)
     if register_func_for_mx is None:

@@ -1,63 +1,21 @@
+// Adapted from
+// https://github.com/apache/incubator-mxnet/blob/master/src/nnvm/tvm_bridge.cc
 #ifndef MOBULA_INC_GLUE_MX_H_
 #define MOBULA_INC_GLUE_MX_H_
 
+#include <algorithm>
 #include <cstring>
+#include <memory>
 #include <vector>
-#include "tvm_packed_func.h"
-
-namespace mobula {
-using namespace tvm;
-using TVMFunc = std::function<void(TVMArgs args, TVMRetValue* rv)>;
-
-class MXNetAsyncCtx {
- public:
-  void set_stream(int dev_type, int dev_id, void* strm) {
-    dev_type_ = dev_type;
-    dev_id_ = dev_id;
-    strm_ = strm;
-  }
-
- private:
-  int dev_type_, dev_id_;
-  void* strm_;
-};
-
-// thread_local MXNetAsyncCtx MXNetAsyncCtx[3];
-thread_local int DEV_ID;
-thread_local void* STRM;
-
-void set_stream(TVMArgs args, TVMRetValue*) {
-  /*
-  int dev_type = args.values[0].v_int64;
-  int dev_id = args.values[1].v_int64;
-  void* strm = args.values[2].v_handle;
-  MXNetAsyncCtx[dev_type].set_stream(dev_type, dev_id, strm);
-  */
-  DEV_ID = args.values[1].v_int64;
-  STRM = args.values[2].v_handle;
-}
-
-}  // namespace mobula
+#include "api.h"
+#include "tvm_bridge.h"
 
 extern "C" {
 using namespace mobula;
-using namespace tvm;
+using namespace tvm_bridge;
 
-static PackedFunc WrapAsyncCall;
-
-void SetMXTVMBridge(int (*MXTVMBridge)(PackedFunc*)) {
-  PackedFunc packed_func([](TVMArgs args, TVMRetValue*) {
-    if (strcmp(args.values[0].v_str, "WrapAsyncCall") == 0) {
-      WrapAsyncCall = *static_cast<PackedFunc*>(args.values[1].v_handle);
-      return;
-    }
-    throw std::runtime_error("Not register WrapAsyncCall");
-  });
-  MXTVMBridge(&packed_func);
-}
-
-PackedFunc* RegisterTVMFunc(const char*, TVMFunc pfunc, int num_const,
-                            int* const_loc) {
+MOBULA_DLL PackedFunc* RegisterTVMFunc(const char*, TVMFunc pfunc,
+                                       int num_const, int* const_loc) {
   PackedFunc func(pfunc);
   PackedFunc fset_stream(set_stream);
   const int num_args = 3 + num_const;
@@ -74,11 +32,19 @@ PackedFunc* RegisterTVMFunc(const char*, TVMFunc pfunc, int num_const,
     type_codes[i + 3] = kDLInt;
   }
   TVMArgs args(&values[0], &type_codes[0], num_args);
-  TVMRetValue rv;
-  WrapAsyncCall.CallPacked(args, &rv);
-  PackedFunc* p_rtn_func =
-      new PackedFunc(*static_cast<PackedFunc*>(rv.value_.v_handle));
+  PackedFunc* p_rtn_func = new PackedFunc(WrapAsyncCall(args));
   return p_rtn_func;
+}
+
+MOBULA_DLL void RegisterMXAPI(void* ndarray_get_context,
+                              void* ndarray_to_dlpack,
+                              void* engine_push_sync_nd) {
+  MXNDArrayGetContext =
+      reinterpret_cast<decltype(MXNDArrayGetContext)>(ndarray_get_context);
+  MXNDArrayToDLPack =
+      reinterpret_cast<decltype(MXNDArrayToDLPack)>(ndarray_to_dlpack);
+  MXEnginePushSyncND =
+      reinterpret_cast<decltype(MXEnginePushSyncND)>(engine_push_sync_nd);
 }
 }
 

@@ -36,6 +36,12 @@ def test_examples():
                 old_workpath = os.getcwd()
                 os.chdir(fullpath)
                 clean_registered_ops()
-                runpy.run_module(mod_name, {}, '__main__')
+                exception = None
+                try:
+                    runpy.run_module(mod_name, {}, '__main__')
+                except Exception as e:
+                    exception = e
                 clean_registered_ops()
                 os.chdir(old_workpath)
+                if exception is not None:
+                    raise e
