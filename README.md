@@ -106,9 +106,6 @@ cd MobulaOP
 # Install Third-Party Library
 pip install -r requirements.txt
 
-# Build
-sh build.sh
-
 # Add MobulaOP into Enviroment Variable `PYTHONPATH`
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 ```
