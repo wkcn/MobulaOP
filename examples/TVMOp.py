@@ -21,9 +21,12 @@ def get_tvm_add():
         s = topi.generic.schedule_injective([C])
         func_cpu = tvm.build(s, [A, B, C])
 
-    with tvm.target.create('cuda'):
-        s = topi.generic.schedule_injective([C])
-        func_gpu = tvm.build(s, [A, B, C])
+    if mobula.utils.list_gpus():
+        with tvm.target.create('cuda'):
+            s = topi.generic.schedule_injective([C])
+            func_gpu = tvm.build(s, [A, B, C])
+    else:
+        func_gpu = None
 
     return func_cpu, func_gpu
 
@@ -36,11 +39,11 @@ class TVMAddOp:
         self.func = {
             'mx': {
                 'cpu': to_mxnet_func(func_cpu, const_loc=[0, 1]),
-                'gpu': to_mxnet_func(func_gpu, const_loc=[0, 1]),
+                'gpu': to_mxnet_func(func_gpu, const_loc=[0, 1]) if func_gpu is not None else None,
             },
             'th': {
                 'cpu': to_pytorch_func(func_cpu),
-                'gpu': to_pytorch_func(func_gpu),
+                'gpu': to_pytorch_func(func_gpu) if func_gpu is not None else None,
             }
         }
 
@@ -62,7 +65,10 @@ class TVMAddOp:
 try:
     import mxnet as mx
     print('===== MXNet =====')
-    for ctx in [mx.cpu(), mx.gpu()]:
+    ctxs = [mx.cpu()]
+    if mobula.utils.list_gpus():
+        ctxs.append([mx.gpu()])
+    for ctx in ctxs:
         print(ctx)
         a = mx.nd.array([1.0, 2.0, 3.0], ctx=ctx)
         b = mx.nd.array([4.0, 5.0, 6.0], ctx=ctx)
@@ -75,7 +81,10 @@ except ImportError:
 try:
     import torch
     print('===== PyTorch =====')
-    for device in [torch.device('cpu'), torch.device('cuda')]:
+    devices = [torch.device('cpu')]
+    if mobula.utils.list_gpus():
+        devices.append([torch.device('gpu')])
+    for device in devices:
         print(device)
         a = torch.tensor([1.0, 2.0, 3.0], device=device)
         b = torch.tensor([4.0, 5.0, 6.0], device=device)

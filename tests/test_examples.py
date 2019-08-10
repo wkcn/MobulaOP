@@ -25,6 +25,7 @@ def test_examples():
         ([], ['MyFirstOP']),
         (['mxnet'], ['ConstantOP', 'RunROIAlign',
                      'dynamic_import_op/dynamic_import_op']),
+        (['mxnet', 'tvm'], ['TVMOp']),
     ]
     sys.path.append('./')
     for dep_pkgs, examples in examples:
