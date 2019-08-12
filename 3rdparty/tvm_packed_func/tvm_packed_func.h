@@ -114,8 +114,14 @@ constexpr const int kTVMNDArrayTypeCode = 19;
 namespace runtime {
 #define TVM_CHECK_TYPE_CODE(a, b)
 
+class TVMRetValue {
+ public:
+  TVMValue value_;
+  int type_code_;
+  TVMRetValue() : type_code_(kNull) {}
+};
+
 class TVMArgsSetter;
-class TVMRetValue;
 /*!
  * \brief Internal base class to
  *  handle conversion to POD values.
@@ -208,20 +214,13 @@ class TVMArgs {
   TVMArgs(const TVMValue* values_, const int* type_codes_, int num_args_)
       : values(values_), type_codes(type_codes_), num_args(num_args_) {}
   /*! \return size of the arguments */
-  inline int size() const;
+  inline int size() const { return num_args; }
   /*!
    * \brief Get i-th argument
    * \param i the index.
    * \return the ith argument.
    */
   inline TVMArgValue operator[](int i) const;
-};
-
-class TVMRetValue {
- public:
-  TVMValue value_;
-  int type_code_;
-  TVMRetValue() : type_code_(kNull) {}
 };
 
 class PackedFunc {
@@ -233,17 +232,7 @@ class PackedFunc {
     body_(args, rv);
   }
   template <typename... Args>
-  inline TVMRetValue operator()(Args&&... args) const {
-    const int kNumArgs = sizeof...(Args);
-    const int kArraySize = kNumArgs > 0 ? kNumArgs : 1;
-    TVMValue values[kArraySize];
-    int type_codes[kArraySize];
-    detail::for_each(TVMArgsSetter(values, type_codes),
-                     std::forward<Args>(args)...);
-    TVMRetValue rv;
-    body_(TVMArgs(values, type_codes, kNumArgs), &rv);
-    return rv;
-  }
+  inline TVMRetValue operator()(Args&&... args) const;
 
  private:
   FType body_;
@@ -281,8 +270,6 @@ class TVMArgValue : public TVMPODValue_ {
   }
   const TVMValue& value() const { return value_; }
 };
-
-inline int TVMArgs::size() const { return num_args; }
 
 inline TVMArgValue TVMArgs::operator[](int i) const {
   return TVMArgValue(values[i], type_codes[i]);
@@ -347,6 +334,19 @@ class TVMArgsSetter {
   /*! \brief The type code fields */
   int* type_codes_;
 };
+
+template <typename... Args>
+inline TVMRetValue PackedFunc::operator()(Args&&... args) const {
+  const int kNumArgs = sizeof...(Args);
+  const int kArraySize = kNumArgs > 0 ? kNumArgs : 1;
+  TVMValue values[kArraySize];
+  int type_codes[kArraySize];
+  detail::for_each(TVMArgsSetter(values, type_codes),
+                   std::forward<Args>(args)...);
+  TVMRetValue rv;
+  body_(TVMArgs(values, type_codes, kNumArgs), &rv);
+  return rv;
+}
 
 }  // namespace runtime
 

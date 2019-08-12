@@ -45,4 +45,4 @@ def test_examples():
                 clean_registered_ops()
                 os.chdir(old_workpath)
                 if exception is not None:
-                    raise e
+                    raise exception

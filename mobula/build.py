@@ -124,81 +124,26 @@ BUILD_FLAGS = dict(
 )
 
 
-def source_to_so_ctx(build_path, srcs, target_name, ctx_name, buildin_cpp=None):
+def source_to_so_ctx(build_path, srcs, target_name, ctx_name):
     assert ctx_name in BUILD_FLAGS, ValueError(
         'Unsupported Context: {} -('.format(ctx_name))
     flags = BUILD_FLAGS[ctx_name]
     compiler, cflags, ldflags = flags[:3]
 
+    buildin_path = os.path.join(ENV_PATH, config.BUILD_PATH, ctx_name)
     buildin_o = []
-    if buildin_cpp is not None:
-        buildin_path = os.path.join(ENV_PATH, config.BUILD_PATH, ctx_name)
-        buildin_o = [os.path.join(buildin_path, fname) for fname in
-                     change_exts(buildin_cpp, [('cpp', 'o')])]
-        need_to_build_core = False
-        for fname in buildin_o:
-            if not os.path.exists(fname):
-                with build_context():
-                    source_to_o(build_path, zip(
-                        buildin_cpp, buildin_o), compiler, cflags)
+    buildin_cpp = []
+    for src in ['defines.cpp', 'context.cpp']:
+        fname = os.path.join('src', src)
+        buildin_o.append(os.path.join(buildin_path, fname))
+        buildin_cpp.append(os.path.join(ENV_PATH, fname))
+    buildin_o = change_exts(buildin_o, [('cpp', 'o')])
+
+    need_to_build_core = False
+    for fname in buildin_o:
+        if not os.path.exists(fname):
+            with build_context():
+                source_to_o(build_path, zip(
+                    buildin_cpp, buildin_o), compiler, cflags)
     flags += (buildin_o, )
-
     source_to_so(build_path, srcs, target_name, *flags)
-
-
-def cpu_func():
-    # cpu
-    build_path = os.path.join(config.BUILD_PATH, 'cpu')
-    target_name = os.path.join(config.BUILD_PATH, '%s_cpu.so' % config.TARGET)
-    srcs = wildcard([os.path.join(ENV_PATH, 'src')], 'cpp')
-    source_to_so_ctx(build_path, srcs, target_name, 'cpu')
-
-
-def cuda_func():
-    build_path = os.path.join(config.BUILD_PATH, 'cuda')
-    target_name = os.path.join(config.BUILD_PATH, '%s_cuda.so' % config.TARGET)
-    srcs = wildcard([os.path.join(ENV_PATH, 'src')], 'cpp')
-    source_to_so_ctx(build_path, srcs, target_name, 'cuda')
-
-
-def hip_func():
-    build_path = os.path.join(config.BUILD_PATH, 'hip')
-    target_name = os.path.join(config.BUILD_PATH, '%s_hip.so' % config.TARGET)
-    srcs = wildcard([os.path.join(ENV_PATH, 'src')], 'cpp')
-    source_to_so_ctx(build_path, srcs, target_name, 'hip')
-
-
-def clean_func():
-    rmdir(config.BUILD_PATH)
-
-
-def all_func():
-    cpu_func()
-    if command_exists(config.NVCC):
-        cuda_func()
-    elif command_exists(config.HIPCC):
-        hip_func()
-
-
-RULES = dict(
-    all=all_func,
-    cpu=cpu_func,
-    cuda=cuda_func,
-    hip=hip_func,
-    clean=clean_func,
-)
-
-
-def run_rule(name):
-    assert name in RULES, ValueError(
-        "No rule to make target '{}'".format(name))
-    RULES[name]()
-
-
-if __name__ == '__main__':
-    assert len(sys.argv) >= 2, AssertionError(
-        'Please add building flag, e.g. python build.py all\nValid flags: {}'.
-        format(' | '.join(BUILD_FLAGS.keys())))
-    pass_argv(sys.argv)
-    with build_context():
-        run_rule(sys.argv[1])

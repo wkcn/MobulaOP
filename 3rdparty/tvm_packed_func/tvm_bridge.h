@@ -70,19 +70,6 @@ int (*MXEnginePushSyncND)(
     int num_const_nds, NDArrayHandle* mutable_nds_handle, int num_mutable_nds,
     EngineFnPropertyHandle prop_handle, int priority, const char* opr_name);
 
-class MXNetAsyncCtx {
- public:
-  void set_stream(int dev_type, int dev_id, void* strm) {
-    dev_type_ = dev_type;
-    dev_id_ = dev_id;
-    strm_ = strm;
-  }
-
- private:
-  int dev_type_, dev_id_;
-  void* strm_;
-};
-
 struct Context {
   enum DeviceType { kCPU = 1 << 0, kGPU = 1 << 1, kCPUPinned = 3 };
   DeviceType dev_type;
@@ -94,17 +81,10 @@ struct RunContext {
   void* stream;
 };
 
-// thread_local MXNetAsyncCtx MXNetAsyncCtx[3];
 thread_local int DEV_ID;
 thread_local void* STRM;
 
 void set_stream(TVMArgs args, TVMRetValue*) {
-  /*
-  int dev_type = args.values[0].v_int64;
-  int dev_id = args.values[1].v_int64;
-  void* strm = args.values[2].v_handle;
-  MXNetAsyncCtx[dev_type].set_stream(dev_type, dev_id, strm);
-  */
   DEV_ID = args.values[1].v_int64;
   STRM = args.values[2].v_handle;
 }
@@ -170,7 +150,7 @@ class TVMFunctor {
     TVMArgs args(&values_[0], &type_codes_[0], values_.size());
     if (ctx().dev_type == Context::kGPU) {
       // pass stream via last argument.
-      void* strm = rctx.stream;
+      void* strm = reinterpret_cast<void**>(rctx.stream)[0];
       int dev_type = kDLGPU;
       fset_stream_(dev_type, rctx.ctx.dev_id, strm);
       func_.CallPacked(args, &rv);

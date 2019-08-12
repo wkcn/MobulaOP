@@ -15,6 +15,9 @@ data = mx.nd.array(
     np.arange(N * C * H * W).astype(dtype).reshape((N, C, H, W)))
 rois = mx.nd.array(np.array([[0, 1, 1, 3, 3]], dtype=dtype))
 
+data = data.as_in_context(ctx)
+rois = rois.as_in_context(ctx)
+
 data.attach_grad()
 with mx.autograd.record():
     # mx.nd.NDArray and mx.sym.Symbol are both available as the inputs.

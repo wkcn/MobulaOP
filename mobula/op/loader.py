@@ -284,11 +284,8 @@ extern "C" {
         fout.write(extra_code)
     # build lib
     srcs = [cpp_wrapper_fname]
-    buildin_cpp = []
-    for src in ['defines.cpp', 'context.cpp']:
-        buildin_cpp.append(os.path.join(ENV_PATH, 'src', src))
 
-    source_to_so_ctx(build_path, srcs, target_name, ctx, buildin_cpp)
+    source_to_so_ctx(build_path, srcs, target_name, ctx)
 
 
 def _dtype_to_tvm_value_type(dtype):
