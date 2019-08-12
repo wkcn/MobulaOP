@@ -91,7 +91,7 @@ class OpGen(object):
                 backward=staticmethod(backward),
             )
             torch_func = type('_%s_TORCH_FUNC' % op_name,
-                              (torch.autograd.Function, op),
+                              (op, torch.autograd.Function),
                               torch_func_dict)
             return torch_func
 
@@ -116,7 +116,7 @@ class OpGen(object):
             torch_nn_module_dict.update(INPUT_FUNCS)
 
             torch_nn_module = type('_%s_TORCH_NN_MODULE' % op_name,
-                                   (torch.nn.Module, op),
+                                   (op, torch.nn.Module),
                                    torch_nn_module_dict)
             return torch_nn_module
 

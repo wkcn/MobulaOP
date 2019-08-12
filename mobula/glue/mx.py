@@ -115,7 +115,7 @@ class OpGen(object):
             )
             mx_op_dict.update(INPUT_FUNCS)
             mx_op = type('_%s_MX_OP' % op_name,
-                         (mx.operator.CustomOp, op),
+                         (op, mx.operator.CustomOp),
                          mx_op_dict)
             return mx_op
 
@@ -164,7 +164,7 @@ class OpGen(object):
                     mx_prop_dict[o] = getattr(op, o)
 
             mx_prop = type('_%s_MX_OP_PROP' % op_name,
-                           (mx.operator.CustomOpProp, op),
+                           (op, mx.operator.CustomOpProp),
                            mx_prop_dict)
             return mx_prop
 
