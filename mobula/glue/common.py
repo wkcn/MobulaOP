@@ -5,6 +5,7 @@ import inspect
 import base64
 import ctypes
 import functools
+import warnings
 
 
 def pars_encode(data):
@@ -182,9 +183,8 @@ def register(op_name=None, **attrs):
         if op_name is None:
             op_name = op.__name__
         op_inst = MobulaOperator(op=op, name=op_name, **attrs)
-        assert op_name not in CUSTOM_OP_LIST,\
-            ValueError(
-                'Duplicate operator name {}, please rename it'.format(op_name))
+        if op_name in CUSTOM_OP_LIST:
+            warnings.warn('Duplicate operator name {}, please rename it'.format(op_name))
         CUSTOM_OP_LIST[op_name] = op_inst
         OP_MODULE_GLOBALS[op_name] = op_inst
         return op_inst

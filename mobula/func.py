@@ -5,6 +5,7 @@ __all__ = ['MobulaFunc', 'bind']
 import ctypes
 import os
 import hashlib
+import warnings
 from . import glue
 from .dtype import DType, TemplateType, UnknownCType
 from .build_utils import config
@@ -360,8 +361,8 @@ def bind(functions):
         name -> CFuncDef
     """
     for k, func in functions.items():
-        assert k not in _binded_functions, NameError(
-            'Duplicated function name {}'.format(k))
+        if k in _binded_functions:
+            warnings.warn('Duplicated function name {}'.format(k))
         func = MobulaFunc(k, func)
         globals()[k] = func
         _binded_functions[k] = func
