@@ -5,8 +5,18 @@ import mobula
 
 import tvm
 import topi
-from tvm.contrib.mxnet import to_mxnet_func
-from tvm.contrib.dlpack import to_pytorch_func
+to_dummy_func = lambda *args, **kwargs: None
+try:
+    import mxnet as mx
+    from tvm.contrib.mxnet import to_mxnet_func
+except ImportError:
+    to_mxnet_func = to_dummy_func
+
+try:
+    import torch
+    from tvm.contrib.dlpack import to_pytorch_func
+except ImportError:
+    to_pytorch_func = to_dummy_func
 
 
 def get_tvm_add():

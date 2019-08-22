@@ -1,6 +1,7 @@
 import os
 import sys
 import numpy as np
+from .glue.common import MobulaOperator
 
 if sys.version_info[0] < 3:
     FileNotFoundError = IOError
@@ -8,7 +9,7 @@ else:
     long = int
 
 
-def _asnumpy(data):
+def to_numpy(data):
     if isinstance(data, np.ndarray):
         return data
     if hasattr(data, 'asnumpy'):
@@ -18,6 +19,14 @@ def _asnumpy(data):
     if isinstance(data, (list, tuple)):
         return np.array(data)
     raise TypeError('Unsupported Type: {}'.format(type(data)))
+
+
+def to_tuple(data):
+    if isinstance(data, tuple):
+        return data
+    if isinstance(data, list):
+        return tuple(data)
+    return (data, )
 
 
 def assert_almost_equal(a, b, rtol=1e-5, atol=1e-8):
@@ -30,8 +39,8 @@ def assert_almost_equal(a, b, rtol=1e-5, atol=1e-8):
         return data
     a = check_value(a, b)
     b = check_value(b, a)
-    a = _asnumpy(a)
-    b = _asnumpy(b)
+    a = to_numpy(a)
+    b = to_numpy(b)
     # Check Shape
     # If the shapes don't match, raise AssertionError and print the shapes
     assert a.shape == b.shape,\
@@ -85,11 +94,12 @@ def assert_almost_equal(a, b, rtol=1e-5, atol=1e-8):
         raise AssertionError(out)
 
     # Check Absolute Error
-    if max_abs_error > atol:
-        # If absolute error >= atol, raise AssertionError,
-        idx = abs_error.argmax()
-        raise_error(abs_error, 'Maximum Absolute Error({}) > atol({}): {} vs {}'.
-                    format(max_abs_error, atol, a.ravel()[idx], b.ravel()[idx]))
+    if atol is not None:
+        if max_abs_error > atol:
+            # If absolute error >= atol, raise AssertionError,
+            idx = abs_error.argmax()
+            raise_error(abs_error, 'Maximum Absolute Error({}) > atol({}): {} vs {}'.
+                        format(max_abs_error, atol, a.ravel()[idx], b.ravel()[idx]))
 
     # Compute Relative Error |(a-b)/b|
     try:
@@ -109,3 +119,46 @@ def assert_almost_equal(a, b, rtol=1e-5, atol=1e-8):
 
 def assert_file_exists(fname):
     assert os.path.exists(fname), IOError("{} not found".format(fname))
+
+
+def gradcheck(func, inputs, kwargs=None, eps=1e-6, rtol=1e-2, atol=None, sampling=None):
+    assert isinstance(func, MobulaOperator)
+    if kwargs is None:
+        kwargs = dict()
+    assert isinstance(kwargs, dict)
+    if not isinstance(inputs, (tuple, list)):
+        inputs = (inputs, )
+    # To NumPy Tensor
+    inputs = [to_numpy(x) for x in inputs]
+    func = func[np.ndarray](**kwargs)
+    ori_out = to_tuple(func(*inputs))
+    assert isinstance(ori_out, (tuple, list)), type(ori_out)
+    dys = [np.random.normal(0, 0.01, size=out_i.shape) + 0.1 for out_i in ori_out]
+    assert len(dys) == len(ori_out), '{} vs {}'.format(len(dys), len(ori_out))
+    grad = to_tuple(func.backward(dys))
+    for i, x in enumerate(inputs):
+        size = inputs[i].size
+        sample_grad = np.empty_like(inputs[i])
+        sample_grad_ravel = sample_grad.ravel()
+        samples = np.arange(size)
+        if sampling is not None:
+            if isinstance(sampling, int):
+                num_samples = sampling
+            else:
+                num_samples = int(sampling * size)
+            samples = np.random.choice(samples, min(size, num_samples))
+        for k in samples:
+            x_ravel = x.ravel()
+            old_elem_value = x_ravel[k]
+            x_ravel[k] = old_elem_value + eps / 2
+            pos_out = to_tuple(func(*inputs, **kwargs))
+            x_ravel[k] = old_elem_value - eps / 2
+            neg_out = to_tuple(func(*inputs, **kwargs))
+            assert len(pos_out) == len(neg_out)
+            assert len(pos_out) == len(ori_out)
+            numerical_grad_k = np.sum(
+                [dy * (pos - neg) / eps for pos, neg, dy in zip(pos_out, neg_out, dys)])
+            sample_grad_ravel[k] = numerical_grad_k
+        numerical_grad = grad[i].copy()
+        numerical_grad.ravel()[samples] = sample_grad.ravel()[samples]
+        assert_almost_equal(numerical_grad, grad[i], rtol=rtol, atol=atol)

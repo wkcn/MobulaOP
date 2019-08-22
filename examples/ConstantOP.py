@@ -58,7 +58,8 @@ if __name__ == '__main__':
         # Symbol
         a_sym = mx.sym.Variable('a')
         output_sym = a_sym + ConstantOP[mx.sym.Symbol](b)
-        exe = output_sym.simple_bind(ctx=mx.context.current_context(), a=a.shape)
+        exe = output_sym.simple_bind(
+            ctx=mx.context.current_context(), a=a.shape)
         exe.forward(a=np.array([1, 2, 3]))
 
         print(exe.outputs[0].asnumpy())  # [5,7,9]

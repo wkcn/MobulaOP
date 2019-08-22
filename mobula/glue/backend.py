@@ -28,7 +28,7 @@ def _register_glue_real(glue_name, types_name):
     glue = None
     try:
         glue = importlib.import_module('.' + glue_name, __package__)
-    except Exception:
+    except ImportError:
         pass
     if glue is not None:
         for tname in types_name:
@@ -94,7 +94,7 @@ def get_var_type_glue(vtype):
         return None
     # try to register glue_mod
     _register_glue_real(*PKG_NAME_TO_GLUE_ARGS[pkg_name])
-    return DTYPE_TO_GLUE.get(vtype, None)
+    return DTYPE_TO_GLUE[vtype]
 
 
 def get_var_glue(var):
