@@ -1,3 +1,4 @@
+#include "logging.h"
 #include "context/context.h"
 #include <stdexcept>
 
@@ -13,7 +14,7 @@ void set_device(const int device_id) {
 }
 #else
 void set_device(const int /*device_id*/) {
-  throw std::runtime_error("Doesn't support setting device on CPU mode");
+  LOG(FATAL) << "Doesn't support setting device on CPU mode";
 }
 
 #endif  // USING_HIP || USING_CUDA

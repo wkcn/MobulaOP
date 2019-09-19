@@ -42,10 +42,6 @@ with open(CONFIG_PATH) as fin:
 if not os.path.dirname(config.BUILD_PATH):
     config.BUILD_PATH = os.path.join(ENV_PATH, config.BUILD_PATH)
 
-if OS_IS_WINDOWS:
-    # disable asynchronous execution temporarily
-    config.USING_ASYNC_EXEC = False
-
 
 def pass_argv(argv):
     # Read Config from argv
