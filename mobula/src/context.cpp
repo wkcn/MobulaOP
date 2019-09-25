@@ -1,6 +1,6 @@
-#include "logging.h"
 #include "context/context.h"
 #include <stdexcept>
+#include "logging.h"
 
 namespace mobula {}
 

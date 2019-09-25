@@ -51,6 +51,59 @@ def get_idcode_hash(idcode):
     return '{}_{}'.format(func_name, md5.hexdigest()[:8])
 
 
+class CFuncTensor:
+    def __init__(self, var, ptype, glue_mod):
+        self.var = var
+        self.ptype = ptype
+        self.glue_mod = glue_mod
+
+
+def _wait_to_read(var):
+    if hasattr(var, 'wait_to_read'):
+        var.wait_to_read()
+
+
+def _wait_to_write(var):
+    if hasattr(var, 'wait_to_write'):
+        var.wait_to_write()
+
+
+def _get_raw_pointer(arg, const_vars, mutable_vars):
+    if isinstance(arg, CFuncTensor):
+        p = arg.glue_mod.get_pointer(arg.var)
+        if isinstance(p, (list, tuple)):
+            p, v = p
+            if arg.ptype.is_const:
+                const_vars.append(v)
+            else:
+                mutable_vars.append((arg.var, v))
+        return p
+    return arg
+
+
+def _get_async_pointer(arg):
+    if isinstance(arg, CFuncTensor):
+        return arg.glue_mod.get_async_pointer(arg.var)
+    return arg
+
+
+def _get_raw_pointers(args, const_vars, mutable_vars):
+    return [_get_raw_pointer(a, const_vars, mutable_vars) for a in args]
+
+
+def _get_async_pointers(args):
+    return [_get_async_pointer(a) for a in args]
+
+
+def _args_wait_to_rw(args):
+    for a in args:
+        if isinstance(a, CFuncTensor):
+            if a.ptype.is_const:
+                _wait_to_read(a)
+            else:
+                _wait_to_write(a)
+
+
 class CFuncDef:
     """The definition of CFunction."""
     KERNEL = 1
@@ -80,14 +133,21 @@ class CFuncDef:
         # function loader
         func = self.loader(self, arg_types, ctx, **self.loader_kwargs)
         if using_async and glue_mod is not None:
-            async_name = getattr(glue_mod, 'async_name', None)
-            if async_name is not None:
-                async_func = getattr(func, async_name, None)
-                if async_func is not None:
-                    return async_func(*arg_datas)
+            async_func = func.get_async_func(glue_mod)
+            if async_func is not None:
+                return async_func(*_get_async_pointers(arg_datas))
+
+        _args_wait_to_rw(arg_datas)
+        const_vars = []
+        mutable_vars = []
+        raw_pointers = _get_raw_pointers(arg_datas, const_vars, mutable_vars)
         if self.func_kind == self.KERNEL:
-            return func(dev_id, *arg_datas)
-        return func(*arg_datas)
+            out = func(dev_id, *raw_pointers)
+        else:
+            out = func(*raw_pointers)
+        for target, value in mutable_vars:
+            target[:] = value
+        return out
 
 
 class MobulaFunc:
@@ -122,8 +182,6 @@ class MobulaFunc:
         # type check
         arg_datas = []
         dev_id = None
-        noncont_var_list = []
-        temp_var_list = []
         arg_types = []
         template_mapping = dict()
 
@@ -134,15 +192,15 @@ class MobulaFunc:
         if not using_async:
             # Pre-process
             for i in self.wait_to_read_list:
-                self._wait_to_read(args[i])
+                _wait_to_read(args[i])
             for i in self.wait_to_write_list:
-                self._wait_to_write(args[i])
+                _wait_to_write(args[i])
 
         for var, ptype in zip(args, self.func.arg_types):
             if ptype.is_pointer:
                 # The type of `var` is Tensor.
                 data, var_dev_id, ctype = self._get_tensor_info(
-                    var, ptype, noncont_var_list, temp_var_list, template_mapping, using_async)
+                    var, ptype, template_mapping, using_async)
             else:
                 # The type of `var` is Scalar.
                 data, var_dev_id, ctype = self._get_scalar_info(var, ptype)
@@ -176,23 +234,10 @@ class MobulaFunc:
                         dev_id=dev_id,
                         glue_mod=glue_mod,
                         using_async=using_async)
-
-        for source, target in noncont_var_list:
-            source[:] = target
         return rtn
 
     @staticmethod
-    def _wait_to_read(var):
-        if hasattr(var, 'wait_to_read'):
-            var.wait_to_read()
-
-    @staticmethod
-    def _wait_to_write(var):
-        if hasattr(var, 'wait_to_write'):
-            var.wait_to_write()
-
-    @staticmethod
-    def _get_tensor_info(var, ptype, noncont_var_list, temp_var_list, template_mapping, using_async=False):
+    def _get_tensor_info(var, ptype, template_mapping, using_async=False):
         """Get tensor info
 
         Parameters
@@ -201,8 +246,6 @@ class MobulaFunc:
             input variable
         ptype: DType | TemplateType
             the type of argument
-        noncont_var_list: list
-            the list of noncontiguous variables
         template_mapping: dict
             the mapping from template name to ctype
         using_async: bool
@@ -210,28 +253,14 @@ class MobulaFunc:
 
         Returns
         -------
-        data: ctyoes.c_void_p
-            the pointer of data
+        data: CFuncTensor
         dev_id: int | None
             the id of device
         ctype: ctypes.POINTER | ctypes.c_*
             the ctype of data
         """
-
         glue_mod = glue.backend.get_var_glue(var)
-        data = glue_mod.get_async_pointer(
-            var) if using_async else glue_mod.get_pointer(var)
-        if isinstance(data, (list, tuple)):
-            # data = (contiguous_array_pointer, contiguous_array_object)
-            if ptype.is_const:
-                if not using_async:
-                    MobulaFunc._wait_to_read(data[1])
-                temp_var_list.append(data[1])  # hold a reference
-            else:
-                if not using_async:
-                    MobulaFunc._wait_to_write(data[1])
-                noncont_var_list.append((var, data[1]))
-            data = data[0]
+        data = CFuncTensor(var, ptype, glue_mod)
         dev_id = glue_mod.dev_id(var)
         ctype = ctypes.POINTER(glue_mod.get_ctype(var))
         if isinstance(ptype, DType):

@@ -133,7 +133,8 @@ def gradcheck(func, inputs, kwargs=None, eps=1e-6, rtol=1e-2, atol=None, samplin
     func = func[np.ndarray](**kwargs)
     ori_out = to_tuple(func(*inputs))
     assert isinstance(ori_out, (tuple, list)), type(ori_out)
-    dys = [np.random.normal(0, 0.01, size=out_i.shape) + 0.1 for out_i in ori_out]
+    dys = [np.random.normal(0, 0.01, size=out_i.shape) +
+           0.1 for out_i in ori_out]
     assert len(dys) == len(ori_out), '{} vs {}'.format(len(dys), len(ori_out))
     grad = to_tuple(func.backward(dys))
     for i, x in enumerate(inputs):

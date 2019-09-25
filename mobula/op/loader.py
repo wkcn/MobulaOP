@@ -174,6 +174,7 @@ def parse_parameters_list(plist):
 
 # runtime
 CTX_FUNC_MAP = dict()  # ctx -> dict(idcode -> function)
+CTX_FUNC_INFO_MAP = dict()  # ctx -> dict(idcode -> func_info)
 # static
 # fname -> dict([(idcode, template_inst_code), ...])
 TEMPLATE_INST_MAP = dict()
@@ -432,27 +433,18 @@ def _update_template_inst_map(idcode, tmap, cfunc, arg_types):
     tmap[idcode] = code
 
 
-def _add_function(func_map, func_idcode, cpp_info):
+def _add_function(func_map, func_info_map, func_idcode, cpp_info):
     func_idcode_hash = get_idcode_hash(func_idcode)
     func = getattr(cpp_info.dll, func_idcode_hash, None)
     assert func is not None,\
         Exception('No function `{}` in DLL {}'.format(
             func_idcode, dll_fname))
 
-    if config.USING_ASYNC_EXEC:
-        # register for MXNet
-        for glue_mod in get_glue_modules():
-            async_name = getattr(glue_mod, 'async_name', None)
-            if async_name is not None:
-                async_func = glue_mod.get_async_func(
-                    cpp_info, func_idcode_hash)
-                if async_func is not None:
-                    setattr(func, async_name, async_func)
-
     func_map[func_idcode] = func
+    func_info_map[func_idcode] = cpp_info
 
 
-def op_loader(cfunc, arg_types, ctx, cpp_info):
+class OpLoader:
     '''Import Operator Loader.
     It's actual to load the operator.
 
@@ -470,98 +462,117 @@ def op_loader(cfunc, arg_types, ctx, cpp_info):
     Returns
     -------
     CTX_FUNC_MAP[ctx][idcode] : CFunction
+    CTX_FUNC_INFO_MAP[ctx][idcode] : cpp_info
     '''
-    idcode = get_func_idcode(cfunc.func_name, arg_types)
-    if ctx not in CTX_FUNC_MAP:
-        CTX_FUNC_MAP[ctx] = dict()
-    # func_map: dict mapping idcode to CFunction
-    func_map = CTX_FUNC_MAP[ctx]
 
-    if idcode not in func_map:
-        # load function if idcode is not loaded
-        cpp_fname = cpp_info.cpp_fname
-        cpp_path, cpp_basename = os.path.split(cpp_fname)
-        build_path = os.path.join(cpp_path, 'build')
+    def __init__(self, cfunc, arg_types, ctx, cpp_info):
+        idcode = get_func_idcode(cfunc.func_name, arg_types)
+        if ctx not in CTX_FUNC_MAP:
+            CTX_FUNC_MAP[ctx] = dict()
+            CTX_FUNC_INFO_MAP[ctx] = dict()
+        # func_map: dict mapping idcode to CFunction
+        func_map = CTX_FUNC_MAP[ctx]
+        func_info_map = CTX_FUNC_INFO_MAP[ctx]
 
-        use_template = bool(cfunc.template_list)
-        if not os.path.exists(build_path):
-            os.makedirs(build_path)
-        template_inst_fname = get_template_inst_fname(
-            build_path, os.path.splitext(cpp_basename)[0])
+        if idcode not in func_map:
+            # load function if idcode is not loaded
+            cpp_fname = cpp_info.cpp_fname
+            cpp_path, cpp_basename = os.path.split(cpp_fname)
+            build_path = os.path.join(cpp_path, 'build')
 
-        if cpp_fname not in TEMPLATE_INST_MAP:
-            # map_data is a dict which records build information
-            map_data = _load_js_map(template_inst_fname)
-            assert map_data.get('version') <= OP_LOAD_MODULE_BUILD_VERSION, Exception(
-                """Unsupported higher version %s of wrapper file (Current MobulaOP ver: %s) :-(.
-Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERSION))
-            build_id = map_data.get('build_id', 0)
-            is_old_version = map_data.get(
-                'version') < OP_LOAD_MODULE_BUILD_VERSION
-            tmap = dict() if is_old_version else map_data.get('functions', dict())
-            TEMPLATE_BUILD_ID_MAP[cpp_fname] = build_id
-            TEMPLATE_INST_MAP[cpp_fname] = tmap
-        else:
-            tmap = TEMPLATE_INST_MAP[cpp_fname]
-            build_id = TEMPLATE_BUILD_ID_MAP[cpp_fname]
+            use_template = bool(cfunc.template_list)
+            if not os.path.exists(build_path):
+                os.makedirs(build_path)
+            template_inst_fname = get_template_inst_fname(
+                build_path, os.path.splitext(cpp_basename)[0])
 
-        so_prefix = _get_so_prefix(cpp_fname)
-        # The filename of build target
-        dll_fname = '{}_{}_{}.so'.format(so_prefix, ctx, build_id)
-
-        need_to_rebuild = True
-        if file_changed(cpp_fname):
-            tmap.clear()
-        else:
-            if os.path.exists(dll_fname):
-                # Try to load in template_inst_map
-                if not use_template or idcode in tmap:
-                    need_to_rebuild = False
-
-        removed_dll_fname = None
-        if need_to_rebuild:
-            if os.path.exists(dll_fname):
-                # remove old DLL file
-                removed_dll_fname = dll_fname
-                TEMPLATE_BUILD_ID_MAP[cpp_fname] += 1
+            if cpp_fname not in TEMPLATE_INST_MAP:
+                # map_data is a dict which records build information
+                map_data = _load_js_map(template_inst_fname)
+                assert map_data.get('version') <= OP_LOAD_MODULE_BUILD_VERSION, Exception(
+                    """Unsupported higher version %s of wrapper file (Current MobulaOP ver: %s) :-(.
+    Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERSION))
+                build_id = map_data.get('build_id', 0)
+                is_old_version = map_data.get(
+                    'version') < OP_LOAD_MODULE_BUILD_VERSION
+                tmap = dict() if is_old_version else map_data.get('functions', dict())
+                TEMPLATE_BUILD_ID_MAP[cpp_fname] = build_id
+                TEMPLATE_INST_MAP[cpp_fname] = tmap
+            else:
+                tmap = TEMPLATE_INST_MAP[cpp_fname]
                 build_id = TEMPLATE_BUILD_ID_MAP[cpp_fname]
-                dll_fname = '{}_{}_{}.so'.format(so_prefix, ctx, build_id)
-            # build code
-            code_buffer = _generate_ordinary_code(cpp_info)
-            if use_template:
-                if idcode not in tmap:
-                    _update_template_inst_map(idcode, tmap, cfunc, arg_types)
-                # add template instances code into code_buffer
-                code_buffer += ''.join(tmap.values())
 
-            with build_context():
-                _build_lib(cpp_fname, code_buffer, ctx, dll_fname)
-            # update tmap
-            map_data = dict(version=OP_LOAD_MODULE_BUILD_VERSION,
-                            build_id=build_id, functions=tmap)
-            _save_js_map(template_inst_fname, map_data)
+            so_prefix = _get_so_prefix(cpp_fname)
+            # The filename of build target
+            dll_fname = '{}_{}_{}.so'.format(so_prefix, ctx, build_id)
 
-        # load all functions in the dll
-        cpp_info.load_dll(dll_fname)
+            need_to_rebuild = True
+            if file_changed(cpp_fname):
+                tmap.clear()
+            else:
+                if os.path.exists(dll_fname):
+                    # Try to load in template_inst_map
+                    if not use_template or idcode in tmap:
+                        need_to_rebuild = False
 
-        # import all functions
-        # ordinary functions
-        for func_name, ord_cfunc in cpp_info.function_args.items():
-            if not ord_cfunc.template_list:
-                func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types)
-                _add_function(func_map, func_idcode, cpp_info)
+            removed_dll_fname = None
+            if need_to_rebuild:
+                if os.path.exists(dll_fname):
+                    # remove old DLL file
+                    removed_dll_fname = dll_fname
+                    TEMPLATE_BUILD_ID_MAP[cpp_fname] += 1
+                    build_id = TEMPLATE_BUILD_ID_MAP[cpp_fname]
+                    dll_fname = '{}_{}_{}.so'.format(so_prefix, ctx, build_id)
+                # build code
+                code_buffer = _generate_ordinary_code(cpp_info)
+                if use_template:
+                    if idcode not in tmap:
+                        _update_template_inst_map(
+                            idcode, tmap, cfunc, arg_types)
+                    # add template instances code into code_buffer
+                    code_buffer += ''.join(tmap.values())
 
-        # template functions
-        for func_idcode in tmap.keys():
-            _add_function(func_map, func_idcode, cpp_info)
+                with build_context():
+                    _build_lib(cpp_fname, code_buffer, ctx, dll_fname)
+                # update tmap
+                map_data = dict(version=OP_LOAD_MODULE_BUILD_VERSION,
+                                build_id=build_id, functions=tmap)
+                _save_js_map(template_inst_fname, map_data)
 
-        if removed_dll_fname is not None:
-            try:
-                os.remove(removed_dll_fname)
-            except Exception:
-                pass
+            # load all functions in the dll
+            cpp_info.load_dll(dll_fname)
 
-    return func_map[idcode]
+            # import all functions
+            # ordinary functions
+            for func_name, ord_cfunc in cpp_info.function_args.items():
+                if not ord_cfunc.template_list:
+                    func_idcode = get_func_idcode(
+                        func_name, ord_cfunc.arg_types)
+                    _add_function(func_map, func_info_map,
+                                  func_idcode, cpp_info)
+
+            # template functions
+            for func_idcode in tmap.keys():
+                _add_function(func_map, func_info_map, func_idcode, cpp_info)
+
+            if removed_dll_fname is not None:
+                try:
+                    os.remove(removed_dll_fname)
+                except Exception:
+                    pass
+
+        self.func = func_map[idcode]
+        self.cpp_info = func_info_map[idcode]
+        self.idcode_hash = get_idcode_hash(idcode)
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+    def get_async_func(self, glue_mod):
+        async_name = getattr(glue_mod, 'async_name', None)
+        if async_name is None:
+            return None
+        return glue_mod.get_async_func(self.cpp_info, self.idcode_hash)
 
 
 def _get_functions_from_cpp(cpp_fname):
@@ -631,7 +642,7 @@ def _get_functions_from_cpp(cpp_fname):
                                      arg_types=[t[0] for t in par_list],
                                      rtn_type=rtn_type,
                                      template_list=template_list,
-                                     loader=op_loader,
+                                     loader=OpLoader,
                                      loader_kwargs=dict(
                                          cpp_info=cpp_info,
                                      )

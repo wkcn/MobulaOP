@@ -4,7 +4,12 @@ from .common import *
 
 
 def get_pointer(v):
-    return v.data_ptr()
+    def p(e):
+        return ctypes.c_void_p(e.data_ptr())
+    if not v.is_contiguous():
+        c = v.contiguous()
+        return p(c), c
+    return p(v)
 
 
 THDTYPE2CTYPE_MAP = dict()
