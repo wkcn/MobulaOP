@@ -17,8 +17,8 @@ def packages_exist(pkg_names):
 def test_examples():
     EXAMPLES_PATH = os.path.join(os.path.dirname(__file__), '../examples')
     examples = [
-        ([], ['MyFirstOP']),  # , '../docs/tutorial/test_mul_func',
-        #      '../docs/tutorial/test_mul_op']),
+        ([], ['MyFirstOP', '../docs/tutorial/test_mul_func',
+              '../docs/tutorial/test_mul_op']),
         (['mxnet'], ['ConstantOP', 'RunROIAlign',
                      'dynamic_import_op/dynamic_import_op']),
         (['mxnet', 'tvm'], ['TVMOp']),

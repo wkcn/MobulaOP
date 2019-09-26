@@ -95,13 +95,17 @@ def _get_async_pointers(args):
     return [_get_async_pointer(a) for a in args]
 
 
+def _arg_wait_to_rw(arg):
+    if isinstance(arg, CFuncTensor):
+        if arg.ptype.is_const:
+            _wait_to_read(arg)
+        else:
+            _wait_to_write(arg)
+
+
 def _args_wait_to_rw(args):
-    for a in args:
-        if isinstance(a, CFuncTensor):
-            if a.ptype.is_const:
-                _wait_to_read(a)
-            else:
-                _wait_to_write(a)
+    for arg in args:
+        _arg_wait_to_rw(arg)
 
 
 class CFuncDef:
@@ -196,38 +200,43 @@ class MobulaFunc:
             for i in self.wait_to_write_list:
                 _wait_to_write(args[i])
 
-        for var, ptype in zip(args, self.func.arg_types):
-            if ptype.is_pointer:
-                # The type of `var` is Tensor.
-                data, var_dev_id, ctype = self._get_tensor_info(
-                    var, ptype, template_mapping, using_async)
-            else:
-                # The type of `var` is Scalar.
-                data, var_dev_id, ctype = self._get_scalar_info(var, ptype)
-
-            arg_datas.append(data)
-            if isinstance(ctype, UnknownCType):
-                ctype.is_const = ptype.is_const
-                arg_types.append(ctype)
-            else:
-                arg_types.append(DType(ctype, is_const=ptype.is_const))
-
-            # update `dev_id`
-            if var_dev_id is not None:
-                if dev_id is not None:
-                    assert var_dev_id == dev_id, ValueError(
-                        "Don't use multiple devices in a call :-(")
+        try:
+            for var, ptype in zip(args, self.func.arg_types):
+                if ptype.is_pointer:
+                    # The type of `var` is Tensor.
+                    data, var_dev_id, ctype = self._get_tensor_info(
+                        var, ptype, template_mapping, using_async)
                 else:
-                    dev_id = var_dev_id
+                    # The type of `var` is Scalar.
+                    data, var_dev_id, ctype = self._get_scalar_info(var, ptype)
 
-        # try to know the unknown ctype
-        for i, vtype in enumerate(arg_types):
-            if isinstance(vtype, UnknownCType):
-                assert vtype.tname in template_mapping,\
-                    Exception('Unknown template name: {}'.format(vtype.tname))
-                ctype = template_mapping[vtype.tname]._type_
-                arg_types[i] = DType(ctype, vtype.is_const)
-                arg_datas[i] = ctype(arg_datas[i])
+                arg_datas.append(data)
+                if isinstance(ctype, UnknownCType):
+                    ctype.is_const = ptype.is_const
+                    arg_types.append(ctype)
+                else:
+                    arg_types.append(DType(ctype, is_const=ptype.is_const))
+
+                # update `dev_id`
+                if var_dev_id is not None:
+                    if dev_id is not None:
+                        assert var_dev_id == dev_id, ValueError(
+                            "Don't use multiple devices in a call :-(")
+                    else:
+                        dev_id = var_dev_id
+
+            # try to know the unknown ctype
+            for i, vtype in enumerate(arg_types):
+                if isinstance(vtype, UnknownCType):
+                    assert vtype.tname in template_mapping,\
+                        Exception(
+                            'Unknown template name: {}'.format(vtype.tname))
+                    ctype = template_mapping[vtype.tname]._type_
+                    arg_types[i] = DType(ctype, vtype.is_const)
+                    arg_datas[i] = ctype(arg_datas[i])
+        except TypeError:
+            raise TypeError('Unmatched parameters list of the function `{}`:\n\t{}\n\t\tvs\n\t{}'.format(
+                self.name, self.func.arg_types, [type(a) for a in args]))
 
         rtn = self.func(arg_datas=arg_datas,
                         arg_types=arg_types,
@@ -260,6 +269,8 @@ class MobulaFunc:
             the ctype of data
         """
         glue_mod = glue.backend.get_var_glue(var)
+        if glue_mod is None:
+            raise TypeError()
         data = CFuncTensor(var, ptype, glue_mod)
         dev_id = glue_mod.dev_id(var)
         ctype = ctypes.POINTER(glue_mod.get_ctype(var))

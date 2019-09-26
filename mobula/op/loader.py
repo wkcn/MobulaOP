@@ -5,6 +5,7 @@ import re
 import time
 import ctypes
 import json
+import warnings
 from easydict import EasyDict as edict
 from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash
 from ..build import config, source_to_so_ctx, build_context, file_changed, ENV_PATH
@@ -440,7 +441,13 @@ def _add_function(func_map, func_info_map, func_idcode, cpp_info):
         Exception('No function `{}` in DLL {}'.format(
             func_idcode, dll_fname))
 
-    func_map[func_idcode] = func
+    old_func = func_map.get(func_idcode, None)
+    if old_func is not None:
+        if old_func[1] != cpp_info.cpp_fname:
+            warnings.warn('The function `{}` in `{}` will be overridden by that in `{}`'.format(
+                func_idcode, old_func[1], cpp_info.cpp_fname))
+
+    func_map[func_idcode] = (func, cpp_info.cpp_fname)
     func_info_map[func_idcode] = cpp_info
 
 
@@ -474,7 +481,7 @@ class OpLoader:
         func_map = CTX_FUNC_MAP[ctx]
         func_info_map = CTX_FUNC_INFO_MAP[ctx]
 
-        if idcode not in func_map:
+        if idcode not in func_map or func_map[idcode][1] != cpp_info.cpp_fname:
             # load function if idcode is not loaded
             cpp_fname = cpp_info.cpp_fname
             cpp_path, cpp_basename = os.path.split(cpp_fname)
@@ -561,7 +568,7 @@ class OpLoader:
                 except Exception:
                     pass
 
-        self.func = func_map[idcode]
+        self.func = func_map[idcode][0]
         self.cpp_info = func_info_map[idcode]
         self.idcode_hash = get_idcode_hash(idcode)
 
