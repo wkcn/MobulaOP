@@ -17,26 +17,25 @@ def packages_exist(pkg_names):
 def test_examples():
     EXAMPLES_PATH = os.path.join(os.path.dirname(__file__), '../examples')
     examples = [
-        ([], ['MyFirstOP', '../docs/tutorial/test_mul_func',
-              '../docs/tutorial/test_mul_op']),
-        (['mxnet'], ['ConstantOP', 'RunROIAlign',
-                     'dynamic_import_op/dynamic_import_op']),
-        (['mxnet', 'tvm'], ['TVMOp']),
+        ([], ['MyFirstOP.py', '../docs/tutorial/test_mul_func.py',
+              '../docs/tutorial/test_mul_op.py']),
+        (['mxnet'], ['ConstantOP.py', 'RunROIAlign.py',
+                     'dynamic_import_op/dynamic_import_op.py']),
+        (['mxnet', 'tvm'], ['TVMOp.py']),
     ]
     sys.path.append('./')
+    record = []
     for dep_pkgs, examples in examples:
         if packages_exist(dep_pkgs):
             for example in examples:
                 print('testing... {}'.format(example))
-                subpath, mod_name = os.path.split(example)
+                subpath, script_name = os.path.split(example)
                 fullpath = os.path.join(EXAMPLES_PATH, subpath)
                 old_workpath = os.getcwd()
                 os.chdir(fullpath)
-                exception = None
                 try:
-                    runpy.run_module(mod_name, {}, '__main__')
+                    runpy.run_path(script_name, {}, '__main__')
                 except Exception as e:
-                    exception = e
+                    record.append((example, e))
                 os.chdir(old_workpath)
-                if exception is not None:
-                    raise exception
+    assert len(record) == 0, record

@@ -16,6 +16,7 @@ python:
 script:
     - pip install -r ./requirements.txt
     - pip install mxnet --pre
+    - pip install --pre torch -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
     - pip install python-coveralls
     - nosetests -s --with-coverage
 
