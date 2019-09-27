@@ -66,9 +66,12 @@ class OpGen(object):
             # register operator
             self.cache[op_type] = True
             self.register()
-        if input_type is mx.nd.NDArray:
-            return mx.nd.Custom(*inputs, mobula_pars=pars_encode(pars), op_type=op_type, name=name)
-        return mx.sym.Custom(*inputs, mobula_pars=pars_encode(pars), op_type=op_type)
+        if input_type is mx.sym.Symbol:
+            return mx.sym.Custom(*inputs, mobula_pars=pars_encode(pars), op_type=op_type)
+        if hasattr(mx, 'numpy'):
+            inputs = [x.as_nd_ndarray() if isinstance(
+                x, mx.np.ndarray) else x for x in inputs]
+        return mx.nd.Custom(*inputs, mobula_pars=pars_encode(pars), op_type=op_type, name=name)
 
     def register(self):
         op = self.op

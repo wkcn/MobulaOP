@@ -19,11 +19,21 @@ class MyFirstOP:
 try:
     import mxnet as mx
     print('MXNet:')
+    print('mx.nd.NDArray:')
     a = mx.nd.array([1, 2, 3])
     b = mx.nd.array([4, 5, 6])
     c = MyFirstOP(a, b)
     print('a + b = c\n{} + {} = {}\n'.format(a.asnumpy(),
                                              b.asnumpy(), c.asnumpy()))  # [5, 7, 9]
+
+    if hasattr(mx, 'numpy'):
+        # MXNet NumPy-compatible API
+        print('mx.np.ndarray:')
+        a = mx.np.array([1, 2, 3])
+        b = mx.np.array([4, 5, 6])
+        c = MyFirstOP(a, b)
+        print('a + b = c\n{} + {} = {}\n'.format(a.asnumpy(),
+                                                 b.asnumpy(), c.asnumpy()))  # [5, 7, 9]
 except ImportError:
     pass
 

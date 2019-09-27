@@ -69,7 +69,8 @@ def register_glue(glue_name, types_name):
 
 
 # register glue modules.
-register_glue('mx', ['mxnet.nd.NDArray', 'mxnet.sym.Symbol'])
+register_glue('mx', ['mxnet.nd.NDArray',
+                     'mxnet.sym.Symbol', 'mxnet.numpy.ndarray'])
 register_glue('np', ['numpy.ndarray'])
 register_glue('th', ['torch.Tensor'])
 
