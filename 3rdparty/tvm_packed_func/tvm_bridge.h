@@ -38,6 +38,7 @@
  */
 #pragma once
 
+#include <iostream>
 #include "tvm_packed_func.h"
 
 namespace tvm_bridge {
@@ -109,12 +110,26 @@ class TVMFunctor {
                        args.type_codes + args.size());
 
     size_t const_loc_ptr = 0;
+    int dev_type, dev_id;
+    ctx_.dev_id = -1;
     for (int i = 0; i < args.size(); ++i) {
       if (args.type_codes[i] == kTVMNDArrayTypeCode) {
         NDArrayHandle nd = static_cast<NDArrayHandle>(args.values[i].v_handle);
         // We cannot set the value until
         type_codes_[i] = kArrayHandle;
-        array_data_.push_back(nd);
+        DLManagedTensorHandle handle;
+        MXNDArrayToDLPack(nd, &handle);
+        dlms_.push_back(handle);
+        MXNDArrayGetContext(nd, &dev_type, &dev_id);
+        if (ctx_.dev_id != -1) {
+          if (dev_type != ctx_.dev_type || dev_id != ctx_.dev_id) {
+            std::cout << "Inconsistent context: source(" << int(ctx_.dev_type)
+                      << ":" << ctx_.dev_id << ") vs target: (" << dev_type
+                      << ":" << dev_id << ")" << std::endl;
+            exit(-1);
+          }
+        }
+        ctx_ = {Context::DeviceType(dev_type), dev_id};
         array_loc_.push_back(i);
         // check if there is read or mutate
         // by default assume we mutate the array.
@@ -131,24 +146,16 @@ class TVMFunctor {
     }
   }
 
-  Context ctx() {
-    int dev_type, dev_id;
-    MXNDArrayGetContext(array_data_[0], &dev_type, &dev_id);
-    return {Context::DeviceType(dev_type), dev_id};
-  }
-
   void Run(const RunContext& rctx) {
     // setup DLTensor
-    std::vector<DLManagedTensorHandle> dlms(array_loc_.size());
     for (size_t i = 0; i < array_loc_.size(); ++i) {
-      DLManagedTensorHandle& dlm = dlms[i];
-      MXNDArrayToDLPack(array_data_[i], &dlm);
+      DLManagedTensorHandle& dlm = dlms_[i];
       values_[array_loc_[i]].v_handle = static_cast<void*>(&dlm->dl_tensor);
     }
     // run the packed function
     TVMRetValue rv;
     TVMArgs args(&values_[0], &type_codes_[0], values_.size());
-    if (ctx().dev_type == Context::kGPU) {
+    if (ctx_.dev_type == Context::kGPU) {
       // pass stream via last argument.
       void* strm = reinterpret_cast<void**>(rctx.stream)[0];
       int dev_type = kDLGPU;
@@ -158,10 +165,12 @@ class TVMFunctor {
     } else {
       func_.CallPacked(args, &rv);
     }
-    for (DLManagedTensorHandle dlm : dlms) {
+    for (DLManagedTensorHandle dlm : dlms_) {
       dlm->deleter(dlm);
     }
   }
+
+  inline const Context& ctx() { return ctx_; }
 
  private:
   /*! \brief The function */
@@ -172,10 +181,12 @@ class TVMFunctor {
   std::vector<TVMValue> values_;
   /*! \brief type code field */
   std::vector<int> type_codes_;
-  /*! \brief arrays field */
-  std::vector<NDArrayHandle> array_data_;
+  /*! \brief DLManagedTensorHandles field */
+  std::vector<DLManagedTensorHandle> dlms_;
   /*! \brief position of array in arguments */
   std::vector<int> array_loc_;
+  /*! \brief context */
+  Context ctx_;
 };
 
 inline void DeduplicateNDArrayHandle(std::vector<NDArrayHandle>* read_nds,
