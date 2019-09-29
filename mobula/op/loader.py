@@ -434,7 +434,7 @@ def _update_template_inst_map(idcode, tmap, cfunc, arg_types):
     tmap[idcode] = code
 
 
-def _add_function(func_map, func_info_map, func_idcode, cpp_info):
+def _add_function(func_map, func_info_map, func_idcode, cpp_info, dll_fname):
     func_idcode_hash = get_idcode_hash(func_idcode)
     func = getattr(cpp_info.dll, func_idcode_hash, None)
     assert func is not None,\
@@ -556,11 +556,11 @@ class OpLoader:
                     func_idcode = get_func_idcode(
                         func_name, ord_cfunc.arg_types)
                     _add_function(func_map, func_info_map,
-                                  func_idcode, cpp_info)
+                                  func_idcode, cpp_info, dll_fname)
 
             # template functions
             for func_idcode in tmap.keys():
-                _add_function(func_map, func_info_map, func_idcode, cpp_info)
+                _add_function(func_map, func_info_map, func_idcode, cpp_info, dll_fname)
 
             if removed_dll_fname is not None:
                 try:
