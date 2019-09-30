@@ -62,6 +62,8 @@ typedef void (*EngineSyncFunc)(void*, void*);
 /*! \brief Callback to free the param for EngineAsyncFunc/EngineSyncFunc */
 typedef void (*EngineFuncParamDeleter)(void*);
 
+int (*MXShallowCopyNDArray)(NDArrayHandle src_handle, NDArrayHandle* out);
+int (*MXNDArrayFree)(NDArrayHandle handle);
 int (*MXNDArrayGetContext)(NDArrayHandle handle, int* out_dev_type,
                            int* out_dev_id);
 int (*MXNDArrayToDLPack)(NDArrayHandle handle, DLManagedTensorHandle*);
@@ -114,12 +116,12 @@ class TVMFunctor {
     ctx_.dev_id = -1;
     for (int i = 0; i < args.size(); ++i) {
       if (args.type_codes[i] == kTVMNDArrayTypeCode) {
-        NDArrayHandle nd = static_cast<NDArrayHandle>(args.values[i].v_handle);
-        // We cannot set the value until
+        NDArrayHandle nd_handle =
+            static_cast<NDArrayHandle>(args.values[i].v_handle);
+        NDArrayHandle nd;
+        MXShallowCopyNDArray(nd_handle, &nd);
         type_codes_[i] = kArrayHandle;
-        DLManagedTensorHandle handle;
-        MXNDArrayToDLPack(nd, &handle);
-        dlms_.push_back(handle);
+        array_handle_.push_back(nd);
         MXNDArrayGetContext(nd, &dev_type, &dev_id);
         if (ctx_.dev_id != -1) {
           if (dev_type != ctx_.dev_type || dev_id != ctx_.dev_id) {
@@ -148,8 +150,10 @@ class TVMFunctor {
 
   void Run(const RunContext& rctx) {
     // setup DLTensor
+    std::vector<DLManagedTensorHandle> dlms(array_loc_.size());
     for (size_t i = 0; i < array_loc_.size(); ++i) {
-      DLManagedTensorHandle& dlm = dlms_[i];
+      DLManagedTensorHandle& dlm = dlms[i];
+      MXNDArrayToDLPack(array_handle_[i], &dlm);
       values_[array_loc_[i]].v_handle = static_cast<void*>(&dlm->dl_tensor);
     }
     // run the packed function
@@ -165,12 +169,18 @@ class TVMFunctor {
     } else {
       func_.CallPacked(args, &rv);
     }
-    for (DLManagedTensorHandle dlm : dlms_) {
+    for (DLManagedTensorHandle dlm : dlms) {
       dlm->deleter(dlm);
     }
   }
 
   inline const Context& ctx() { return ctx_; }
+
+  ~TVMFunctor() {
+    for (NDArrayHandle handle : array_handle_) {
+      MXNDArrayFree(handle);
+    }
+  }
 
  private:
   /*! \brief The function */
@@ -181,8 +191,8 @@ class TVMFunctor {
   std::vector<TVMValue> values_;
   /*! \brief type code field */
   std::vector<int> type_codes_;
-  /*! \brief DLManagedTensorHandles field */
-  std::vector<DLManagedTensorHandle> dlms_;
+  /*! \brief NDArrayHandles field */
+  std::vector<NDArrayHandle> array_handle_;
   /*! \brief position of array in arguments */
   std::vector<int> array_loc_;
   /*! \brief context */

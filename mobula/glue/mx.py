@@ -35,9 +35,11 @@ async_name = 'mx'
 
 
 def get_async_func(cpp_info, func_idcode_hash):
-    cpp_info.dll.RegisterMXAPI.argtypes = [ctypes.c_void_p] * 3
-    cpp_info.dll.RegisterMXAPI(
-        _LIB.MXNDArrayGetContext, _LIB.MXNDArrayToDLPack, _LIB.MXEnginePushSyncND)
+    mx_apis = [_LIB.MXShallowCopyNDArray, _LIB.MXNDArrayFree,
+               _LIB.MXNDArrayGetContext, _LIB.MXNDArrayToDLPack,
+               _LIB.MXEnginePushSyncND]
+    cpp_info.dll.RegisterMXAPI.argtypes = [ctypes.c_void_p] * len(mx_apis)
+    cpp_info.dll.RegisterMXAPI(*mx_apis)
     register_func_for_mx = getattr(
         cpp_info.dll, func_idcode_hash + '_register_mx', None)
     if register_func_for_mx is None:

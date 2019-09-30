@@ -560,7 +560,8 @@ class OpLoader:
 
             # template functions
             for func_idcode in tmap.keys():
-                _add_function(func_map, func_info_map, func_idcode, cpp_info, dll_fname)
+                _add_function(func_map, func_info_map,
+                              func_idcode, cpp_info, dll_fname)
 
             if removed_dll_fname is not None:
                 try:
