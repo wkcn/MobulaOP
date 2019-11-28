@@ -39,6 +39,7 @@
 #pragma once
 
 #include <iostream>
+
 #include "tvm_packed_func.h"
 
 namespace tvm_bridge {
@@ -142,7 +143,7 @@ class TVMFunctor {
           mutate_nds->push_back(nd);
         }
       } else {
-        CHECK_LT(args.type_codes[i], kTVMType)
+        CHECK_LT(args.type_codes[i], int(kTVMType))
             << "Only allow POD type in mxnet async call";
       }
     }
