@@ -256,7 +256,7 @@ def _get_so_prefix(fname):
 def _build_lib(cpp_fname, code_buffer, ctx, target_name):
     cpp_path, cpp_basename = os.path.split(cpp_fname)
     build_path = os.path.join(cpp_path, 'build')
-    create_time = time.strftime('%a %Y-%m-%d %H:%M:%S %Z', time.localtime())
+    create_time = time.strftime('%a %Y-%m-%d %H:%M:%S %z', time.localtime())
     git_hash = get_git_hash()
     extra_code = '''/*
  * MobulaOP Wrapper generated from the source code %s
