@@ -63,9 +63,8 @@ class KernelRunner {
   KernelRunner(Func func, void *strm = nullptr) : func_(func), strm_(strm) {}
   template <typename... Args>
   void operator()(const int n, Args... args) {
-    const int nthreads = std::min(n, HOST_NUM_THREADS);
-    const int threadsPerBlock = HIP_GET_NUM_THREADS(nthreads);
-    const int blocks = HIP_GET_BLOCKS(nthreads, threadsPerBlock);
+    const int threadsPerBlock = HIP_GET_NUM_THREADS(n);
+    const int blocks = HIP_GET_BLOCKS(n, threadsPerBlock);
     hipStream_t stream;
     if (strm_ == nullptr) {
       CHECK_HIP(hipStreamCreate(&stream));
@@ -78,8 +77,8 @@ class KernelRunner {
 #else
     func_<<<blocks, threadsPerBlock, 0, stream>>>(n, args...);
 #endif
+    CHECK_HIP(hipStreamSynchronize(stream));
     if (strm_ == nullptr) {
-      CHECK_HIP(hipStreamSynchronize(stream));
       CHECK_HIP(hipStreamDestroy(stream));
     }
     CHECK_HIP_ERROR("Run Kernel");
