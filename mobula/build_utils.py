@@ -13,7 +13,6 @@ import hashlib
 import platform
 import re
 import sys
-import yaml
 from easydict import EasyDict as edict
 from subprocess import Popen, PIPE
 try:
@@ -25,6 +24,7 @@ if not hasattr(Queue.Queue, 'clear'):
         with self.mutex:
             self.queue.clear()
     setattr(Queue.Queue, 'clear', _queue_clear)
+from .config import config
 
 OS_NAME = platform.system()
 OS_IS_WINDOWS = OS_NAME == 'Windows'
@@ -36,9 +36,6 @@ INC_PATHS = ['./']
 
 # Load Config File
 ENV_PATH = os.path.dirname(__file__)
-CONFIG_PATH = os.path.join(ENV_PATH, 'config.yaml')
-with open(CONFIG_PATH) as fin:
-    config = edict(yaml.load(fin, Loader=yaml.SafeLoader))
 if not os.path.dirname(config.BUILD_PATH):
     config.BUILD_PATH = os.path.join(ENV_PATH, config.BUILD_PATH)
 
@@ -49,8 +46,9 @@ def pass_argv(argv):
         if p[0] == '-' and '=' in p:
             k, v = p[1:].split('=')
             k = k.strip()
-            assert k in config, KeyError('Key `%s` not found in config' % k)
-            config[k] = ast.literal_eval(v)
+            assert hasattr(config, k), KeyError(
+                'Key `%s` not found in config' % k)
+            setattr(config, k, ast.literal_eval(v))
             print('Set %s to %s' % (k, v))
 
 
