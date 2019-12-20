@@ -1,7 +1,7 @@
+from .common import *
 import numpy as np
 import mxnet as mx
 from mxnet.base import _LIB
-from .common import *
 
 
 if not hasattr(mx.nd.NDArray, 'empty_like'):
@@ -33,13 +33,22 @@ def dev_id(a):
 
 async_name = 'mx'
 
+try:
+    MX_LIB_APIS = [_LIB.MXShallowCopyNDArray, _LIB.MXNDArrayFree,
+                   _LIB.MXNDArrayGetContext, _LIB.MXNDArrayToDLPack,
+                   _LIB.MXEnginePushSyncND]
+except AttributeError as e:
+    warnings.warn("""Using asynchronous execution for MXNet failed, since {}
+It will drop the performance.
+Recommend using the latest version of MXNet""".format(e))
+    MX_LIB_APIS = None
+
 
 def get_async_func(cpp_info, func_idcode_hash):
-    mx_apis = [_LIB.MXShallowCopyNDArray, _LIB.MXNDArrayFree,
-               _LIB.MXNDArrayGetContext, _LIB.MXNDArrayToDLPack,
-               _LIB.MXEnginePushSyncND]
-    cpp_info.dll.RegisterMXAPI.argtypes = [ctypes.c_void_p] * len(mx_apis)
-    cpp_info.dll.RegisterMXAPI(*mx_apis)
+    if MX_LIB_APIS is None:
+        return None
+    cpp_info.dll.RegisterMXAPI.argtypes = [ctypes.c_void_p] * len(MX_LIB_APIS)
+    cpp_info.dll.RegisterMXAPI(*MX_LIB_APIS)
     register_func_for_mx = getattr(
         cpp_info.dll, func_idcode_hash + '_register_mx', None)
     if register_func_for_mx is None:

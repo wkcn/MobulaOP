@@ -36,7 +36,9 @@ def _register_glue_real(glue_name, types_name):
             try:
                 module = importlib.import_module(tname_sp[0])
                 for sub_name in tname_sp[1:]:
-                    module = getattr(module, sub_name)
+                    module = getattr(module, sub_name, None)
+                    if module is None:
+                        raise ImportError
                 # create generators cache
                 glue.gen_cache = dict()
                 DTYPE_TO_GLUE[module] = glue

@@ -11,7 +11,7 @@ notifications:
 
 python:
     - 2.7
-    - 3.6
+    - 3.7
 
 script:
     - pip install -r ./requirements.txt
