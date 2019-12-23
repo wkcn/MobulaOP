@@ -74,12 +74,6 @@ def assert_almost_equal(a, b, rtol=1e-5, atol=1e-8):
                 return ', '.join([str(s) if not isinstance(s, slice) else
                                   '{}:{}'.format(s.start, s.stop) for s in slice_list])
             sdata = data.round(5)
-            '''
-            if data.ndim == 1:
-                sdata[sidx[-1]] = str(sdata[sidx[-1]])
-            else:
-                sdata[sidx[-2]][sidx[-1]] = str(sdata[sidx[-2]][sidx[-1]])
-            '''
             return '{name}[{slice_list}]:\n{data}\n'.format(name=name, slice_list=str_slice_list(slice_list),
                                                             data=sdata)
 

@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <iostream>
+
 #include "./common.h"
 
 #if USING_HIP

@@ -1,5 +1,6 @@
 """Backend Manager."""
 import importlib
+from itertools import chain
 
 DTYPE_TO_GLUE = dict()  # dtype -> glue_mod
 GLUE_NAME_TO_GLUE = dict()  # glue_name -> glue_mod
@@ -48,26 +49,23 @@ def _register_glue_real(glue_name, types_name):
             GLUE_NAME_TO_GLUE[glue_name] = glue
 
 
-def register_glue(glue_name, types_name):
+def register_glue(glue_name, type_names):
     """Register a glue module.
 
     Parameters
     ----------
     glue_name: str
         The name of glue module.
-    types_name: list of str
+    type_names: list of str
         The list of inputs' class names.
     """
     global PKG_NAME_TO_GLUE_ARGS
-    pkg_name = None
-    for cls_name in types_name:
-        _pkg_name = cls_name.split('.')[0]
-        if pkg_name is None:
-            pkg_name = _pkg_name
-        else:
-            assert pkg_name == _pkg_name, TypeError(
-                'The name of package should be the same in `types_name`')
-    PKG_NAME_TO_GLUE_ARGS[pkg_name] = (glue_name, types_name)
+    assert type_names, ValueError('type_names should be not empty')
+    pkg_names = [cls_name.split('.')[0] for cls_name in type_names]
+    pkg_name = pkg_names[0]
+    assert all(map(lambda x: x == pkg_name, pkg_names)), TypeError(
+        'The name of package should be consistent in `types_name`: {}'.format(type_names))
+    PKG_NAME_TO_GLUE_ARGS[pkg_name] = (glue_name, type_names)
 
 
 # register glue modules.
@@ -127,24 +125,15 @@ def get_args_glue(*args, **kwargs):
     -------
     Glue Module if glue exists, otherwise None.
     """
-    glue_mod = None
-
-    def args_iter():
-        for arg in args:
-            yield arg
-        for arg in kwargs.values():
-            yield arg
-
-    for arg in args_iter():
-        tmp_glue_mod = get_var_glue(arg)
-        if tmp_glue_mod is not None:
-            if glue_mod is not None:
-                assert glue_mod == tmp_glue_mod,\
-                    TypeError('Support only 1 backend in a call, now: [%s, %s]'
-                              % (str(glue_mod), str(tmp_glue_mod)))
-            else:
-                glue_mod = tmp_glue_mod
-    return glue_mod
+    glue_mods = map(get_var_glue, chain(args, kwargs.values()))
+    glue_mods = list(filter(lambda x: x is not None, glue_mods))
+    if glue_mods:
+        glue_mod = glue_mods[0]
+        assert all(map(lambda x: x == glue_mod, glue_mods)),\
+            TypeError(
+                'Support only 1 backend in a call, now: {}'.format(glue_mods))
+        return glue_mod
+    return None
 
 
 def op_gen(glue_mod, op, name):

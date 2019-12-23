@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <climits>
+
 #include "../logging.h"
 
 namespace mobula {

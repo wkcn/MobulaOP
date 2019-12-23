@@ -8,6 +8,7 @@ mobula.op.load('ROIAlign')
 
 T = np.float32
 
+
 def test_roi_align_sym(op, times):
     dtype = np.float32
 
@@ -40,11 +41,13 @@ def test_roi_align_sym(op, times):
     cost = time.time() - tic
     return cost
 
+
 def test_roi_align():
     TIMES = 50
     for op in [mobula.op.ROIAlign, mx.sym.contrib.ROIAlign]:
         cost = test_roi_align_sym(op, TIMES)
         print(op, cost)
+
 
 if __name__ == '__main__':
     print("===cpu===")

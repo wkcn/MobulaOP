@@ -27,8 +27,8 @@
 #define TVM_PACKED_FUNC_H_
 
 #include <functional>
-
 #include <limits>
+
 #include "dlpack/dlpack.h"
 
 namespace tvm {

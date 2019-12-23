@@ -3,6 +3,7 @@
  */
 
 #include "im2col.h"
+
 #include "defines.h"
 
 namespace mobula {

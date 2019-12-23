@@ -1,4 +1,21 @@
-class Config:
+from .utils import with_metaclass
+
+
+class ConfigMeta(type):
+    def __setattr__(self, name, value):
+        cdict = super(ConfigMeta, self).__dict__
+        if name not in cdict:
+            raise AttributeError('Config has no attribute `{}`.'.format(name))
+        data = cdict[name]
+        target_type = type(data)
+        value_type = type(value)
+        if target_type is not value_type:
+            raise TypeError('The type of config attribute `{}` is not consistent, target {} vs value {}.'.format(
+                name, target_type, value_type))
+        super(ConfigMeta, self).__setattr__(name, value)
+
+
+class Config(with_metaclass(ConfigMeta)):
     TARGET = 'mobula_op'
     BUILD_PATH = 'build'
     MAX_BUILDING_WORKER_NUM = 8

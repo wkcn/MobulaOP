@@ -5,7 +5,8 @@ from mxnet.base import _LIB
 
 
 if not hasattr(mx.nd.NDArray, 'empty_like'):
-    mx.nd.empty_like = lambda x: mx.nd.empty(x.shape, dtype=x.dtype)
+    mx.nd.empty_like = lambda x: mx.nd.empty(
+        x.shape, dtype=x.dtype, ctx=x.context)
 if not hasattr(mx.nd.NDArray, 'wait_to_write'):
     mx.nd.NDArray.wait_to_write = lambda self: _LIB.MXNDArrayWaitToWrite(
         self.handle)
