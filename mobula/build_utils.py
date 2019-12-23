@@ -13,7 +13,6 @@ import hashlib
 import platform
 import re
 import sys
-from easydict import EasyDict as edict
 from subprocess import Popen, PIPE
 try:
     import Queue
@@ -218,14 +217,6 @@ def rmdir(dir_name):
 
 def get_file_hash(fname):
     return str(int(os.path.getmtime(fname)))
-    md5_inst = hashlib.md5()
-    with open(fname, 'rb') as f:
-        while True:
-            data = f.read(1024)
-            if not data:
-                break
-            md5_inst.update(data)
-    return md5_inst.hexdigest()[:8]
 
 
 def file_changed(fname):

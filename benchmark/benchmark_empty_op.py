@@ -17,7 +17,7 @@ def test_empty_op():
     tic = time.time()
     op = EmptyOP[np.ndarray]()
     for _ in range(TIMES):
-        y = op(a)
+        a = op(a)
     toc = time.time()
 
     used_time = toc - tic
@@ -32,22 +32,29 @@ def test_hybrid_op():
     a = mx.nd.array([1, 2, 3], dtype=T)
 
     # prepare
-    for _ in range(100):
-        y = block(a)
+    for _ in range(10):
+        a = block(a)
     mx.nd.waitall()
 
+    a = mx.nd.array([1, 2, 3], dtype=T)
     tic = time.time()
     for _ in range(TIMES):
-        y = block(a)
+        a = block(a)
     mx.nd.waitall()
     toc = time.time()
     used_time = toc - tic
     print('Imperative Time(s): %.3f' % used_time)
 
     block.hybridize()
+    # prepare
+    for _ in range(10):
+        a = block(a)
+    mx.nd.waitall()
+
+    a = mx.nd.array([1, 2, 3], dtype=T)
     tic = time.time()
     for _ in range(TIMES):
-        y = block(a)
+        a = block(a)
     mx.nd.waitall()
     toc = time.time()
     used_time = toc - tic

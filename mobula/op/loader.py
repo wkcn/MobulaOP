@@ -516,11 +516,10 @@ class OpLoader:
             need_to_rebuild = True
             if file_changed(cpp_fname):
                 tmap.clear()
-            else:
-                if os.path.exists(dll_fname):
-                    # Try to load in template_inst_map
-                    if not use_template or idcode in tmap:
-                        need_to_rebuild = False
+            elif os.path.exists(dll_fname):
+                # Try to load in template_inst_map
+                if not use_template or idcode in tmap:
+                    need_to_rebuild = False
 
             removed_dll_fname = None
             if need_to_rebuild:
@@ -630,7 +629,7 @@ def _get_functions_from_cpp(cpp_fname):
                                 "template name '{}' is not defined".format(dtype.tname))
                         use_template = True
                 if not use_template:
-                    template_list[:] = []
+                    template_list = []
 
                 if func_kind == CFuncDef.KERNEL:
                     assert kernel_name.endswith('_kernel'),\
@@ -655,7 +654,7 @@ def _get_functions_from_cpp(cpp_fname):
                                          cpp_info=cpp_info,
                                      )
                                      )
-                template_list[:] = []
+                template_list = []
                 function_args[func_name] = funcdef_args
 
     assert unmatched_brackets == 0,\

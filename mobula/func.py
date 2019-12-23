@@ -92,7 +92,7 @@ def _get_raw_pointers(args, const_vars, mutable_vars):
 
 
 def _get_async_pointers(args):
-    return [_get_async_pointer(a) for a in args]
+    return list(map(_get_async_pointer, args))
 
 
 def _arg_wait_to_rw(arg):
@@ -236,7 +236,7 @@ class MobulaFunc:
                     arg_datas[i] = ctype(arg_datas[i])
         except TypeError:
             raise TypeError('Unmatched parameters list of the function `{}`:\n\t{}\n\t\tvs\n\t{}'.format(
-                self.name, self.func.arg_types, [type(a) for a in args]))
+                self.name, self.func.arg_types, list(map(type, args))))
 
         rtn = self.func(arg_datas=arg_datas,
                         arg_types=arg_types,
@@ -276,11 +276,10 @@ class MobulaFunc:
         ctype = ctypes.POINTER(glue_mod.get_ctype(var))
         if isinstance(ptype, DType):
             expected_ctype = ptype.ctype
+        elif ptype.tname in template_mapping:
+            expected_ctype = template_mapping[ptype.tname]
         else:
-            if ptype.tname in template_mapping:
-                expected_ctype = template_mapping[ptype.tname]
-            else:
-                template_mapping[ptype.tname] = expected_ctype = ctype
+            template_mapping[ptype.tname] = expected_ctype = ctype
         assert ctype == expected_ctype,\
             TypeError('Expected Type {} instead of {}'.format(
                 expected_ctype, ctype))
@@ -320,16 +319,14 @@ class MobulaFunc:
 
     @staticmethod
     def _get_glue_mod(datas):
-        glue_mod = None
-        for var in datas:
-            glue_mod_ = glue.backend.get_var_glue(var)
-            if glue_mod_ is not None:
-                if glue_mod is None:
-                    glue_mod = glue_mod_
-                else:
-                    if glue_mod_ != glue_mod:
-                        return None
-        return glue_mod
+        mods = map(glue.backend.get_var_glue, datas)
+        mods = list(filter(lambda x: x is not None, mods))
+        if mods:
+            glue_mod = mods[0]
+            # all glue modules in datas are consistent
+            if all(map(lambda x: x == glue_mod, mods)):
+                return glue_mod
+        return None
 
     def build(self, ctx, template_types=None):
         """Build this function

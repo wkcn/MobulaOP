@@ -26,7 +26,7 @@ class DType:
         idcode = (self.ctype, self.is_const)
         if idcode not in DType._EXTRA_ATTRS:
             # Assignment for self.is_pointer and self.cname
-            if self.ctype.__name__[:2] == 'LP':
+            if self.ctype.__name__.startswith('LP'):
                 is_pointer = True
                 basic_type = self.ctype._type_
             else:
