@@ -37,19 +37,17 @@ MOBULA_DLL PackedFunc* RegisterTVMFunc(const char*, TVMFunc pfunc,
   return p_rtn_func;
 }
 
-MOBULA_DLL void RegisterMXAPI(void* shallow_copy_ndarray, void* ndarray_free,
-                              void* ndarray_get_context,
-                              void* ndarray_to_dlpack,
-                              void* engine_push_sync_nd) {
-  MXShallowCopyNDArray =
-      reinterpret_cast<decltype(MXShallowCopyNDArray)>(shallow_copy_ndarray);
-  MXNDArrayFree = reinterpret_cast<decltype(MXNDArrayFree)>(ndarray_free);
-  MXNDArrayGetContext =
-      reinterpret_cast<decltype(MXNDArrayGetContext)>(ndarray_get_context);
-  MXNDArrayToDLPack =
-      reinterpret_cast<decltype(MXNDArrayToDLPack)>(ndarray_to_dlpack);
-  MXEnginePushSyncND =
-      reinterpret_cast<decltype(MXEnginePushSyncND)>(engine_push_sync_nd);
+MOBULA_DLL void RegisterMXAPI(
+    decltype(MXShallowCopyNDArray) shallow_copy_ndarray,
+    decltype(MXNDArrayFree) ndarray_free,
+    decltype(MXNDArrayGetContext) ndarray_get_context,
+    decltype(MXNDArrayToDLPack) ndarray_to_dlpack,
+    decltype(MXEnginePushSyncND) engine_push_sync_nd) {
+  MXShallowCopyNDArray = shallow_copy_ndarray;
+  MXNDArrayFree = ndarray_free;
+  MXNDArrayGetContext = ndarray_get_context;
+  MXNDArrayToDLPack = ndarray_to_dlpack;
+  MXEnginePushSyncND = engine_push_sync_nd;
 }
 }
 
