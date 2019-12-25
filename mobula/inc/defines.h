@@ -1,6 +1,7 @@
 #ifndef MOBULA_INC_DEFINES_H_
 #define MOBULA_INC_DEFINES_H_
 
+#include <array>
 #include <cassert>
 #include <cfloat>
 #include <cmath>

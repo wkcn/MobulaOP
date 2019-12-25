@@ -267,8 +267,6 @@ def _build_lib(cpp_fname, code_buffer, ctx, target_name):
  */
 #include "mobula_op.h"
 using namespace mobula;
-using namespace tvm;
-using namespace tvm::runtime;
 
 #include "%s"
 extern "C" {
@@ -301,7 +299,11 @@ def _dtype_to_tvm_value_type(dtype):
 def _get_args_inst_mx(i, t):
     s = 'args.values[%d].%s' % (i, _dtype_to_tvm_value_type(t))
     if t.is_pointer:
-        return 'static_cast<%s>(static_cast<DLTensor*>(%s)->data)' % (t.cname, s)
+        return '''
+      static_cast<%s>(
+        static_cast<DLTensor*>(%s)->data)''' % (t.cname, s)
+    else:
+        s = '\n      ' + s
     return s
 
 
@@ -339,7 +341,7 @@ MOBULA_DLL void %s(const int device_id, %s) {
             if dtype.is_const and dtype.is_pointer:
                 const_loc.append(i)
                 num_const += 1
-        const_loc_code = 'nullptr' if num_const == 0 else 'std::unique_ptr<int[]>(new int[%d]{%s}).get()' % (
+        const_loc_code = 'nullptr' if num_const == 0 else 'std::array<int, %d>({%s}).data()' % (
             num_const, ','.join([str(u) for u in const_loc]))
         register_mx_code = '''
 MOBULA_DLL PackedFunc* %s_register_mx() {
@@ -349,7 +351,7 @@ MOBULA_DLL PackedFunc* %s_register_mx() {
     KERNEL_RUN_END();
   }, %d, %s);
 }
-''' % (func_idcode_hash, func_idcode_hash, func_name, ', '.join(args_inst_mx), num_const, const_loc_code)
+''' % (func_idcode_hash, func_idcode_hash, func_name, ','.join(args_inst_mx), num_const, const_loc_code)
 
         async_mx_code = '''
 MOBULA_DLL void %s_async_mx(PackedFunc *packed_func, %s) {
