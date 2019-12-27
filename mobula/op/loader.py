@@ -16,7 +16,7 @@ from ..glue.backend import get_glue_modules
 
 
 if sys.version_info[0] >= 3:
-    import importlib
+    import importlib.util
 
     def load_module(name, pathname):
         """Load Module.
