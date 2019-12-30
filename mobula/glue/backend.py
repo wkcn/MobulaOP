@@ -73,6 +73,7 @@ register_glue('mx', ['mxnet.nd.NDArray',
                      'mxnet.sym.Symbol', 'mxnet.numpy.ndarray'])
 register_glue('np', ['numpy.ndarray'])
 register_glue('th', ['torch.Tensor'])
+register_glue('cp', ['cupy.core.core.ndarray'])
 
 
 def get_var_type_glue(vtype):

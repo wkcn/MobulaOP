@@ -52,6 +52,13 @@ b = torch.tensor([4,5,6])
 c = MyFirstOP(a, b)
 print (c) # [5, 7, 9]
 
+# CuPy
+import cupy as cp
+a = cp.array([1, 2, 3])
+b = cp.array([4, 5, 6])
+op = MyFirstOP[cp.ndarray]()
+c = op(a, b)
+print(c) # [5, 7, 9]
 ```
 
 - Use **custom operators** without rebuilding the source of deep learning framework [[Code](examples/RunROIAlign.py)]

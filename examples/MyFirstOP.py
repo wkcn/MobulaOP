@@ -57,3 +57,14 @@ try:
     print('a + b = c\n{} + {} = {}\n'.format(a, b, c))  # [5, 7, 9]
 except ImportError:
     pass
+
+try:
+    import cupy as cp
+    print('CuPy:')
+    a = cp.array([1, 2, 3])
+    b = cp.array([4, 5, 6])
+    op = MyFirstOP[cp.ndarray]()
+    c = op(a, b)
+    print('a + b = c\n{} + {} = {}\n'.format(a, b, c))  # [5, 7, 9]
+except ImportError:
+    pass
