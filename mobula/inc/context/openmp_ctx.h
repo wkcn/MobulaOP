@@ -6,11 +6,14 @@
 namespace mobula {
 
 #define KERNEL_RUN(a) (a)
+#ifndef _MSC_VER
+#define __pragma(id) _Pragma(#id)
+#endif
 
 template <typename Func>
 MOBULA_DEVICE void parfor(const size_t n, Func F) {
   INDEX_TYPE_SWITCH(n, {
-    _Pragma("omp parallel for") for (index_t i = 0; i < static_cast<index_t>(n);
+    __pragma(omp parallel for) for (index_t i = 0; i < static_cast<index_t>(n);
                                      ++i) {
       F(i);
     }

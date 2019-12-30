@@ -32,15 +32,20 @@ using std::abs;
 using std::max;
 using std::min;
 
-#if HOST_NUM_THREADS > 1 || USING_OPENMP
+#if USING_OPENMP
+inline MOBULA_DEVICE float atomic_add(const float val, float *address) {
+#pragma omp atomic update
+  *address += val;
+  return *address;
+}
+#elif HOST_NUM_THREADS > 1
 constexpr int NUM_MOBULA_ATOMIC_ADD_MUTEXES = HOST_NUM_THREADS * 8;
 static std::mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
 inline MOBULA_DEVICE float atomic_add(const float val, float *address) {
   uintptr_t id = (reinterpret_cast<uintptr_t>(address) / sizeof(float)) %
                  NUM_MOBULA_ATOMIC_ADD_MUTEXES;
-  MOBULA_ATOMIC_ADD_MUTEXES[id].lock();
+  std::lock_guard<std::mutex> lock(MOBULA_ATOMIC_ADD_MUTEXES[id]);
   *address += val;
-  MOBULA_ATOMIC_ADD_MUTEXES[id].unlock();
   return *address;
 }
 #else

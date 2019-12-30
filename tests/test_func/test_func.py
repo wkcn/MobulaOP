@@ -111,3 +111,18 @@ def test_build():
     '''
     assert 'mul_elemwise_kernel<float>' in code, code
     assert 'mul_elemwise_kernel<int' in code, code
+
+
+def test_atomic_add():
+    I = U = J = 100
+    import time
+    for _ in range(10):
+        tic = time.time()
+        dtype = np.float32
+        a = np.random.uniform(size=(I, U)).astype(dtype).round(1)
+        b = np.random.uniform(size=(U, J)).astype(dtype).round(1)
+        out = np.zeros((I, J), dtype=dtype)
+        mobula.func.test_atomic_add_by_gemm(U, I, J, a, b, out)
+        target = np.dot(a, b)
+        assert_almost_equal(out, target, atol=1e-3)
+        # print('test_atomic_add', time.time() - tic)
