@@ -26,7 +26,7 @@ Open a terminal and input the following commands:
 git clone https://github.com/wkcn/MobulaOP
 # Enter the project directory
 cd MobulaOP
-# Install the dependences: numpy and easydict
+# Install the dependences: numpy
 pip install -r requirements.txt
 # Add the project directory into the environment variable `PYTHONPATH`
 export PYTHONPATH=$PYTHONPATH:$(pwd)

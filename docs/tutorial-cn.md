@@ -33,7 +33,7 @@ MobulaOP支持Linux、Windows和MacOS系统。
 git clone https://github.com/wkcn/MobulaOP
 # 进入项目文件夹
 cd MobulaOP
-# 安装依赖库numpy 和 easydict
+# 安装依赖库numpy
 pip install -r requirements.txt
 # 将MobulaOP文件夹加入PYTHONPATH环境变量中
 export PYTHONPATH=$PYTHONPATH:$(pwd)

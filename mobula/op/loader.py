@@ -6,7 +6,7 @@ import time
 import ctypes
 import json
 import warnings
-from easydict import EasyDict as edict
+from ..edict import edict
 from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash
 from ..build import config, source_to_so_ctx, build_context, file_changed, ENV_PATH
 from ..utils import get_git_hash

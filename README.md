@@ -32,24 +32,24 @@ class MyFirstOP:
 
 # MXNet
 import mxnet as mx
-a = mx.nd.array([1,2,3])
-b = mx.nd.array([4,5,6])
+a = mx.nd.array([1, 2, 3])
+b = mx.nd.array([4, 5, 6])
+c = MyFirstOP(a, b)
+print (c) # [5, 7, 9]
+
+# PyTorch
+import torch
+a = torch.tensor([1, 2, 3])
+b = torch.tensor([4, 5, 6])
 c = MyFirstOP(a, b)
 print (c) # [5, 7, 9]
 
 # NumPy
 import numpy as np
-a = np.array([1,2,3])
-b = np.array([4,5,6])
+a = np.array([1, 2, 3])
+b = np.array([4, 5, 6])
 op = MyFirstOP[np.ndarray]()
 c = op(a, b)
-print (c) # [5, 7, 9]
-
-# PyTorch
-import torch
-a = torch.tensor([1,2,3])
-b = torch.tensor([4,5,6])
-c = MyFirstOP(a, b)
 print (c) # [5, 7, 9]
 
 # CuPy
