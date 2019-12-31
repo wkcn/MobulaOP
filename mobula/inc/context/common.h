@@ -33,14 +33,7 @@ inline MOBULA_DEVICE void get_parfor_range(const size_t n,
   const index_t avg_len = n / num_threads;
   const index_t rest = n % num_threads;
   // [start, end)
-  *start = avg_len * thread_id;
-  if (rest > 0) {
-    if (thread_id <= rest) {
-      *start += thread_id;
-    } else {
-      *start += rest;
-    }
-  }
+  *start = avg_len * thread_id + min(static_cast<index_t>(thread_id), rest);
   *end = *start + avg_len + (thread_id < rest);
 }
 
