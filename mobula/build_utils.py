@@ -210,6 +210,7 @@ elif OS_IS_WINDOWS:
 
 
 def rmdir(dir_name):
+    # we use shell command to remove the non-empty or empry directory
     if os.path.exists(dir_name):
         command = '%s %s' % (rmdir_command, dir_name)
         run_command(command)

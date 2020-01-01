@@ -5,6 +5,9 @@ from mobula.build_utils import build_context, file_changed, update_file_hash, up
 def find_all_file(path, exts):
     result = []
     for name in os.listdir(path):
+        if name.startswith('.'):
+            # ignore the hidden directory
+            continue
         fname = os.path.join(path, name)
         if os.path.isdir(fname):
             result.extend(find_all_file(fname, exts))
@@ -20,16 +23,16 @@ def clang_format(fnames):
         if file_changed(fname):
             print('Format {}'.format(fname))
             script = 'clang-format -style="{BasedOnStyle: Google, Standard: Cpp11}" -i ' + fname
-            os.system(script)
-            update_file_hash(fname)
+            if os.system(script) == 0:
+                update_file_hash(fname)
 
 
 def autopep8(fnames):
     for fname in fnames:
         if file_changed(fname):
             print('Format {}'.format(fname))
-            os.system('autopep8 --ignore E402 --in-place {}'.format(fname))
-            update_file_hash(fname)
+            if os.system('autopep8 --ignore E402 --in-place {}'.format(fname)) == 0:
+                update_file_hash(fname)
 
 
 if __name__ == '__main__':

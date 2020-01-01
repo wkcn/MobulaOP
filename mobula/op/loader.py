@@ -253,9 +253,34 @@ def _get_so_prefix(fname):
     return os.path.join(path, 'build', os.path.splitext(name)[0])
 
 
+def _lock(lock_fname):
+    open(lock_fname, 'w')
+
+
+def _unlock(lock_fname):
+    try:
+        os.remove(lock_fname)
+    except:
+        pass
+
+
+def _check_lock(lock_fname):
+    return os.path.exists(lock_fname)
+
+
 def _build_lib(cpp_fname, code_buffer, ctx, target_name):
     cpp_path, cpp_basename = os.path.split(cpp_fname)
     build_path = os.path.join(cpp_path, 'build')
+    # Add a lock file
+    lock_fname = os.path.join(build_path, 'mobulaop.lock')
+    if _check_lock(lock_fname):
+        print('There is another process to build the target: {}.\nIf not, please delete the lock file: {}'.format(
+            target_name, lock_fname))
+        while _check_lock(lock_fname):
+            time.sleep(3)
+        if os.path.exists(target_name):
+            return
+    _lock(lock_fname)
     create_time = time.strftime('%a %Y-%m-%d %H:%M:%S %z', time.localtime())
     git_hash = get_git_hash()
     extra_code = '''/*
@@ -286,6 +311,7 @@ extern "C" {
     srcs = [cpp_wrapper_fname]
 
     source_to_so_ctx(build_path, srcs, target_name, ctx)
+    _unlock(lock_fname)
 
 
 def _dtype_to_tvm_value_type(dtype):
