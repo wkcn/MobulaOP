@@ -93,8 +93,7 @@ def update_build_path(build_path):
     global code_hash, code_hash_filename, code_hash_updated
     global dependant, dependant_filename, dependant_updated
 
-    if not os.path.exists(build_path):
-        os.makedirs(build_path)
+    os.makedirs(build_path, exist_ok=True)
 
     config.BUILD_PATH = build_path
 
@@ -200,7 +199,7 @@ def run_command(command):
 def mkdir(dir_name):
     if not os.path.exists(dir_name):
         print('mkdir -p %s' % dir_name)
-        os.makedirs(dir_name)
+        os.makedirs(dir_name, exist_ok=True)
 
 
 if OS_IS_LINUX:

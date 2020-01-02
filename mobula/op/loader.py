@@ -516,8 +516,7 @@ class OpLoader:
             build_path = os.path.join(cpp_path, 'build')
 
             use_template = bool(cfunc.template_list)
-            if not os.path.exists(build_path):
-                os.makedirs(build_path)
+            os.makedirs(build_path, exist_ok=True)
             template_inst_fname = get_template_inst_fname(
                 build_path, os.path.splitext(cpp_basename)[0])
 
