@@ -6,13 +6,12 @@ __all__ = ["pass_argv", "get_include_file", "wildcard",
            "config", "Flags", "INC_PATHS", "ENV_PATH",
            "OS_IS_WINDOWS", "OS_IS_LINUX", "build_context"]
 
+from .config import config
 import ast
 import os
 import threading
-import hashlib
 import platform
 import re
-import sys
 from subprocess import Popen, PIPE
 try:
     import Queue
@@ -23,7 +22,6 @@ if not hasattr(Queue.Queue, 'clear'):
         with self.mutex:
             self.queue.clear()
     setattr(Queue.Queue, 'clear', _queue_clear)
-from .config import config
 
 OS_NAME = platform.system()
 OS_IS_WINDOWS = OS_NAME == 'Windows'
@@ -40,7 +38,7 @@ if not os.path.dirname(config.BUILD_PATH):
 
 
 def pass_argv(argv):
-    # Read Config from argv
+    """Read Config from argv"""
     for p in argv:
         if p[0] == '-' and '=' in p:
             k, v = p[1:].split('=')

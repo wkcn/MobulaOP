@@ -3,7 +3,6 @@ __all__ = ['MobulaFunc', 'bind']
 
 
 import ctypes
-import os
 import hashlib
 import warnings
 from . import glue

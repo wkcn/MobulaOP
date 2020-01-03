@@ -51,4 +51,4 @@ MOBULA_DLL void RegisterMXAPI(
 }
 }
 
-#endif
+#endif  // MOBULA_INC_GLUE_MX_H_

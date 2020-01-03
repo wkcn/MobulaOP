@@ -3,6 +3,7 @@ import os
 
 if sys.version_info[0] < 3:
     old_os_makedirs = os.makedirs
+
     def makedirs(name, mode=511, exist_ok=False):
         '''makedirs(name [, mode=0o777][, exist_ok=False])
 

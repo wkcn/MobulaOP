@@ -2,8 +2,8 @@ from .utils import with_metaclass
 
 
 class ConfigMeta(type):
-    def __setattr__(self, name, value):
-        cdict = super(ConfigMeta, self).__dict__
+    def __setattr__(cls, name, value):
+        cdict = super(ConfigMeta, cls).__dict__
         if name not in cdict:
             raise AttributeError('Config has no attribute `{}`.'.format(name))
         data = cdict[name]
@@ -12,7 +12,7 @@ class ConfigMeta(type):
         if target_type is not value_type:
             raise TypeError('The type of config attribute `{}` is not consistent, target {} vs value {}.'.format(
                 name, target_type, value_type))
-        super(ConfigMeta, self).__setattr__(name, value)
+        super(ConfigMeta, cls).__setattr__(name, value)
 
 
 class Config(with_metaclass(ConfigMeta)):

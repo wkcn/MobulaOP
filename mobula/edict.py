@@ -1,6 +1,8 @@
+"""easy dict"""
+
+
 class edict(dict):
-    def __init__(self, *args, **kwargs):
-        super(edict, self).__init__(*args, **kwargs)
+    """a dict class which could be accessed by attribute"""
 
     def __setattr__(self, key, value):
         super(edict, self).__setitem__(key, value)

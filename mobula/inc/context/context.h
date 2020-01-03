@@ -12,7 +12,6 @@
 #include "./cpu_ctx.h"
 #endif  // USING_CUDA
 
-// C API
 extern "C" {
 MOBULA_DLL void set_device(const int device_id);
 }

@@ -1,6 +1,5 @@
 """Building Implementation"""
 import os
-import sys
 import multiprocessing
 try:
     from .build_utils import *
@@ -139,7 +138,6 @@ def source_to_so_ctx(build_path, srcs, target_name, ctx_name):
         buildin_cpp.append(os.path.join(ENV_PATH, fname))
     buildin_o = change_exts(buildin_o, [('cpp', 'o')])
 
-    need_to_build_core = False
     for fname in buildin_o:
         if not os.path.exists(fname):
             with build_context():

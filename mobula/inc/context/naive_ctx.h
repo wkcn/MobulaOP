@@ -25,7 +25,7 @@ void thread_func_wrapper(Func func, const int i, const int nthreads,
 template <typename Func>
 class KernelRunner {
  public:
-  KernelRunner(Func func) : func_(func) {}
+  explicit KernelRunner(Func func) : func_(func) {}
   template <typename... Args>
   void operator()(const int n, Args... args) {
     const int nthreads = std::min(n, HOST_NUM_THREADS);

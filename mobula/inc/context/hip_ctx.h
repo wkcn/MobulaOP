@@ -4,6 +4,8 @@
 #define MOBULA_KERNEL __global__ void
 #define MOBULA_DEVICE __device__
 
+#include <algorithm>
+
 #include "./hip_ctx_header.h"
 
 namespace mobula {
@@ -60,7 +62,8 @@ inline int HIP_GET_BLOCKS(const int n, const int num_threads) {
 template <typename Func>
 class KernelRunner {
  public:
-  KernelRunner(Func func, void *strm = nullptr) : func_(func), strm_(strm) {}
+  explicit KernelRunner(Func func, void *strm = nullptr)
+      : func_(func), strm_(strm) {}
   template <typename... Args>
   void operator()(const int n, Args... args) {
     const int threadsPerBlock = HIP_GET_NUM_THREADS(n);

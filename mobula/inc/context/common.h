@@ -1,6 +1,7 @@
 #ifndef MOBULA_INC_CONTEXT_COMMON_H_
 #define MOBULA_INC_CONTEXT_COMMON_H_
 
+#include <algorithm>
 #include <cassert>
 #include <climits>
 
