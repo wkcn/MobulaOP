@@ -310,7 +310,11 @@ extern "C" {
     # build lib
     srcs = [cpp_wrapper_fname]
 
-    source_to_so_ctx(build_path, srcs, target_name, ctx)
+    try:
+        source_to_so_ctx(build_path, srcs, target_name, ctx)
+    except:
+        _unlock(lock_fname)
+        raise
     _unlock(lock_fname)
 
 

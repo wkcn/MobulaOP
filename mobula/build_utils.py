@@ -334,7 +334,7 @@ def run_command_parallel(commands, allow_error=False):
     while not info_queue.empty():
         info = info_queue.get()
         if isinstance(info, Exception) and not allow_error:
-            raise info
+            raise RuntimeError(info)
 
 
 def add_path(path, files):
