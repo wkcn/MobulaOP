@@ -35,11 +35,24 @@ def autopep8(fnames):
                 update_file_hash(fname)
 
 
+def filter_ignore_path(fnames, ignore_path):
+    abs_ignore_path = os.path.abspath(ignore_path)
+
+    def is_not_ignore_path(fname):
+        abs_fname = os.path.abspath(fname)
+        return not abs_fname.startswith(abs_ignore_path)
+
+    return filter(is_not_ignore_path, fnames)
+
+
 if __name__ == '__main__':
     update_build_path('./autoformat_code')
+    ignore_path = './mobula/op/templates/'
     with build_context():
         cpp_res = find_all_file('./', ['.cpp', '.h'])
+        cpp_res = filter_ignore_path(cpp_res, ignore_path)
         clang_format(cpp_res)
 
         py_res = find_all_file('./', ['.py'])
+        py_res = filter_ignore_path(py_res, ignore_path)
         autopep8(py_res)

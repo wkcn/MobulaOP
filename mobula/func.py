@@ -56,6 +56,10 @@ class CFuncTensor:
         self.ptype = ptype
         self.glue_mod = glue_mod
 
+    @property
+    def is_const(self):
+        return self.ptype.is_const
+
 
 def _wait_to_read(var):
     if hasattr(var, 'wait_to_read'):
@@ -72,7 +76,7 @@ def _get_raw_pointer(arg, const_vars, mutable_vars):
         p = arg.glue_mod.get_pointer(arg.var)
         if isinstance(p, (list, tuple)):
             p, v = p
-            if arg.ptype.is_const:
+            if arg.is_const:
                 const_vars.append(v)
             else:
                 mutable_vars.append((arg.var, v))
@@ -96,7 +100,7 @@ def _get_async_pointers(args):
 
 def _arg_wait_to_rw(arg):
     if isinstance(arg, CFuncTensor):
-        if arg.ptype.is_const:
+        if arg.is_const:
             _wait_to_read(arg)
         else:
             _wait_to_write(arg)
@@ -114,16 +118,12 @@ class CFuncDef:
 
     def __init__(self, func_name, func_kind, arg_names=None, arg_types=None, rtn_type=None,
                  template_list=None, loader=None, loader_kwargs=None):
-        if arg_names is None:
-            arg_names = list()
-        if template_list is None:
-            template_list = list()
         self.func_name = func_name
         self.func_kind = func_kind
-        self.arg_names = arg_names
+        self.arg_names = arg_names or list()
         self.arg_types = arg_types
         self.rtn_type = rtn_type
-        self.template_list = template_list
+        self.template_list = template_list or list()
         self.loader = loader
         self.loader_kwargs = loader_kwargs
 

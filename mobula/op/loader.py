@@ -13,6 +13,9 @@ from ..utils import get_git_hash
 from ..dtype import DType, TemplateType
 from ..version import OP_LOAD_MODULE_BUILD_VERSION
 from ..glue.backend import get_glue_modules
+from .gen_code import get_gen_rel_code
+
+gen_code = get_gen_rel_code(os.path.dirname(__file__))
 
 
 if sys.version_info[0] >= 3:
@@ -114,16 +117,15 @@ def parse_parameter_decl(decl):
     if is_pointer:
         decl = decl.replace('*', '')
     decl = decl.strip()
-    decl_sp = decl.split(' ')
-    if decl_sp[0] == 'const':
+    if decl.startswith('const '):
         is_const = True
-        decl_sp = decl_sp[1:]
+        decl = decl[len('const '):]
     else:
         is_const = False
+    decl_sp = decl.split(' ')
 
     # type_name and variable_name in C++ code
-    type_name = decl_sp[0]
-    var_name = decl_sp[1]
+    type_name, var_name = decl_sp
 
     # void* func(...)
     if type_name == 'void':
@@ -166,10 +168,7 @@ def parse_parameters_list(plist):
     plist_split = re.split(r'\s*,\s*', plist)
     func_name = head_split[-1]
     rtn_type = head_split[-2] if len(head_split) == 3 else None
-    pars_list = []
-    for decl in plist_split:
-        dtype, pname = parse_parameter_decl(decl)
-        pars_list.append((dtype, pname))
+    pars_list = list(map(parse_parameter_decl, plist_split))
     return rtn_type, func_name, pars_list
 
 
@@ -283,24 +282,15 @@ def _build_lib(cpp_fname, code_buffer, ctx, target_name):
     _lock(lock_fname)
     create_time = time.strftime('%a %Y-%m-%d %H:%M:%S %z', time.localtime())
     git_hash = get_git_hash()
-    extra_code = '''/*
- * MobulaOP Wrapper generated from the source code %s
- * Created by: MobulaOP %s
- * Create Time: %s
- *
- * WARNING! All changes made in this file will be lost!
- */
-#include "mobula_op.h"
-using namespace mobula;
-
-#include "%s"
-extern "C" {
-%s
-}''' % (cpp_fname, git_hash, create_time, os.path.join('../..', cpp_basename), code_buffer)
+    extra_code = gen_code('./templates/header.cpp')(
+        cpp_fname=cpp_fname,
+        git_hash=git_hash,
+        create_time=create_time,
+        inc_fname=os.path.join('../..', cpp_basename),
+        code=code_buffer)
 
     build_path_ctx = os.path.join(build_path, ctx)
-    if not os.path.exists(build_path_ctx):
-        os.mkdir(build_path_ctx)
+    os.makedirs(build_path_ctx, exist_ok=True)
 
     # build so
     cpp_wrapper_fname = os.path.join(build_path_ctx,
@@ -330,10 +320,10 @@ def _get_args_inst_mx(i, t):
     s = 'args.values[%d].%s' % (i, _dtype_to_tvm_value_type(t))
     if t.is_pointer:
         return '''
-      static_cast<%s>(
-        static_cast<DLTensor*>(%s)->data)''' % (t.cname, s)
+          static_cast<{dtype}>(
+            static_cast<DLTensor*>({tv})->data)'''.format(dtype=t.cname, tv=s)
     else:
-        s = '\n      ' + s
+        s = '\n          ' + s
     return s
 
 
@@ -344,51 +334,40 @@ def _generate_kernel_code(func_idcode_hash, arg_types, arg_names, func_name):
     ) for dtype, name in zip(arg_types, arg_names)])
     args_inst = ', '.join(arg_names)
 
-    kernel_code = '''
-MOBULA_DLL void %s(const int device_id, %s) {
-  KERNEL_RUN_BEGIN(device_id);
-  KERNEL_RUN(%s)(%s);
-  KERNEL_RUN_END();
-}
-''' % (func_idcode_hash, args_def, func_name, args_inst)
+    kernel_code = gen_code('./templates/kernel_code.cpp')(
+        func_idcode_hash=func_idcode_hash,
+        args_def=args_def,
+        func_name=func_name,
+        args_inst=args_inst)
+    kernel_code += '\n'
 
     args_def_async_mx = ', '.join(['{ctype} {name}'.format(
         ctype='NDArrayHandle' if dtype.is_pointer else dtype.cname,
         name=name
     ) for dtype, name in zip(arg_types, arg_names)])
 
-    using_async_mx = True
-    for dtype in arg_types:
-        if 'void' in dtype.cname:
-            using_async_mx = False
-            break
+    using_async_mx = all(
+        map(lambda dtype: 'void' not in dtype.cname, arg_types))
     if using_async_mx:
         args_inst_mx = [_get_args_inst_mx(i, t)
                         for i, t in enumerate(arg_types)]
-        num_const = 0
         const_loc = []
         for i, dtype in enumerate(arg_types):
             if dtype.is_const and dtype.is_pointer:
                 const_loc.append(i)
-                num_const += 1
+        num_const = len(const_loc)
         const_loc_code = 'nullptr' if num_const == 0 else 'std::array<int, %d>({%s}).data()' % (
             num_const, ','.join([str(u) for u in const_loc]))
-        register_mx_code = '''
-MOBULA_DLL PackedFunc* %s_register_mx() {
-  return RegisterTVMFunc("%s", [](TVMArgs args, TVMRetValue*) {
-    KERNEL_RUN_BEGIN(DEV_ID);
-    KERNEL_RUN_STREAM(%s, STRM)(%s);
-    KERNEL_RUN_END();
-  }, %d, %s);
-}
-''' % (func_idcode_hash, func_idcode_hash, func_name, ','.join(args_inst_mx), num_const, const_loc_code)
-
-        async_mx_code = '''
-MOBULA_DLL void %s_async_mx(PackedFunc *packed_func, %s) {
-  (*packed_func)(%s);
-}
-''' % (func_idcode_hash, args_def_async_mx, args_inst)
-        kernel_code += register_mx_code
+        async_mx_code = gen_code('./templates/async_mx_code.cpp')(
+            func_idcode_hash=func_idcode_hash,
+            func_name=func_name,
+            args_inst=args_inst,
+            args_inst_mx=','.join(args_inst_mx),
+            num_const=num_const,
+            const_loc_code=const_loc_code,
+            args_def_async_mx=args_def_async_mx,
+        )
+        async_mx_code += '\n'
         kernel_code += async_mx_code
     return kernel_code
 
@@ -424,6 +403,7 @@ def _generate_ordinary_code(cpp_info):
         if func_kind == CFuncDef.KERNEL:
             code_buffer += _generate_kernel_code(
                 func_idcode_hash, ord_cfunc.arg_types, ord_cfunc.arg_names, '{}_kernel'.format(func_name))
+            code_buffer += '\n'
     return code_buffer
 
 
