@@ -33,10 +33,8 @@ MobulaOP支持Linux、Windows和MacOS系统。
 git clone https://github.com/wkcn/MobulaOP
 # 进入项目文件夹
 cd MobulaOP
-# 安装依赖库numpy
-pip install -r requirements.txt
-# 将MobulaOP文件夹加入PYTHONPATH环境变量中
-export PYTHONPATH=$PYTHONPATH:$(pwd)
+# 安装MobulaOP
+pip install -v -e .
 ```
 当执行完以上命令后，在项目目录外打开Python交互界面，输入`import mobula`，如果没有提示，则表示配置成功。
 

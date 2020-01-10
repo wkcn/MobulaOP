@@ -26,10 +26,8 @@ Open a terminal and input the following commands:
 git clone https://github.com/wkcn/MobulaOP
 # Enter the project directory
 cd MobulaOP
-# Install the dependences: numpy
-pip install -r requirements.txt
-# Add the project directory into the environment variable `PYTHONPATH`
-export PYTHONPATH=$PYTHONPATH:$(pwd)
+# Install MobulaOP 
+pip install -v -e .
 ```
 
 If installation success, there will be no prompt when inputting the command `python -c "import mobula"` outside the project directory.

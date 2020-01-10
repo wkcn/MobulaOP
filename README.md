@@ -110,9 +110,6 @@ git clone https://github.com/wkcn/MobulaOP
 # Enter the directory
 cd MobulaOP
 
-# Install Third-Party Library
-pip install -r requirements.txt
-
-# Add MobulaOP into Enviroment Variable `PYTHONPATH`
-export PYTHONPATH=$PYTHONPATH:$(pwd)
+# Install MobulaOP
+pip install -v -e .
 ```

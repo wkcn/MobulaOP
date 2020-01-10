@@ -11,7 +11,7 @@ build_script:
 
     SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
 
-    pip install -r ./requirements.txt
+    pip install -v -e .
 
     pip install mxnet --pre
 

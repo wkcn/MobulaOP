@@ -6,6 +6,7 @@ import time
 import ctypes
 import json
 import warnings
+import portalocker
 from ..edict import edict
 from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash
 from ..build import config, source_to_so_ctx, build_context, file_changed, ENV_PATH
@@ -182,45 +183,6 @@ TEMPLATE_INST_MAP = dict()
 TEMPLATE_BUILD_ID_MAP = dict()
 
 
-def get_template_inst_fname(build_path, name):
-    """Get the filename of the json file which records build information
-    Parameters:
-    -----------
-    build_path: str
-        build path
-    name: str
-        module name
-
-    Returns:
-    --------
-    the filename of json file
-    """
-    fname = '{}_template.js'.format(name)
-    fpath = os.path.join(build_path, fname)
-    return fpath
-
-
-def _load_js_map(fname):
-    """Load json file which records build information.
-    Parameters:
-    -----------
-    fname: str
-        the filename of a json file.
-    Returns:
-    --------
-    dict
-        build information.
-    """
-    if os.path.exists(fname):
-        return json.loads(open(fname).read())
-    return dict(version=OP_LOAD_MODULE_BUILD_VERSION)
-
-
-def _save_js_map(fname, data):
-    with open(fname, 'w') as fout:
-        fout.write(json.dumps(data))
-
-
 class CPPInfo:
     """The class of the C++ file's information.
 
@@ -252,35 +214,10 @@ def _get_so_prefix(fname):
     return os.path.join(path, 'build', os.path.splitext(name)[0])
 
 
-def _lock(lock_fname):
-    open(lock_fname, 'w')
-
-
-def _unlock(lock_fname):
-    try:
-        os.remove(lock_fname)
-    except:
-        pass
-
-
-def _check_lock(lock_fname):
-    return os.path.exists(lock_fname)
-
-
 def _build_lib(cpp_fname, code_buffer, ctx, target_name):
     cpp_path, cpp_basename = os.path.split(cpp_fname)
     build_path = os.path.join(cpp_path, 'build')
-    # Add a lock file
-    lock_fname = os.path.join(build_path, 'mobulaop.lock')
-    if _check_lock(lock_fname):
-        print('There is another process to build the target: {}.\nIf not, please delete the lock file: {}'.format(
-            target_name, lock_fname))
-        while _check_lock(lock_fname):
-            time.sleep(3)
-        if os.path.exists(target_name):
-            return
-    _lock(lock_fname)
-    create_time = time.strftime('%a %Y-%m-%d %H:%M:%S %z', time.localtime())
+    create_time = time.strftime('%a %Y-%m-%d %H:%M:%S (%z)', time.localtime())
     git_hash = get_git_hash()
     extra_code = gen_code('./templates/header.cpp')(
         cpp_fname=cpp_fname,
@@ -300,12 +237,7 @@ def _build_lib(cpp_fname, code_buffer, ctx, target_name):
     # build lib
     srcs = [cpp_wrapper_fname]
 
-    try:
-        source_to_so_ctx(build_path, srcs, target_name, ctx)
-    except:
-        _unlock(lock_fname)
-        raise
-    _unlock(lock_fname)
+    source_to_so_ctx(build_path, srcs, target_name, ctx)
 
 
 def _dtype_to_tvm_value_type(dtype):
@@ -501,24 +433,32 @@ class OpLoader:
 
             use_template = bool(cfunc.template_list)
             os.makedirs(build_path, exist_ok=True)
-            template_inst_fname = get_template_inst_fname(
-                build_path, os.path.splitext(cpp_basename)[0])
-
-            if cpp_fname not in TEMPLATE_INST_MAP:
-                # map_data is a dict which records build information
-                map_data = _load_js_map(template_inst_fname)
-                assert map_data.get('version') <= OP_LOAD_MODULE_BUILD_VERSION, Exception(
-                    """Unsupported higher version %s of wrapper file (Current MobulaOP ver: %s) :-(.
-    Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERSION))
-                build_id = map_data.get('build_id', 0)
-                is_old_version = map_data.get(
-                    'version') < OP_LOAD_MODULE_BUILD_VERSION
-                tmap = dict() if is_old_version else map_data.get('functions', dict())
-                TEMPLATE_BUILD_ID_MAP[cpp_fname] = build_id
-                TEMPLATE_INST_MAP[cpp_fname] = tmap
+            build_info_fname = os.path.join(
+                build_path, os.path.splitext(cpp_basename)[0] + '.js')
+            build_info_fs = open(build_info_fname, 'a+')
+            portalocker.lock(build_info_fs, portalocker.LOCK_EX)
+            build_info_fs.seek(0)
+            js_data = build_info_fs.read()
+            if js_data:
+                map_data = json.loads(js_data)
             else:
-                tmap = TEMPLATE_INST_MAP[cpp_fname]
-                build_id = TEMPLATE_BUILD_ID_MAP[cpp_fname]
+                map_data = dict(version=OP_LOAD_MODULE_BUILD_VERSION)
+            del js_data
+
+            # try to load the instance of template function
+            # map_data is a dict which records build information
+            if map_data.get('version') > OP_LOAD_MODULE_BUILD_VERSION:
+                portalocker.unlock(build_info_fs)
+                raise Exception(
+                    """Unsupported higher version %s of wrapper file (Current MobulaOP ver: %s) :-(.
+Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERSION))
+            build_id = map_data.get('build_id', 0)
+            is_old_version = map_data.get(
+                'version') < OP_LOAD_MODULE_BUILD_VERSION
+            # load the information of template functions
+            tmap = dict() if is_old_version else map_data.get('functions', dict())
+            TEMPLATE_BUILD_ID_MAP[cpp_fname] = build_id
+            TEMPLATE_INST_MAP[cpp_fname] = tmap
 
             so_prefix = _get_so_prefix(cpp_fname)
             # The filename of build target
@@ -550,11 +490,22 @@ class OpLoader:
                     code_buffer += ''.join(tmap.values())
 
                 with build_context():
-                    _build_lib(cpp_fname, code_buffer, ctx, dll_fname)
+                    try:
+                        _build_lib(cpp_fname, code_buffer, ctx, dll_fname)
+                    except:
+                        # if build fail, unlock the build info file
+                        portalocker.unlock(build_info_fs)
+                        raise
                 # update tmap
                 map_data = dict(version=OP_LOAD_MODULE_BUILD_VERSION,
                                 build_id=build_id, functions=tmap)
-                _save_js_map(template_inst_fname, map_data)
+                # clear the old context and write json data
+                build_info_fs.seek(0)
+                build_info_fs.truncate()
+                json.dump(map_data, build_info_fs)
+                build_info_fs.flush()
+                os.fsync(build_info_fs.fileno())
+            portalocker.unlock(build_info_fs)
 
             # load all functions in the dll
             cpp_info.load_dll(dll_fname)
