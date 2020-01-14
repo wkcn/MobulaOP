@@ -642,7 +642,7 @@ def load(module_name, path=''):
     op_name = os.path.basename(module_name)
     if not path:
         # Find Operator Module in custom directory first
-        custom_path = os.path.join(os.path.dirname(__file__), 'custom')
+        custom_path = os.path.join(os.path.dirname(__file__), '../../opzoo')
         if os.path.exists(os.path.join(custom_path, op_name)):
             path = custom_path
     path = os.path.join(path, module_name)

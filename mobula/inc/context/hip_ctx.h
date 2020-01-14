@@ -143,13 +143,21 @@ T *MemcpyDevToDev(T *dst, const T *src, size_t size) {
   return dst;
 }
 
+MOBULA_DEVICE inline int get_num_threads() {
+  return hipGridDim_x * hipBlockDim_x;
+}
+
+MOBULA_DEVICE inline int get_thread_num() {
+  return hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+}
+
 // parfor for hip device should be called in hip kernel.
 template <typename Func>
 MOBULA_DEVICE void parfor(const size_t n, Func F) {
   // [gridDim.x, blockDim.x]
-  const int num_threads = hipGridDim_x * hipBlockDim_x;
+  const int num_threads = get_num_threads();
   // thread_id is in [0, num_threads)
-  const int thread_id = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  const int thread_id = get_thread_num();
   INDEX_TYPE_SWITCH(n, {
     index_t start, end;
     get_parfor_range(n, num_threads, thread_id, &start, &end);

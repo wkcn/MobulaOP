@@ -1,6 +1,5 @@
 import mobula
 from mobula.const import req
-import os
 
 import numpy as np
 

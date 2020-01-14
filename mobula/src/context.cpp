@@ -18,5 +18,4 @@ void set_device(const int device_id) {
 void set_device(const int /*device_id*/) {
   LOG(FATAL) << "Doesn't support setting device on CPU mode";
 }
-
 #endif  // USING_HIP || USING_CUDA

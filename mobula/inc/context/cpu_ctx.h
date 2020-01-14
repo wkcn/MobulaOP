@@ -33,12 +33,16 @@ using std::max;
 using std::min;
 
 #if USING_OPENMP
+
 inline MOBULA_DEVICE float atomic_add(const float val, float *address) {
 #pragma omp atomic update
   *address += val;
   return *address;
 }
+
 #elif HOST_NUM_THREADS > 1
+// Naive CPU
+
 constexpr int NUM_MOBULA_ATOMIC_ADD_MUTEXES = HOST_NUM_THREADS * 8;
 static std::mutex MOBULA_ATOMIC_ADD_MUTEXES[NUM_MOBULA_ATOMIC_ADD_MUTEXES];
 inline MOBULA_DEVICE float atomic_add(const float val, float *address) {
@@ -48,7 +52,9 @@ inline MOBULA_DEVICE float atomic_add(const float val, float *address) {
   *address += val;
   return *address;
 }
+
 #else
+
 // no lock for single thread mode
 inline MOBULA_DEVICE float atomic_add(const float val, float *address) {
   *address += val;
