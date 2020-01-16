@@ -1,5 +1,5 @@
 import os
-from mobula.build_utils import build_context, file_changed, update_file_hash, update_build_path
+from mobula.build_utils import build_context, file_is_changed, update_file_hash, update_build_path
 
 
 def find_all_file(path, exts):
@@ -20,7 +20,7 @@ def find_all_file(path, exts):
 
 def clang_format(fnames):
     for fname in fnames:
-        if file_changed(fname):
+        if file_is_changed(fname):
             print('Format {}'.format(fname))
             script = 'clang-format -style="{BasedOnStyle: Google, Standard: Cpp11}" -i ' + fname
             if os.system(script) == 0:
@@ -29,7 +29,7 @@ def clang_format(fnames):
 
 def autopep8(fnames):
     for fname in fnames:
-        if file_changed(fname):
+        if file_is_changed(fname):
             print('Format {}'.format(fname))
             if os.system('autopep8 --ignore E402 --in-place {}'.format(fname)) == 0:
                 update_file_hash(fname)

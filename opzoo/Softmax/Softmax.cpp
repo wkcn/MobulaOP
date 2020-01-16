@@ -59,7 +59,6 @@ MOBULA_DEVICE void Reduce(const int n, const T *data, T *out,
   // 4. Reduce `num_threads` slots to the first slot
   int bi = 1 << 1;
   while (bi < num_threads) {
-    __syncthreads();
     int mask = (bi << 1) - 1;
     if ((thread_num & mask) == 0) {
       // valid thread

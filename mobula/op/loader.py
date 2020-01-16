@@ -1,4 +1,5 @@
 """Operator Loader."""
+from collections import namedtuple
 import os
 import sys
 import re
@@ -9,7 +10,7 @@ import warnings
 import portalocker
 from ..edict import edict
 from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash
-from ..build import config, source_to_so_ctx, build_context, file_changed, ENV_PATH
+from ..build import config, source_to_so_ctx, build_context, file_is_changed, ENV_PATH
 from ..utils import get_git_hash
 from ..dtype import DType, TemplateType
 from ..version import OP_LOAD_MODULE_BUILD_VERSION
@@ -174,13 +175,8 @@ def parse_parameters_list(plist):
 
 
 # runtime
-CTX_FUNC_MAP = dict()  # ctx -> dict(idcode -> function)
-CTX_FUNC_INFO_MAP = dict()  # ctx -> dict(idcode -> func_info)
-# static
-# fname -> dict([(idcode, template_inst_code), ...])
-TEMPLATE_INST_MAP = dict()
-# fname -> build_id
-TEMPLATE_BUILD_ID_MAP = dict()
+FuncInfo = namedtuple('FuncInfo', ['func', 'cpp_info'])
+CTX_FUNC_MAP = dict()  # CTX_FUNC_MAP[ctx][cpp_fname] -> FuncInfo
 
 
 class CPPInfo:
@@ -209,11 +205,6 @@ class CPPInfo:
         self.dll = ctypes.CDLL(dll_fname)
 
 
-def _get_so_prefix(fname):
-    path, name = os.path.split(fname)
-    return os.path.join(path, 'build', os.path.splitext(name)[0])
-
-
 def _build_lib(cpp_fname, code_buffer, ctx, target_name):
     cpp_path, cpp_basename = os.path.split(cpp_fname)
     build_path = os.path.join(cpp_path, 'build')
@@ -223,7 +214,7 @@ def _build_lib(cpp_fname, code_buffer, ctx, target_name):
         cpp_fname=cpp_fname,
         git_hash=git_hash,
         create_time=create_time,
-        inc_fname=os.path.join('../..', cpp_basename),
+        inc_fname=os.path.normpath(os.path.join('../..', cpp_basename)),
         code=code_buffer)
 
     build_path_ctx = os.path.join(build_path, ctx)
@@ -339,7 +330,17 @@ def _generate_ordinary_code(cpp_info):
     return code_buffer
 
 
-def _update_template_inst_map(idcode, tmap, cfunc, arg_types):
+def _get_ordinary_functions(cpp_info):
+    res = list()
+    for func_name, ord_cfunc in cpp_info.function_args.items():
+        if ord_cfunc.template_list:
+            continue
+        func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types)
+        res.append(func_idcode)
+    return res
+
+
+def _update_template_inst_map(idcode, template_functions, cfunc, arg_types):
     # template function
     func_name = cfunc.func_name
     func_idcode_hash = get_idcode_hash(idcode)
@@ -375,10 +376,10 @@ def _update_template_inst_map(idcode, tmap, cfunc, arg_types):
     else:
         code = _generate_func_code(
             func_idcode_hash, rtn_type, arg_types, cfunc.arg_names, func_name + template_post)
-    tmap[idcode] = code
+    template_functions[idcode] = code
 
 
-def _add_function(func_map, func_info_map, func_idcode, cpp_info, dll_fname):
+def _add_function(func_map, func_idcode, cpp_info, dll_fname):
     func_idcode_hash = get_idcode_hash(func_idcode)
     func = getattr(cpp_info.dll, func_idcode_hash, None)
     assert func is not None,\
@@ -387,12 +388,11 @@ def _add_function(func_map, func_info_map, func_idcode, cpp_info, dll_fname):
 
     old_func = func_map.get(func_idcode, None)
     if old_func is not None:
-        if old_func[1] != cpp_info.cpp_fname:
+        if old_func.cpp_info.cpp_fname != cpp_info.cpp_fname:
             warnings.warn('The function `{}` in `{}` will be overridden by that in `{}`'.format(
-                func_idcode, old_func[1], cpp_info.cpp_fname))
+                func_idcode, old_func.cpp_info.cpp_fname, cpp_info.cpp_fname))
 
-    func_map[func_idcode] = (func, cpp_info.cpp_fname)
-    func_info_map[func_idcode] = cpp_info
+    func_map[func_idcode] = FuncInfo(func=func, cpp_info=cpp_info)
 
 
 class OpLoader:
@@ -412,29 +412,32 @@ class OpLoader:
 
     Returns
     -------
-    CTX_FUNC_MAP[ctx][idcode] : CFunction
-    CTX_FUNC_INFO_MAP[ctx][idcode] : cpp_info
+    CTX_FUNC_MAP[ctx][fname][idcode] : FuncInfo
     '''
 
     def __init__(self, cfunc, arg_types, ctx, cpp_info):
         idcode = get_func_idcode(cfunc.func_name, arg_types)
         if ctx not in CTX_FUNC_MAP:
             CTX_FUNC_MAP[ctx] = dict()
-            CTX_FUNC_INFO_MAP[ctx] = dict()
+        cpp_fname = cpp_info.cpp_fname
+        if cpp_fname not in CTX_FUNC_MAP[ctx]:
+            CTX_FUNC_MAP[ctx][cpp_fname] = dict()
         # func_map: dict mapping idcode to CFunction
-        func_map = CTX_FUNC_MAP[ctx]
-        func_info_map = CTX_FUNC_INFO_MAP[ctx]
+        func_map = CTX_FUNC_MAP[ctx][cpp_fname]
 
-        if idcode not in func_map or func_map[idcode][1] != cpp_info.cpp_fname:
-            # load function if idcode is not loaded
-            cpp_fname = cpp_info.cpp_fname
+        if idcode not in func_map:
+            '''
+            *load function* when one of the following conditions is True:
+            1. idcode is not loaded
+            2. loading the function with same function name but different cpp filename
+            '''
             cpp_path, cpp_basename = os.path.split(cpp_fname)
             build_path = os.path.join(cpp_path, 'build')
 
             use_template = bool(cfunc.template_list)
             os.makedirs(build_path, exist_ok=True)
             build_info_fname = os.path.join(
-                build_path, os.path.splitext(cpp_basename)[0] + '.js')
+                build_path, os.path.splitext(cpp_basename)[0] + '.json')
             build_info_fs = open(build_info_fname, 'a+')
             portalocker.lock(build_info_fs, portalocker.LOCK_EX)
             build_info_fs.seek(0)
@@ -456,38 +459,56 @@ Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERS
             is_old_version = map_data.get(
                 'version') < OP_LOAD_MODULE_BUILD_VERSION
             # load the information of template functions
-            tmap = dict() if is_old_version else map_data.get('functions', dict())
-            TEMPLATE_BUILD_ID_MAP[cpp_fname] = build_id
-            TEMPLATE_INST_MAP[cpp_fname] = tmap
+            ORDINARY_FUNCTION_NAME = 'ordinary_functions'
+            TEMPLATE_FUNCTION_NAME = 'template_functions'
+            if is_old_version:
+                ordinary_functions = list()
+                template_functions = dict()
+            else:
+                ordinary_functions = map_data.get(ORDINARY_FUNCTION_NAME, list())
+                template_functions = map_data.get(TEMPLATE_FUNCTION_NAME, dict())
 
-            so_prefix = _get_so_prefix(cpp_fname)
+            so_prefix = os.path.join(
+                cpp_path, 'build', os.path.splitext(cpp_basename)[0])
             # The filename of build target
-            dll_fname = '{}_{}_{}.so'.format(so_prefix, ctx, build_id)
+            dll_fname_format = '{prefix}_{ctx}'.format(
+                prefix=so_prefix, ctx=ctx) + '_{build_id}.so'
+            dll_fname = dll_fname_format.format(build_id=build_id)
 
-            need_to_rebuild = True
-            if file_changed(cpp_fname):
-                tmap.clear()
-            elif os.path.exists(dll_fname):
-                # Try to load in template_inst_map
-                if not use_template or idcode in tmap:
-                    need_to_rebuild = False
+            file_changed = file_is_changed(cpp_fname)
+            dll_existed = os.path.exists(dll_fname)
+            func_existed = idcode in template_functions or idcode in ordinary_functions
 
-            removed_dll_fname = None
-            if need_to_rebuild:
-                if os.path.exists(dll_fname):
-                    # remove old DLL file
-                    removed_dll_fname = dll_fname
-                    TEMPLATE_BUILD_ID_MAP[cpp_fname] += 1
-                    build_id = TEMPLATE_BUILD_ID_MAP[cpp_fname]
-                    dll_fname = '{}_{}_{}.so'.format(so_prefix, ctx, build_id)
+            if file_changed or not dll_existed or not func_existed or is_old_version:
+                # Rebuild DLL file
+                try:
+                    # try to remove old DLL file
+                    os.remove(dll_fname)
+                except:
+                    pass
+                if file_changed:
+                    # clear template_functions since some functions may have been deleted or renamed after codefile is changed.
+                    template_functions.clear()
+                if file_changed or not func_existed:
+                    '''
+                    we increase `build_id` by 1 when one of the following conditions is True:
+                    1. the cpp file has been changed
+                    2. new idcode
+
+                    When the cpp file is not changed, and idcode exists in template_functions,
+                    `build_id` will be not changed.
+                    '''
+                    build_id += 1
+                dll_fname = dll_fname_format.format(build_id=build_id)
                 # build code
                 code_buffer = _generate_ordinary_code(cpp_info)
+                ordinary_functions = _get_ordinary_functions(cpp_info)
                 if use_template:
-                    if idcode not in tmap:
+                    if idcode not in template_functions:
                         _update_template_inst_map(
-                            idcode, tmap, cfunc, arg_types)
+                            idcode, template_functions, cfunc, arg_types)
                     # add template instances code into code_buffer
-                    code_buffer += ''.join(tmap.values())
+                    code_buffer += ''.join(template_functions.values())
 
                 with build_context():
                     try:
@@ -496,9 +517,11 @@ Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERS
                         # if build fail, unlock the build info file
                         portalocker.unlock(build_info_fs)
                         raise
-                # update tmap
+                # update template_functions
                 map_data = dict(version=OP_LOAD_MODULE_BUILD_VERSION,
-                                build_id=build_id, functions=tmap)
+                                build_id=build_id)
+                map_data[ORDINARY_FUNCTION_NAME] = ordinary_functions
+                map_data[TEMPLATE_FUNCTION_NAME] = template_functions
                 # clear the old context and write json data
                 build_info_fs.seek(0)
                 build_info_fs.truncate()
@@ -516,22 +539,16 @@ Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERS
                 if not ord_cfunc.template_list:
                     func_idcode = get_func_idcode(
                         func_name, ord_cfunc.arg_types)
-                    _add_function(func_map, func_info_map,
+                    _add_function(func_map,
                                   func_idcode, cpp_info, dll_fname)
 
             # template functions
-            for func_idcode in tmap.keys():
-                _add_function(func_map, func_info_map,
+            for func_idcode in template_functions.keys():
+                _add_function(func_map,
                               func_idcode, cpp_info, dll_fname)
 
-            if removed_dll_fname is not None:
-                try:
-                    os.remove(removed_dll_fname)
-                except Exception:
-                    pass
-
-        self.func = func_map[idcode][0]
-        self.cpp_info = func_info_map[idcode]
+        self.func = func_map[idcode].func
+        self.cpp_info = func_map[idcode].cpp_info
         self.idcode_hash = get_idcode_hash(idcode)
 
     def __call__(self, *args, **kwargs):
