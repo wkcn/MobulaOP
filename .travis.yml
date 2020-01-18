@@ -17,7 +17,7 @@ script:
     - pip install -v -e .
     - pip install mxnet --pre
     - pip install --pre torch -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
-    - pip install python-coveralls
+    - pip install coveralls
     - nosetests -s --with-coverage
 
 after_success:
