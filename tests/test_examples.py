@@ -20,7 +20,9 @@ def test_examples():
         ([], ['MyFirstOP.py', '../docs/tutorial/test_mul_func.py',
               '../docs/tutorial/test_mul_op.py']),
         (['mxnet'], ['ConstantOP.py', 'RunROIAlign.py',
-                     'dynamic_import_op/dynamic_import_op.py']),
+                     'dynamic_import_op/dynamic_import_op.py',
+                     '../opzoo/Softmax/test_softmax.py',
+                     ]),
         (['mxnet', 'tvm'], ['TVMOp.py']),
     ]
     sys.path.append('./')

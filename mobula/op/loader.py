@@ -465,8 +465,10 @@ Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERS
                 ordinary_functions = list()
                 template_functions = dict()
             else:
-                ordinary_functions = map_data.get(ORDINARY_FUNCTION_NAME, list())
-                template_functions = map_data.get(TEMPLATE_FUNCTION_NAME, dict())
+                ordinary_functions = map_data.get(
+                    ORDINARY_FUNCTION_NAME, list())
+                template_functions = map_data.get(
+                    TEMPLATE_FUNCTION_NAME, dict())
 
             so_prefix = os.path.join(
                 cpp_path, 'build', os.path.splitext(cpp_basename)[0])
