@@ -1,3 +1,4 @@
+import copy
 import os
 import sys
 import numpy as np
@@ -125,12 +126,12 @@ def gradcheck(func, inputs, kwargs=None, eps=1e-6, rtol=1e-2, atol=None, samplin
     # To NumPy Tensor
     inputs = [to_numpy(x) for x in inputs]
     func = func[np.ndarray](**kwargs)
-    ori_out = to_tuple(func(*inputs))
+    ori_out = to_tuple(func(*copy.deepcopy(inputs)))
     assert isinstance(ori_out, (tuple, list)), type(ori_out)
-    dys = [np.random.normal(0, 0.01, size=out_i.shape) +
+    dys = [np.random.normal(0, 0.01, size=out_i.shape).astype(out_i.dtype) +
            0.1 for out_i in ori_out]
     assert len(dys) == len(ori_out), '{} vs {}'.format(len(dys), len(ori_out))
-    grad = to_tuple(func.backward(dys))
+    grad = to_tuple(func.backward(copy.deepcopy(dys)))
     for i, x in enumerate(inputs):
         size = inputs[i].size
         sample_grad = np.empty_like(inputs[i])
@@ -146,9 +147,10 @@ def gradcheck(func, inputs, kwargs=None, eps=1e-6, rtol=1e-2, atol=None, samplin
             x_ravel = x.ravel()
             old_elem_value = x_ravel[k]
             x_ravel[k] = old_elem_value + eps / 2
-            pos_out = to_tuple(func(*inputs, **kwargs))
+            pos_out = to_tuple(func(*copy.deepcopy(inputs), **kwargs))
             x_ravel[k] = old_elem_value - eps / 2
-            neg_out = to_tuple(func(*inputs, **kwargs))
+            neg_out = to_tuple(func(*copy.deepcopy(inputs), **kwargs))
+            x_ravel[k] = old_elem_value
             assert len(pos_out) == len(neg_out)
             assert len(pos_out) == len(ori_out)
             numerical_grad_k = np.sum(

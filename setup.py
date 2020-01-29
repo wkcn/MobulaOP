@@ -13,4 +13,8 @@ setup(
         'numpy',
         'portalocker',
     ],
+    tests_require=[
+        'nose',
+        'coveralls'
+    ],
 )

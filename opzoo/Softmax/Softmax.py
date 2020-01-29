@@ -17,7 +17,15 @@ class Softmax:
             mobula.func.softmax_batch_forward(N, C, x, self.y)
 
     def backward(self, dy):
-        raise NotImplementedError()
+        if self.req[0] == req.null:
+            return
+        elif self.req[0] == req.write:
+            self.dx[:] = 0
+        if dy.ndim == 2:
+            N, C = dy.shape
+        else:
+            N, C = 1, dy.size
+        mobula.func.softmax_backward(N, C, self.y, dy, self.dx)
 
     def infer_shape(self, in_shape):
         assert len(in_shape[0]) in [1, 2]

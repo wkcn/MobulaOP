@@ -147,4 +147,21 @@ MOBULA_KERNEL softmax_batch_forward_kernel(const int N, const int C, const T *X,
   });
 }
 
+template <typename T>
+MOBULA_KERNEL softmax_backward_kernel(const int N, const int C, const T *Y,
+                                      const T *dY, T *dX) {
+  parfor(N, [&](int i) {
+    const T *y = Y + i * C;
+    const T *dy = dY + i * C;
+    T *dx = dX + i * C;
+    for (int j = 0; j < C; ++j) {
+      T &grad = dx[j];
+      for (int k = 0; k < C; ++k) {
+        grad -= y[j] * y[k] * dy[k];
+      }
+      grad += y[j] * dy[j];
+    }
+  });
+}
+
 }  // namespace mobula
