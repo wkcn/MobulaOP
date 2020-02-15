@@ -11,7 +11,7 @@ import portalocker
 from ..edict import edict
 from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash
 from ..build import config, source_to_so_ctx, build_context, file_is_changed, ENV_PATH
-from ..utils import get_git_hash
+from ..utils import get_git_hash, makedirs
 from ..dtype import DType, TemplateType
 from ..version import OP_LOAD_MODULE_BUILD_VERSION
 from ..glue.backend import get_glue_modules
@@ -218,7 +218,7 @@ def _build_lib(cpp_fname, code_buffer, ctx, target_name):
         code=code_buffer)
 
     build_path_ctx = os.path.join(build_path, ctx)
-    os.makedirs(build_path_ctx, exist_ok=True)
+    makedirs(build_path_ctx, exist_ok=True)
 
     # build so
     cpp_wrapper_fname = os.path.join(build_path_ctx,
@@ -435,7 +435,7 @@ class OpLoader:
             build_path = os.path.join(cpp_path, 'build')
 
             use_template = bool(cfunc.template_list)
-            os.makedirs(build_path, exist_ok=True)
+            makedirs(build_path, exist_ok=True)
             build_info_fname = os.path.join(
                 build_path, os.path.splitext(cpp_basename)[0] + '.json')
             build_info_fs = open(build_info_fname, 'a+')

@@ -7,6 +7,7 @@ __all__ = ["pass_argv", "get_include_file", "wildcard",
            "OS_IS_WINDOWS", "OS_IS_LINUX", "build_context"]
 
 from .config import config
+from .utils import makedirs
 import ast
 import os
 import threading
@@ -91,7 +92,7 @@ def update_build_path(build_path):
     global code_hash, code_hash_filename, code_hash_updated
     global dependant, dependant_filename, dependant_updated
 
-    os.makedirs(build_path, exist_ok=True)
+    makedirs(build_path, exist_ok=True)
 
     config.BUILD_PATH = build_path
 
@@ -197,7 +198,7 @@ def run_command(command):
 def mkdir(dir_name):
     if not os.path.exists(dir_name):
         print('mkdir -p %s' % dir_name)
-        os.makedirs(dir_name, exist_ok=True)
+        makedirs(dir_name, exist_ok=True)
 
 
 if OS_IS_LINUX:
