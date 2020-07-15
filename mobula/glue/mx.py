@@ -10,6 +10,8 @@ if not hasattr(mx.nd.NDArray, 'empty_like'):
 if not hasattr(mx.nd.NDArray, 'wait_to_write'):
     mx.nd.NDArray.wait_to_write = lambda self: _LIB.MXNDArrayWaitToWrite(
         self.handle)
+if not hasattr(mx.symbol.Symbol, 'simple_bind'):
+    mx.symbol.Symbol.simple_bind = mx.symbol.Symbol._simple_bind
 
 
 def get_pointer(v):

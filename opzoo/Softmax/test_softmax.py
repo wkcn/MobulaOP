@@ -7,7 +7,7 @@ from mobula.testing import assert_almost_equal, gradcheck
 mobula.op.load('Softmax')
 
 T = np.float32
-atol = 1e-3
+atol = 2e-3
 
 
 def test_softmax1d():

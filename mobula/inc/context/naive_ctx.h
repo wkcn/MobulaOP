@@ -3,9 +3,7 @@
 
 #include <algorithm>
 #include <condition_variable>
-#include <map>
 #include <thread>
-#include <utility>
 #include <vector>
 
 namespace mobula {
@@ -14,8 +12,6 @@ namespace mobula {
 
 static thread_local int thread_local_i;
 static thread_local int thread_local_n;
-
-#include <iostream>
 
 class Barrier {
  public:
@@ -79,7 +75,7 @@ template <typename Func>
 MOBULA_DEVICE void parfor(const size_t n, Func F) {
   INDEX_TYPE_SWITCH(n, {
     index_t start, end;
-    get_parfor_range(n, thread_local_n, thread_local_i, &start, &end);
+    get_parfor_range(n, get_num_threads(), get_thread_num(), &start, &end);
     for (index_t i = start; i < end; ++i) {
       F(i);
     }
