@@ -21,7 +21,8 @@ def test_examples():
               '../docs/tutorial/test_mul_op.py']),
         (['mxnet'], ['RunROIAlign.py',
                      'dynamic_import_op/dynamic_import_op.py',
-                     '../opzoo/Softmax/test_softmax.py',
+                     '../opzoo/Convolution/test_conv.py',
+                     # '../opzoo/Softmax/test_softmax.py',
                      ]),
         (['mxnet', 'tvm', 'topi'], ['TVMOp.py']),
     ]
