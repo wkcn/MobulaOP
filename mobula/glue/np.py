@@ -30,8 +30,13 @@ class OpGen(object):
         if self.name not in self.cache:
             # register operator
             self.cache[self.name] = self.register()
-        kwargs.pop('__input_type__')
-        return self.cache[self.name](*args, **kwargs)
+        try:
+            # forward and backward
+            kwargs.pop('__input_type__')
+            return self.cache[self.name](*args, **kwargs)
+        except KeyError:
+            # only forward
+            return self.cache[self.name]()(*args, **kwargs)
 
     def register(self):
         def forward(self, *args, **kwargs):

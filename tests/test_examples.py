@@ -23,6 +23,8 @@ def test_examples():
                      'dynamic_import_op/dynamic_import_op.py',
                      '../opzoo/Convolution/test_conv.py',
                      # '../opzoo/Softmax/test_softmax.py',
+                     '../opzoo/ROIAlign/test_roialign.py',
+                     '../opzoo/Sum/test_sum.py',
                      '../opzoo/Transpose/test_transpose.py',
                      ]),
         (['mxnet', 'tvm', 'topi'], ['TVMOp.py']),
