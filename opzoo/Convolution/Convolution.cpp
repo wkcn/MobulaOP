@@ -45,15 +45,13 @@ MOBULA_KERNEL im2col_kernel(const int n, const T* data_im, const int height,
 }
 
 template <typename T>
-MOBULA_KERNEL col2im_kernel(const int n, const T* data_col, const int channels,
-                            const int height, const int width,
-                            const int kernel_h, const int kernel_w,
-                            const int pad_h, const int pad_w,
-                            const int stride_h, const int stride_w,
-                            const int dilation_h, const int dilation_w,
-                            const int height_col, const int width_col,
-                            T* data_im) {
-  UNUSED(channels);
+MOBULA_KERNEL col2im_kernel(const int n, const T* data_col, const int height,
+                            const int width, const int kernel_h,
+                            const int kernel_w, const int pad_h,
+                            const int pad_w, const int stride_h,
+                            const int stride_w, const int dilation_h,
+                            const int dilation_w, const int height_col,
+                            const int width_col, T* data_im) {
   parfor(n, [&](int index) {
     T val = 0;
     const int w_im = index % width + pad_w;
@@ -117,9 +115,8 @@ void col2im(const DType* data_col, const int channels, const int height,
       (width + 2 * pad_w - (dilation_w * (kernel_w - 1) + 1)) / stride_w + 1;
   int num_kernels = channels * height * width;
   KERNEL_RUN(col2im_kernel<DType>)
-  (num_kernels, data_col, channels, height, width, kernel_h, kernel_w, pad_h,
-   pad_w, stride_h, stride_w, dilation_h, dilation_w, height_col, width_col,
-   data_im);
+  (num_kernels, data_col, height, width, kernel_h, kernel_w, pad_h, pad_w,
+   stride_h, stride_w, dilation_h, dilation_w, height_col, width_col, data_im);
 }
 
 }  // namespace mobula

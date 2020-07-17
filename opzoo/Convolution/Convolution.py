@@ -14,6 +14,7 @@ class Conv2D:
         self.groups = groups
 
     def forward(self, x, weight, bias=None):
+        # y = wx + b
         N, C, H, W = x.shape
         KH, KW = self.kernel_size
         PH, PW = self.padding
@@ -32,8 +33,30 @@ class Conv2D:
                 out += rbias
             self.assign(self.y[i], self.req[0], out)
 
-    def backward(self, x):
-        raise NotImplementedError()
+    def backward(self, dy):
+        N, C, H, W = self.dx.shape
+        KH, KW = self.kernel_size
+        PH, PW = self.padding
+        SH, SW = self.strides
+        DH, DW = self.dilation
+        _, D, OH, OW = dy.shape
+        csize = C * KH * KW
+        ohw = OH * OW
+        weightT = self.X[1].reshape((D, csize)).T
+        out = self.F.empty_like(self.dx[0])
+        dw = 0
+        for i in range(N):
+            rdy = dy[i].reshape((D, ohw))
+            data_col = self.F.dot(weightT, rdy)
+            mobula.func.col2im(
+                self.dx[0].size, data_col, H, W, KH, KW, PH, PW, SH, SW, DH, DW, OH, OW, out)
+            self.assign(self.dX[0][i], self.req[0], out)
+            mobula.func.im2col(
+                data_col.size, self.x[i], H, W, KH, KW, PH, PW, SH, SW, DH, DW, OH, OW, data_col)
+            dw += self.F.dot(rdy, data_col.T)
+        self.assign(self.dX[1], self.req[1], dw.reshape_like(self.dX[1]))
+        if len(self.X) == 3:
+            self.assign(self.dX[2], self.req[2], dy.sum(1, exclude=True))
 
     def infer_shape(self, in_shape):
         assert 2 <= len(
