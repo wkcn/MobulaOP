@@ -34,12 +34,12 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -v -e .
-          pip install coveralls nose
+          pip install nose
       - name: install MXNet
         run: pip install mxnet-cu101 --pre -f https://dist.mxnet.io/python/all
       - name: install PyTorch
         run: pip install --pre torch torchvision -f https://download.pytorch.org/whl/nightly/cu101/torch_nightly.html
       - name: cpu-test
-        run: nosetests -s --with-coverage
+        run: nosetests -s
       - name: gpu-test
-        run: nosetests tests/gpu/test_gpu.py -s --with-coverage
+        run: nosetests tests/gpu/test_gpu.py -s
