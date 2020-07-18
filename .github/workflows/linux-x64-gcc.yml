@@ -9,7 +9,7 @@ jobs:
       UBUNTU_VERSION: ubuntu1804
     strategy:
       matrix:
-        python-version: [2.7, 3.7, 3.8]
+        python-version: [3.8]
 
     steps:
       - uses: actions/checkout@v2
