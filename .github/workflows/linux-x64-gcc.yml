@@ -3,6 +3,10 @@ on: [push, pull_request]
 jobs:
   linux-x64-gcc:
     runs-on: ubuntu-latest
+    env:
+      CUDA: 10.1.105-1
+      CUDA_SHORT: 10.1
+      :
     strategy:
       matrix:
         python-version: [2.7, 3.7, 3.8]
@@ -14,10 +18,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: install
         run: |
-          ls
-          cd .. && ls
-          pip install -v -e .
-          pip install mxnet-cu100 --pre
+          # pip install -v -e .
+          pip install mxnet-cu101 --pre
           pip install --pre torch -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
           pip install coveralls nosetests
       - name: cpu-test
