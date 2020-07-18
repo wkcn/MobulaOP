@@ -2,7 +2,7 @@
 
 Linux | Windows | Actions | Coverage | Badge
 ------|---------|---------|----------|------
-[![Linux Build Status](https://api.travis-ci.org/wkcn/MobulaOP.svg?branch=master)](https://travis-ci.org/wkcn/MobulaOP)|[![Windows Build Status](https://ci.appveyor.com/api/projects/status/bvnavb8k2xnu0wqj/branch/master?svg=true)](https://ci.appveyor.com/project/wkcn/mobulaop/branch/master)|[![Github Actions Status](https://img.shields.io/github/workflow/status/wkcn/MobulaOP/linux-x64-gcc)](https://github.com/wkcn/MobulaOP/actions?query=workflow%3Alinux-x64-gcc)|[![Coverage Status](https://coveralls.io/repos/github/wkcn/MobulaOP/badge.svg?branch=master)](https://coveralls.io/github/wkcn/MobulaOP?branch=master)|[![996.icu](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu)
+[![Linux Build Status](https://api.travis-ci.org/wkcn/MobulaOP.svg?branch=master)](https://travis-ci.org/wkcn/MobulaOP)|[![Windows Build Status](https://ci.appveyor.com/api/projects/status/bvnavb8k2xnu0wqj/branch/master?svg=true)](https://ci.appveyor.com/project/wkcn/mobulaop/branch/master)|[![Github Actions Status](https://github.com/wkcn/MobulaOP/workflows/linux-x64-gcc/badge.svg)](https://github.com/wkcn/MobulaOP/actions?query=workflow%3Alinux-x64-gcc)|[![Coverage Status](https://coveralls.io/repos/github/wkcn/MobulaOP/badge.svg?branch=master)](https://coveralls.io/github/wkcn/MobulaOP?branch=master)|[![996.icu](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu)
 
 ## What is it?
 *MobulaOP* is a simple and flexible cross framework operators toolkit.
