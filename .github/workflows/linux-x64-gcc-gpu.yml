@@ -1,12 +1,13 @@
-name: linux-x64-gcc
+name: linux-x64-gcc-gpu
 on: [push, pull_request]
 jobs:
-  linux-x64-gcc:
+  linux-x64-gcc-gpu:
     runs-on: ubuntu-latest
     env:
       CUDA: 10.1.105-1
       CUDA_SHORT: 10.1
       UBUNTU_VERSION: ubuntu1804
+      FORCE_CUDA: 1
     strategy:
       matrix:
         python-version: [3.8]
@@ -36,7 +37,7 @@ jobs:
           pip install -v -e .
           pip install nose
       - name: install MXNet
-        run: pip install mxnet-cu101 --pre -f https://dist.mxnet.io/python/all
+        run: pip install mxnet-cu101 -f https://dist.mxnet.io/python/all
       - name: cpu-test
         run: nosetests -s
       - name: gpu-test
