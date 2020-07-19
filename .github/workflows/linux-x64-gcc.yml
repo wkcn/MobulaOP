@@ -37,8 +37,6 @@ jobs:
           pip install nose
       - name: install MXNet
         run: pip install mxnet-cu101 --pre -f https://dist.mxnet.io/python/all
-      - name: install PyTorch
-        run: pip install --pre torch torchvision -f https://download.pytorch.org/whl/nightly/cu101/torch_nightly.html
       - name: cpu-test
         run: nosetests -s
       - name: gpu-test
