@@ -10,7 +10,7 @@ import warnings
 import portalocker
 from ..edict import edict
 from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash
-from ..build import config, source_to_so_ctx, build_context, file_is_changed, ENV_PATH
+from ..build import source_to_so_ctx, build_context, file_is_changed, ENV_PATH
 from ..utils import get_git_hash, makedirs
 from ..dtype import DType, TemplateType
 from ..version import OP_LOAD_MODULE_BUILD_VERSION
