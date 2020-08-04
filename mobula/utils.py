@@ -69,6 +69,8 @@ mkdir, except that any intermediate path segment (not just the rightmost)
 will be created if it does not exist. If the target directory already
 exists, raise an OSError if exist_ok is False. Otherwise no exception is
 raised.  This is recursive.'''
-    if exist_ok and os.path.exists(name):
-        return
-    os.makedirs(name, mode)
+    try:
+        os.makedirs(name, mode)
+    except FileExistsError:
+        if not exist_ok:
+            raise
