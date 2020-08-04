@@ -10,8 +10,7 @@ notifications:
   email: false
 
 python:
-    - 2.7
-    - 3.7
+    - 3.8
 
 script:
     - pip install -v -e .

@@ -3,8 +3,7 @@ version: 1.0.{build}
 
 environment:
     matrix:
-        - PYTHON: C:\Python27-x64
-        - PYTHON: C:\Python37-x64
+        - PYTHON: C:\Python38-x64
 
 build_script:
 - cmd: >-
@@ -15,7 +14,7 @@ build_script:
 
     pip install mxnet --pre
 
-    if "%PYTHON%" == "C:\Python36-x64" (pip install --pre torch -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html)
+    pip install --pre torch -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
 
     pip install python-coveralls nose
 
