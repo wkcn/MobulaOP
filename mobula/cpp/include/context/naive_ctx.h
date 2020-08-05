@@ -1,5 +1,5 @@
-#ifndef MOBULA_INC_CONTEXT_NAIVE_CTX_H_
-#define MOBULA_INC_CONTEXT_NAIVE_CTX_H_
+#ifndef MOBULA_INCLUDE_CONTEXT_NAIVE_CTX_H_
+#define MOBULA_INCLUDE_CONTEXT_NAIVE_CTX_H_
 
 #include <algorithm>
 #include <condition_variable>
@@ -109,4 +109,4 @@ inline void __syncthreads() {}
 
 }  // namespace mobula
 
-#endif  // MOBULA_INC_CONTEXT_NAIVE_CTX_H_
+#endif  // MOBULA_INCLUDE_CONTEXT_NAIVE_CTX_H_

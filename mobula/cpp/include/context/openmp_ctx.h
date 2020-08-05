@@ -1,5 +1,5 @@
-#ifndef MOBULA_INC_CONTEXT_OPENMP_CTX_H_
-#define MOBULA_INC_CONTEXT_OPENMP_CTX_H_
+#ifndef MOBULA_INCLUDE_CONTEXT_OPENMP_CTX_H_
+#define MOBULA_INCLUDE_CONTEXT_OPENMP_CTX_H_
 
 #include <omp.h>
 
@@ -70,4 +70,4 @@ inline void __syncthreads() {}
 
 }  // namespace mobula
 
-#endif  // MOBULA_INC_CONTEXT_OPENMP_CTX_H_
+#endif  // MOBULA_INCLUDE_CONTEXT_OPENMP_CTX_H_

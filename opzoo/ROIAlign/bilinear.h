@@ -113,4 +113,4 @@ MOBULA_DEVICE void bilinear_interpolate_gradient(
 
 }  // namespace mobula
 
-#endif
+#endif  // _MOBULA_BILINEAR_

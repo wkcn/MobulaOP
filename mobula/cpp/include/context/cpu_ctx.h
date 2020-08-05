@@ -1,5 +1,5 @@
-#ifndef MOBULA_INC_CONTEXT_CPU_CTX_H_
-#define MOBULA_INC_CONTEXT_CPU_CTX_H_
+#ifndef MOBULA_INCLUDE_CONTEXT_CPU_CTX_H_
+#define MOBULA_INCLUDE_CONTEXT_CPU_CTX_H_
 
 #define MOBULA_KERNEL void
 #define MOBULA_DEVICE
@@ -104,4 +104,4 @@ T *MemcpyDevToDev(T *dst, const T *src, size_t size) {
 #include "./naive_ctx.h"
 #endif
 
-#endif  // MOBULA_INC_CONTEXT_CPU_CTX_H_
+#endif  // MOBULA_INCLUDE_CONTEXT_CPU_CTX_H_

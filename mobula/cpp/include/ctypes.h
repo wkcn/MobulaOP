@@ -1,5 +1,5 @@
-#ifndef MOBULA_INC_CTYPES_H_
-#define MOBULA_INC_CTYPES_H_
+#ifndef MOBULA_INCLUDE_CTYPES_H_
+#define MOBULA_INCLUDE_CTYPES_H_
 
 namespace mobula {
 
@@ -18,4 +18,4 @@ typedef void* void_p;
 
 }  // namespace mobula
 
-#endif  // MOBULA_INC_CTYPES_H_
+#endif  // MOBULA_INCLUDE_CTYPES_H_

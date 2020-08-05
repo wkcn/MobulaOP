@@ -1,5 +1,5 @@
-#ifndef MOBULA_INC_CONTEXT_COMMON_H_
-#define MOBULA_INC_CONTEXT_COMMON_H_
+#ifndef MOBULA_INCLUDE_CONTEXT_COMMON_H_
+#define MOBULA_INCLUDE_CONTEXT_COMMON_H_
 
 #include <algorithm>
 #include <cassert>
@@ -40,4 +40,4 @@ inline MOBULA_DEVICE void get_parfor_range(const size_t n,
 
 }  // namespace mobula
 
-#endif  // MOBULA_INC_CONTEXT_COMMON_H_
+#endif  // MOBULA_INCLUDE_CONTEXT_COMMON_H_

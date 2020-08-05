@@ -1,5 +1,5 @@
-#ifndef MOBULA_INC_CONTEXT_CONTEXT_H_
-#define MOBULA_INC_CONTEXT_CONTEXT_H_
+#ifndef MOBULA_INCLUDE_CONTEXT_CONTEXT_H_
+#define MOBULA_INCLUDE_CONTEXT_CONTEXT_H_
 
 #include <cstring>
 
@@ -16,4 +16,4 @@ extern "C" {
 MOBULA_DLL void set_device(const int device_id);
 }
 
-#endif  // MOBULA_INC_CONTEXT_CONTEXT_H_
+#endif  // MOBULA_INCLUDE_CONTEXT_CONTEXT_H_

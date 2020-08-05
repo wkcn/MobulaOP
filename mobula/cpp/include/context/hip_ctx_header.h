@@ -1,5 +1,5 @@
-#ifndef MOBULA_INC_CONTEXT_HIP_CTX_HEADER_H_
-#define MOBULA_INC_CONTEXT_HIP_CTX_HEADER_H_
+#ifndef MOBULA_INCLUDE_CONTEXT_HIP_CTX_HEADER_H_
+#define MOBULA_INCLUDE_CONTEXT_HIP_CTX_HEADER_H_
 
 #include <algorithm>
 #include <iostream>
@@ -72,4 +72,4 @@ using hipError_t = cudaError_t;
 
 #endif  // USING_HIP
 
-#endif  // MOBULA_INC_CONTEXT_HIP_CTX_HEADER_H_
+#endif  // MOBULA_INCLUDE_CONTEXT_HIP_CTX_HEADER_H_

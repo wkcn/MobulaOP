@@ -1,5 +1,5 @@
-#ifndef MOBULA_INC_CONTEXT_HIP_CTX_H_
-#define MOBULA_INC_CONTEXT_HIP_CTX_H_
+#ifndef MOBULA_INCLUDE_CONTEXT_HIP_CTX_H_
+#define MOBULA_INCLUDE_CONTEXT_HIP_CTX_H_
 
 #define MOBULA_KERNEL __global__ void
 #define MOBULA_DEVICE __device__
@@ -169,4 +169,4 @@ MOBULA_DEVICE void parfor(const size_t n, Func F) {
 
 }  // namespace mobula
 
-#endif  // MOBULA_INC_CONTEXT_HIP_CTX_H_
+#endif  // MOBULA_INCLUDE_CONTEXT_HIP_CTX_H_

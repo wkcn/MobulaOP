@@ -69,7 +69,7 @@ def get_common_flags():
     if config.DEBUG:
         COMMON_FLAGS.add_string('-g')
     COMMON_FLAGS.add_definition('USING_CBLAS', config.USING_CBLAS)
-    INC_PATHS.extend(['./inc', '../3rdparty/dlpack/include',
+    INC_PATHS.extend(['./cpp/include', '../3rdparty/dlpack/include',
                       '../3rdparty/tvm_packed_func'])
     for path in INC_PATHS:
         p = os.path.join(ENV_PATH, path)
@@ -154,7 +154,7 @@ def source_to_so_ctx(build_path, srcs, target_name, ctx_name):
     buildin_o = []
     buildin_cpp = []
     for src in ['defines.cpp', 'context.cpp']:
-        fname = os.path.join('src', src)
+        fname = os.path.join('cpp/src', src)
         buildin_o.append(os.path.join(buildin_path, fname))
         buildin_cpp.append(os.path.join(ENV_PATH, fname))
     buildin_o = change_exts(buildin_o, [('cpp', 'o')])

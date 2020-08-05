@@ -1,7 +1,7 @@
 // Adapted from
 // https://github.com/apache/incubator-mxnet/blob/master/src/nnvm/tvm_bridge.cc
-#ifndef MOBULA_INC_GLUE_MX_H_
-#define MOBULA_INC_GLUE_MX_H_
+#ifndef MOBULA_INCLUDE_GLUE_MXNET_GLUE_H_
+#define MOBULA_INCLUDE_GLUE_MXNET_GLUE_H_
 
 #include <algorithm>
 #include <cstring>
@@ -51,4 +51,4 @@ MOBULA_DLL void RegisterMXAPI(
 }
 }
 
-#endif  // MOBULA_INC_GLUE_MX_H_
+#endif  // MOBULA_INCLUDE_GLUE_MXNET_GLUE_H_

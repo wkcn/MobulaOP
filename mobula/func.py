@@ -7,7 +7,7 @@ import hashlib
 import warnings
 from . import glue
 from .dtype import DType, TemplateType, UnknownCType
-from .build_utils import config
+from .building.build_utils import config
 
 
 def get_func_idcode(func_name, arg_types):

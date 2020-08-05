@@ -6,8 +6,8 @@ __all__ = ["pass_argv", "get_include_file", "wildcard",
            "config", "Flags", "INC_PATHS", "ENV_PATH",
            "OS_IS_WINDOWS", "OS_IS_LINUX", "build_context"]
 
-from .config import config
-from .utils import makedirs
+from ..config import config
+from ..utils import makedirs
 import ast
 import os
 import threading
@@ -33,7 +33,7 @@ assert OS_IS_WINDOWS or OS_IS_LINUX,\
 INC_PATHS = ['./']
 
 # Load Config File
-ENV_PATH = os.path.dirname(__file__)
+ENV_PATH = os.path.join(os.path.dirname(__file__), '..')
 if not os.path.dirname(config.BUILD_PATH):
     config.BUILD_PATH = os.path.join(ENV_PATH, config.BUILD_PATH)
 

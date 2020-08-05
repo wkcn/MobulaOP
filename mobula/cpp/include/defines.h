@@ -1,5 +1,5 @@
-#ifndef MOBULA_INC_DEFINES_H_
-#define MOBULA_INC_DEFINES_H_
+#ifndef MOBULA_INCLUDE_DEFINES_H_
+#define MOBULA_INCLUDE_DEFINES_H_
 
 #include <array>
 #include <cassert>
@@ -70,4 +70,4 @@ MOBULA_DEVICE T MAX_FUNC(const T &a, const T &b) {
 
 }  // namespace mobula
 
-#endif  // MOBULA_INC_DEFINES_H_
+#endif  // MOBULA_INCLUDE_DEFINES_H_

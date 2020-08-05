@@ -1,5 +1,5 @@
-#ifndef MOBULA_INC_HELPER_H_
-#define MOBULA_INC_HELPER_H_
+#ifndef MOBULA_INCLUDE_HELPER_H_
+#define MOBULA_INCLUDE_HELPER_H_
 
 #include "defines.h"
 
@@ -124,4 +124,4 @@ MOBULA_DEVICE void add_residual_merge_func(T &dst, T &dst_residual,
 
 }  // namespace mobula
 
-#endif  // MOBULA_INC_HELPER_H_
+#endif  // MOBULA_INCLUDE_HELPER_H_
