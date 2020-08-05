@@ -8,11 +8,11 @@ import ctypes
 import json
 import warnings
 import portalocker
-from ..edict import edict
+from ..internal.edict import edict
 from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash
 from ..building.build import source_to_so_ctx, build_context, file_is_changed, ENV_PATH
 from ..utils import get_git_hash, makedirs
-from ..dtype import DType, TemplateType
+from ..internal.dtype import DType, TemplateType
 from ..version import OP_LOAD_MODULE_BUILD_VERSION
 from ..glue.backend import get_glue_modules
 from .gen_code import get_gen_rel_code

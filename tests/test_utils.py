@@ -8,7 +8,7 @@ def test_get_git_hash():
 
 
 def test_edict():
-    from mobula.edict import edict
+    from mobula.internal.edict import edict
     data = edict(a=3, b=4)
     assert 'a' in data
     assert hasattr(data, 'a')
