@@ -3,33 +3,37 @@ import torch
 from .common import *
 
 
-def get_pointer(v):
-    def p(e):
-        return ctypes.c_void_p(e.data_ptr())
-    if not v.is_contiguous():
-        c = v.contiguous()
-        return p(c), c
-    return p(v)
-
-
 THDTYPE2CTYPE_MAP = dict()
 THDTYPE2CTYPE_MAP[torch.int] = ctypes.c_int
 THDTYPE2CTYPE_MAP[torch.float] = ctypes.c_float
 THDTYPE2CTYPE_MAP[torch.double] = ctypes.c_double
 
 
-def get_ctype(v):
-    dtype = v.dtype
-    ctype = THDTYPE2CTYPE_MAP.get(dtype, None)
-    assert ctype is not None, TypeError('Unknown Type: {}'.format(dtype))
-    return ctype
+class TorchTensor(MobulaTensor):
+    F = torch
 
+    @property
+    def data_ptr(self):
+        def p(e):
+            return ctypes.c_void_p(e.data_ptr())
+        if not self.tensor.is_contiguous():
+            c = self.tensor.contiguous()
+            return p(c), c
+        return p(self.tensor)
 
-def dev_id(a):
-    if isinstance(a, torch.Tensor):
-        dev = a.device
-        return None if dev.type == 'cpu' else dev.index
-    return None
+    @property
+    def ctype(self):
+        dtype = self.tensor.dtype
+        ctype = THDTYPE2CTYPE_MAP.get(dtype, None)
+        assert ctype is not None, TypeError('Unknown Type: {}'.format(dtype))
+        return ctype
+
+    @property
+    def dev_id(self):
+        if isinstance(self.tensor, torch.Tensor):
+            dev = self.tensor.device
+            return None if dev.type == 'cpu' else dev.index
+        return None
 
 
 class OpGen(object):
@@ -128,6 +132,3 @@ class OpGen(object):
         torch_func = get_torch_func(op)
         torch_nn_module = get_torch_nn_module(op, torch_func)
         return torch_nn_module
-
-
-F = torch

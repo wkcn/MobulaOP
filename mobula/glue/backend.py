@@ -1,25 +1,11 @@
 """Backend Manager."""
 import importlib
 from itertools import chain
+from .common import MobulaTensor
 
 DTYPE_TO_GLUE = dict()  # dtype -> glue_mod
 GLUE_NAME_TO_GLUE = dict()  # glue_name -> glue_mod
 PKG_NAME_TO_GLUE_ARGS = dict()  # package_name -> (glue_name, types_name)
-
-
-def _check_glue(glue_mod):
-    """Check Glue Module.
-
-    Parameters
-    ----------
-    glue_mod: module
-    """
-    func_names = ['get_pointer', 'get_ctype', 'dev_id', 'OpGen']
-    for name in func_names:
-        assert hasattr(glue_mod, name), AttributeError(
-            'Attribute {} not found'.format(name))
-    assert hasattr(glue_mod.OpGen, '__call__')
-    assert hasattr(glue_mod.OpGen, 'register')
 
 
 def _register_glue_real(glue_name, types_name):
@@ -28,7 +14,7 @@ def _register_glue_real(glue_name, types_name):
         types_name = [types_name]
     glue = None
     try:
-        glue = importlib.import_module('.' + glue_name, __package__)
+        glue = importlib.import_module('.' + glue_name + '_glue', __package__)
     except ImportError:
         pass
     if glue is not None:
@@ -45,7 +31,23 @@ def _register_glue_real(glue_name, types_name):
                 DTYPE_TO_GLUE[module] = glue
             except ImportError:
                 pass
-            _check_glue(glue)
+            assert hasattr(glue.OpGen, '__call__')
+            assert hasattr(glue.OpGen, 'register')
+            if hasattr(glue, 'Tensor'):
+                value = glue.Tensor
+                assert isinstance(value, type) and issubclass(
+                    value, MobulaTensor)
+            else:
+                # register glue tensor
+                tensors = []
+                for key, value in glue.__dict__.items():
+                    if isinstance(value, type) and issubclass(value, MobulaTensor):
+                        if key.lower() == glue_name + 'tensor':
+                            tensors.append(key)
+                assert len(
+                    tensors) == 1, 'Only one MobulaTensor is allowed in each glue module'
+                glue.Tensor = getattr(glue, tensors[0])
+
             GLUE_NAME_TO_GLUE[glue_name] = glue
 
 
@@ -69,11 +71,11 @@ def register_glue(glue_name, type_names):
 
 
 # register glue modules.
-register_glue('mx', ['mxnet.nd.NDArray',
-                     'mxnet.sym.Symbol', 'mxnet.numpy.ndarray'])
-register_glue('np', ['numpy.ndarray'])
-register_glue('th', ['torch.Tensor'])
-register_glue('cp', ['cupy.core.core.ndarray'])
+register_glue('mxnet', ['mxnet.nd.NDArray',
+                        'mxnet.sym.Symbol', 'mxnet.numpy.ndarray'])
+register_glue('numpy', ['numpy.ndarray'])
+register_glue('torch', ['torch.Tensor'])
+register_glue('cupy', ['cupy.core.core.ndarray'])
 
 
 def get_var_type_glue(vtype):

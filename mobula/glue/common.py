@@ -133,6 +133,29 @@ def assign(_, dst, req, src):
 backend = None  # wait for importing in __init__.py
 
 
+class MobulaTensor:
+    F = None
+
+    def __init__(self, tensor):
+        self.tensor = tensor
+
+    @property
+    def data_ptr(self):
+        raise NotImplementedError
+
+    @property
+    def async_data_ptr(self):
+        raise NotImplementedError
+
+    @property
+    def ctype(self):
+        raise NotImplementedError
+
+    @property
+    def dev_id(self):
+        raise NotImplementedError
+
+
 class MobulaOperator:
     """Mobula Operator.
 

@@ -14,24 +14,28 @@ if not hasattr(mx.symbol.Symbol, 'simple_bind'):
     mx.symbol.Symbol.simple_bind = mx.symbol.Symbol._simple_bind
 
 
-def get_pointer(v):
-    cp = ctypes.c_void_p()
-    _LIB.MXNDArrayGetData(v.handle, ctypes.byref(cp))
-    return cp
+class MXNetTensor(MobulaTensor):
+    F = mx.nd
 
+    @property
+    def data_ptr(self):
+        cp = ctypes.c_void_p()
+        _LIB.MXNDArrayGetData(self.tensor.handle, ctypes.byref(cp))
+        return cp
 
-def get_async_pointer(v):
-    return v.handle
+    @property
+    def async_data_ptr(self):
+        return self.tensor.handle
 
+    @property
+    def ctype(self):
+        return NPDTYPE2CTYPE(self.tensor.dtype)
 
-def get_ctype(v):
-    return NPDTYPE2CTYPE(v.dtype)
-
-
-def dev_id(a):
-    if isinstance(a, mx.nd.NDArray):
-        return a.context.device_id if a.context.device_type == 'gpu' else None
-    return None
+    @property
+    def dev_id(self):
+        if isinstance(self.tensor, mx.nd.NDArray):
+            return self.tensor.context.device_id if self.tensor.context.device_type == 'gpu' else None
+        return None
 
 
 async_name = 'mx'
@@ -187,6 +191,3 @@ class OpGen(object):
         mx_op = get_mx_op(op)
         mx_prop = get_mx_prop(op, mx_op)
         mx.operator.register(op_name)(mx_prop)
-
-
-F = mx.nd

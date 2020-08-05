@@ -73,7 +73,7 @@ def _wait_to_write(var):
 
 def _get_raw_pointer(arg, const_vars, mutable_vars):
     if isinstance(arg, CFuncTensor):
-        p = arg.glue_mod.get_pointer(arg.var)
+        p = arg.glue_mod.Tensor(arg.var).data_ptr
         if isinstance(p, (list, tuple)):
             p, v = p
             if arg.is_const:
@@ -86,7 +86,7 @@ def _get_raw_pointer(arg, const_vars, mutable_vars):
 
 def _get_async_pointer(arg):
     if isinstance(arg, CFuncTensor):
-        return arg.glue_mod.get_async_pointer(arg.var)
+        return arg.glue_mod.Tensor(arg.var).async_data_ptr
     return arg
 
 
@@ -271,8 +271,9 @@ class MobulaFunc:
         if glue_mod is None:
             raise TypeError()
         data = CFuncTensor(var, ptype, glue_mod)
-        dev_id = glue_mod.dev_id(var)
-        ctype = ctypes.POINTER(glue_mod.get_ctype(var))
+        tensor = glue_mod.Tensor(var)
+        dev_id = tensor.dev_id
+        ctype = ctypes.POINTER(tensor.ctype)
         if isinstance(ptype, DType):
             expected_ctype = ptype.ctype
         elif ptype.tname in template_mapping:

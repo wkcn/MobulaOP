@@ -1,25 +1,25 @@
 import ctypes
-import cupy as cp
+import numpy as np
 from .common import *
 
 
-def get_pointer(v):
-    def p(e):
-        return ctypes.c_void_p(e.data.ptr)
-    if not v.flags.c_contiguous:
-        c = cp.ascontiguousarray(v)
-        return p(c), c
-    return p(v)
+class NumPyTensor(MobulaTensor):
+    @property
+    def data_ptr(self):
+        def p(e):
+            return e.ctypes.data_as(ctypes.c_void_p)
+        if not self.tensor.flags.c_contiguous:
+            c = np.ascontiguousarray(self.tensor)
+            return p(c), c
+        return p(self.tensor)
 
+    @property
+    def ctype(self):
+        return NPDTYPE2CTYPE(self.tensor.dtype)
 
-def get_ctype(v):
-    return NPDTYPE2CTYPE(v.dtype)
-
-
-def dev_id(a):
-    if isinstance(a, cp.ndarray):
-        return a.device.id
-    return None
+    @property
+    def dev_id(self):
+        return None
 
 
 class OpGen(object):
@@ -32,8 +32,13 @@ class OpGen(object):
         if self.name not in self.cache:
             # register operator
             self.cache[self.name] = self.register()
-        kwargs.pop('__input_type__')
-        return self.cache[self.name](*args, **kwargs)
+        try:
+            # forward and backward
+            kwargs.pop('__input_type__')
+            return self.cache[self.name](*args, **kwargs)
+        except KeyError:
+            # only forward
+            return self.cache[self.name]()(*args, **kwargs)
 
     def register(self):
         def forward(self, *args, **kwargs):
@@ -105,16 +110,16 @@ class OpGen(object):
             _backward=self.op.backward,
             infer_shape=self.op.infer_shape,
             assign=assign,
-            F=property(lambda self: cp),
+            F=property(lambda self: np),
             op=property(lambda dummy: self.op)
         )
         if hasattr(self.op, '__init__'):
             np_op_dict['__init__'] = self.op.__init__
         np_op_dict.update(INPUT_FUNCS)
-        np_op = type('_%s_CP_OP' % self.name,
+        np_op = type('_%s_NP_OP' % self.name,
                      (self.op, object),
                      np_op_dict)
         return np_op
 
 
-F = cp
+F = np
