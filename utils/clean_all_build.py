@@ -1,5 +1,5 @@
 import os
-from mobula.build_utils import rmdir
+from mobula.building.build_utils import rmdir
 
 
 def find_all_build(path):

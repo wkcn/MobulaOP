@@ -62,6 +62,7 @@ def get_varnames(func):
 
 CUSTOM_OP_LIST = dict()
 OP_MODULE_GLOBALS = None
+CSTRUCT_CONSTRUCTOR = dict()
 
 
 def get_in_data(*args, **kwargs):
@@ -191,6 +192,14 @@ class MobulaOperator:
             new_kwargs['__input_type__'] = input_type
             return backend.op_gen(glue_mod, op=self.op, name=self.name)(*args, **new_kwargs)
         return wrapper
+
+
+def register_cstruct(name, cstruct, constructor=None):
+    if constructor is None:
+        constructor = cstruct
+    assert callable(
+        constructor), 'constructor {} should be callable'.format(name)
+    CSTRUCT_CONSTRUCTOR[name] = (cstruct, constructor)
 
 
 def register(op_name=None, **attrs):

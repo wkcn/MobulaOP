@@ -1,5 +1,6 @@
 import os
-from mobula.build_utils import build_context, file_is_changed, update_file_hash, update_build_path
+from mobula.building.build_utils import build_context, \
+    file_is_changed, update_file_hash, update_build_path
 
 
 def find_all_file(path, exts):

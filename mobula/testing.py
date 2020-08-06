@@ -46,6 +46,9 @@ def assert_almost_equal(a, b, rtol=1e-5, atol=1e-8):
     # If the shapes don't match, raise AssertionError and print the shapes
     assert a.shape == b.shape,\
         AssertionError('Unmatched Shape: {} vs {}'.format(a.shape, b.shape))
+    if len(a.shape) == 0:
+        a = a.reshape((1, ))
+        b = b.reshape((1, ))
 
     # Compute Absolute Error |a - b|
     error = a - b

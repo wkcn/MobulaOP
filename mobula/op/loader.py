@@ -12,8 +12,9 @@ from ..internal.edict import edict
 from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash
 from ..building.build import source_to_so_ctx, build_context, file_is_changed, ENV_PATH
 from ..utils import get_git_hash, makedirs
-from ..internal.dtype import DType, TemplateType
+from ..internal.dtype import DType, CStruct, TemplateType, CTYPENAME2CTYPE
 from ..version import OP_LOAD_MODULE_BUILD_VERSION
+from ..glue.common import CSTRUCT_CONSTRUCTOR
 from ..glue.backend import get_glue_modules
 from .gen_code import get_gen_rel_code
 
@@ -141,6 +142,10 @@ def parse_parameter_decl(decl):
         if is_pointer:
             ctype = ctypes.POINTER(ctype)
         return DType(ctype, is_const=is_const), var_name
+
+    if type_name in CSTRUCT_CONSTRUCTOR:
+        info = CSTRUCT_CONSTRUCTOR[type_name]
+        return CStruct(type_name, is_const=is_const, cstruct=info[0], constructor=info[1]), var_name
 
     # template type
     return TemplateType(tname=type_name, is_pointer=is_pointer, is_const=is_const), var_name
@@ -305,39 +310,16 @@ def _generate_func_code(func_idcode_hash, rtn_type, arg_types, arg_names, func_n
     ) for dtype, name in zip(arg_types, arg_names)])
     args_inst = ', '.join(arg_names)
 
-    code = '''
-MOBULA_DLL %s %s(%s) {
-''' % (rtn_type, func_idcode_hash, args_def)
-    if rtn_type != 'void':
-        code += '  return '
-    code += '%s(%s);\n}\n' % (func_name, args_inst)
+    code = gen_code('./templates/func_code.cpp')(
+        return_value=rtn_type,
+        return_statement='' if rtn_type == 'void' else 'return',
+        func_idcode_hash=func_idcode_hash,
+        args_def=args_def,
+        func_name=func_name,
+        args_inst=args_inst,
+    )
+
     return code
-
-
-def _generate_ordinary_code(cpp_info):
-    code_buffer = ''
-    # generate ordinary functions code
-    for func_name, ord_cfunc in cpp_info.function_args.items():
-        if ord_cfunc.template_list:
-            continue
-        func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types)
-        func_idcode_hash = get_idcode_hash(func_idcode)
-        func_kind = ord_cfunc.func_kind
-        if func_kind == CFuncDef.KERNEL:
-            code_buffer += _generate_kernel_code(
-                func_idcode_hash, ord_cfunc.arg_types, ord_cfunc.arg_names, '{}_kernel'.format(func_name))
-            code_buffer += '\n'
-    return code_buffer
-
-
-def _get_ordinary_functions(cpp_info):
-    res = list()
-    for func_name, ord_cfunc in cpp_info.function_args.items():
-        if ord_cfunc.template_list:
-            continue
-        func_idcode = get_func_idcode(func_name, ord_cfunc.arg_types)
-        res.append(func_idcode)
-    return res
 
 
 def _update_template_inst_map(idcode, template_functions, cfunc, arg_types):
@@ -364,7 +346,8 @@ def _update_template_inst_map(idcode, template_functions, cfunc, arg_types):
 
     template_inst = [template_mapping[tname]
                      for tname in cfunc.template_list]
-    template_post = '<%s>' % (', '.join(template_inst))
+    template_post = '<%s>' % (', '.join(template_inst)
+                              ) if template_inst else ''
     rtn_type = cfunc.rtn_type
     if rtn_type in template_mapping:
         rtn_type = template_mapping[rtn_type]
@@ -376,15 +359,18 @@ def _update_template_inst_map(idcode, template_functions, cfunc, arg_types):
     else:
         code = _generate_func_code(
             func_idcode_hash, rtn_type, arg_types, cfunc.arg_names, func_name + template_post)
-    template_functions[idcode] = code
+    template_functions[idcode] = (code, rtn_type)
 
 
-def _add_function(func_map, func_idcode, cpp_info, dll_fname):
+def _add_function(func_map, func_idcode, rtn_type, cpp_info, dll_fname):
     func_idcode_hash = get_idcode_hash(func_idcode)
     func = getattr(cpp_info.dll, func_idcode_hash, None)
-    assert func is not None,\
-        Exception('No function `{}` in DLL {}'.format(
-            func_idcode, dll_fname))
+    func.restype = CTYPENAME2CTYPE[rtn_type]
+    if func is None:
+        functions = [name for name in dir(
+            cpp_info.dll) if not name.startswith('_')]
+        raise NameError('No function `{}` in DLL {}, current functions: {}'.format(
+            func_idcode, dll_fname, functions))
 
     old_func = func_map.get(func_idcode, None)
     if old_func is not None:
@@ -459,14 +445,10 @@ Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERS
             is_old_version = map_data.get(
                 'version') < OP_LOAD_MODULE_BUILD_VERSION
             # load the information of template functions
-            ORDINARY_FUNCTION_NAME = 'ordinary_functions'
-            TEMPLATE_FUNCTION_NAME = 'template_functions'
+            TEMPLATE_FUNCTION_NAME = 'functions'
             if is_old_version:
-                ordinary_functions = list()
                 template_functions = dict()
             else:
-                ordinary_functions = map_data.get(
-                    ORDINARY_FUNCTION_NAME, list())
                 template_functions = map_data.get(
                     TEMPLATE_FUNCTION_NAME, dict())
 
@@ -479,7 +461,7 @@ Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERS
 
             file_changed = file_is_changed(cpp_fname)
             dll_existed = os.path.exists(dll_fname)
-            func_existed = idcode in template_functions or idcode in ordinary_functions
+            func_existed = idcode in template_functions
 
             if file_changed or not dll_existed or not func_existed or is_old_version:
                 # Rebuild DLL file
@@ -503,14 +485,12 @@ Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERS
                     build_id += 1
                 dll_fname = dll_fname_format.format(build_id=build_id)
                 # build code
-                code_buffer = _generate_ordinary_code(cpp_info)
-                ordinary_functions = _get_ordinary_functions(cpp_info)
-                if use_template:
-                    if idcode not in template_functions:
-                        _update_template_inst_map(
-                            idcode, template_functions, cfunc, arg_types)
-                    # add template instances code into code_buffer
-                    code_buffer += ''.join(template_functions.values())
+                if idcode not in template_functions:
+                    _update_template_inst_map(
+                        idcode, template_functions, cfunc, arg_types)
+                # collects template instances code into code_buffer
+                code_buffer = ''.join([v[0]
+                                       for v in template_functions.values()])
 
                 with build_context():
                     try:
@@ -522,7 +502,6 @@ Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERS
                 # update template_functions
                 map_data = dict(version=OP_LOAD_MODULE_BUILD_VERSION,
                                 build_id=build_id)
-                map_data[ORDINARY_FUNCTION_NAME] = ordinary_functions
                 map_data[TEMPLATE_FUNCTION_NAME] = template_functions
                 # clear the old context and write json data
                 build_info_fs.seek(0)
@@ -536,18 +515,9 @@ Please update MobulaOP.""" % (map_data.get('version'), OP_LOAD_MODULE_BUILD_VERS
             cpp_info.load_dll(dll_fname)
 
             # import all functions
-            # ordinary functions
-            for func_name, ord_cfunc in cpp_info.function_args.items():
-                if not ord_cfunc.template_list:
-                    func_idcode = get_func_idcode(
-                        func_name, ord_cfunc.arg_types)
-                    _add_function(func_map,
-                                  func_idcode, cpp_info, dll_fname)
-
-            # template functions
             for func_idcode in template_functions.keys():
                 _add_function(func_map,
-                              func_idcode, cpp_info, dll_fname)
+                              func_idcode, template_functions[func_idcode][1], cpp_info, dll_fname)
 
         self.func = func_map[idcode].func
         self.cpp_info = func_map[idcode].cpp_info

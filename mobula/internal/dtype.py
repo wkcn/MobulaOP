@@ -3,6 +3,24 @@ import ctypes
 CTYPE_INTS = [ctypes.c_short, ctypes.c_int, ctypes.c_long, ctypes.c_longlong]
 CTYPE_UINTS = [ctypes.c_ushort, ctypes.c_uint,
                ctypes.c_ulong, ctypes.c_ulonglong]
+CTYPENAME2CTYPE = {
+    'bool': ctypes.c_bool,
+    'char': ctypes.c_char,
+    'char*': ctypes.c_char_p,
+    'double': ctypes.c_double,
+    'float': ctypes.c_float,
+    'int': ctypes.c_int,
+    'int8_t': ctypes.c_int8,
+    'int16_t': ctypes.c_int16,
+    'int32_t': ctypes.c_int32,
+    'int64_t': ctypes.c_int64,
+    'long': ctypes.c_long,
+    'longlong': ctypes.c_longlong,
+    'short': ctypes.c_short,
+    'void*': ctypes.c_void_p,
+    'void': None,
+    None: None,
+}
 
 
 def get_ctype_name(ctype):
@@ -11,7 +29,10 @@ def get_ctype_name(ctype):
         return 'int{}_t'.format(ctypes.sizeof(ctype) * 8)
     if ctype in CTYPE_UINTS[2:]:
         return 'uint{}_t'.format(ctypes.sizeof(ctype) * 8)
-    return ctype.__name__[2:]
+    name = ctype.__name__
+    if name.startswith('c_'):
+        name = name[2:]
+    return name
 
 
 class DType:
@@ -48,6 +69,18 @@ class DType:
 
     def __call__(self, value):
         return self.ctype(value)
+
+
+class CStruct:
+    def __init__(self, name, is_const, cstruct, constructor):
+        self.cname = name + '*'
+        self.cstruct = cstruct
+        self.constructor = constructor
+        self.is_pointer = True
+        self.is_const = is_const
+
+    def __call__(self, *args, **kwargs):
+        return self.constructor(*args, **kwargs)
 
 
 class UnknownCType:

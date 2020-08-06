@@ -6,7 +6,7 @@ import ctypes
 import hashlib
 import warnings
 from . import glue
-from .internal.dtype import DType, TemplateType, UnknownCType
+from .internal.dtype import DType, CStruct, TemplateType, UnknownCType
 from .building.build_utils import config
 
 
@@ -61,6 +61,11 @@ class CFuncTensor:
         return self.ptype.is_const
 
 
+class CStructArg:
+    def __init__(self, var):
+        self.var = var
+
+
 def _wait_to_read(var):
     if hasattr(var, 'wait_to_read'):
         var.wait_to_read()
@@ -81,6 +86,9 @@ def _get_raw_pointer(arg, const_vars, mutable_vars):
             else:
                 mutable_vars.append((arg.var, v))
         return p
+    if isinstance(arg, CStructArg):
+        const_vars.append(arg.var)
+        return ctypes.byref(const_vars[-1])
     return arg
 
 
@@ -144,10 +152,13 @@ class CFuncDef:
         const_vars = []
         mutable_vars = []
         raw_pointers = _get_raw_pointers(arg_datas, const_vars, mutable_vars)
-        if self.func_kind == self.KERNEL:
+        if self.func_kind == CFuncDef.KERNEL:
             out = func(dev_id, *raw_pointers)
-        else:
+        elif self.func_kind == CFuncDef.FUNC:
             out = func(*raw_pointers)
+        else:
+            raise TypeError(
+                'Unsupported func kind: {}'.format(self.func_kind))
         for target, value in mutable_vars:
             target[:] = value
         return out
@@ -202,9 +213,17 @@ class MobulaFunc:
         try:
             for var, ptype in zip(args, self.func.arg_types):
                 if ptype.is_pointer:
-                    # The type of `var` is Tensor.
-                    data, var_dev_id, ctype = self._get_tensor_info(
-                        var, ptype, template_mapping, using_async)
+                    if hasattr(ptype, 'constructor'):
+                        var_dev_id = None
+                        ctype = ctypes.POINTER(ptype.cstruct)
+                        try:
+                            data = CStructArg(ptype.constructor(var))
+                        except TypeError:
+                            data = CStructArg(ptype.constructor(*var))
+                    else:
+                        # The type of `var` is Tensor.
+                        data, var_dev_id, ctype = self._get_tensor_info(
+                            var, ptype, template_mapping, using_async)
                 else:
                     # The type of `var` is Scalar.
                     data, var_dev_id, ctype = self._get_scalar_info(var, ptype)
@@ -214,6 +233,7 @@ class MobulaFunc:
                     ctype.is_const = ptype.is_const
                     arg_types.append(ctype)
                 else:
+                    # pointer
                     arg_types.append(DType(ctype, is_const=ptype.is_const))
 
                 # update `dev_id`
