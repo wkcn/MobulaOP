@@ -150,11 +150,12 @@ def source_to_so_ctx(build_path, srcs, target_name, ctx_name):
     flags = get_build_flag(ctx_name)
     compiler, cflags, ldflags = flags[:3]
 
-    buildin_path = os.path.join(ENV_PATH, config.BUILD_PATH, ctx_name)
+    buildin_path = os.path.join(
+        config.BUILD_PATH, 'build', 'buildin', ctx_name)
     buildin_o = []
     buildin_cpp = []
     for src in ['defines.cpp', 'context.cpp']:
-        fname = os.path.join('cpp/src', src)
+        fname = os.path.join('cpp', 'src', src)
         buildin_o.append(os.path.join(buildin_path, fname))
         buildin_cpp.append(os.path.join(ENV_PATH, fname))
     buildin_o = change_exts(buildin_o, [('cpp', 'o')])

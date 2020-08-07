@@ -100,19 +100,6 @@ def test_mobula_func():
         assert_almost_equal(a, rtn)
 
 
-def test_build():
-    mobula.func.mul_elemwise.build('cpu', ['float'])
-    mobula.func.mul_elemwise.build('cpu', dict(T='int'))
-    code_fname = os.path.join(os.path.dirname(
-        __file__), 'utils/build/cpu/utils_wrapper.cpp')
-    code = open(code_fname).read()
-    '''
-    In windows, `ctypes.c_int` is the same as `ctypes.c_long`, whose name is `c_long`. The function of `get_ctype_name` will return `int32_t` :(
-    '''
-    assert 'mul_elemwise_kernel<float>' in code, code
-    assert 'mul_elemwise_kernel<int' in code, code
-
-
 def test_atomic_add():
     I = U = J = 100
     import time

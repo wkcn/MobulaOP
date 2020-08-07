@@ -2,6 +2,7 @@
 __all__ = ["pass_argv", "get_include_file", "wildcard",
            "change_ext", "change_exts", "mkdir", "rmdir", "add_path",
            "file_is_changed", "file_is_latest",
+           "get_virtual_dirname",
            "run_command", "run_command_parallel", "command_exists",
            "config", "Flags", "INC_PATHS", "ENV_PATH",
            "OS_IS_WINDOWS", "OS_IS_LINUX", "build_context"]
@@ -9,6 +10,7 @@ __all__ = ["pass_argv", "get_include_file", "wildcard",
 from ..config import config
 from ..utils import makedirs
 import ast
+import hashlib
 import os
 import threading
 import platform
@@ -33,9 +35,32 @@ assert OS_IS_WINDOWS or OS_IS_LINUX,\
 INC_PATHS = ['./']
 
 # Load Config File
-ENV_PATH = os.path.join(os.path.dirname(__file__), '..')
-if not os.path.dirname(config.BUILD_PATH):
+ENV_PATH = os.path.join(os.path.dirname(__file__), '../')
+if os.path.dirname(config.BUILD_PATH) == '.':
     config.BUILD_PATH = os.path.join(ENV_PATH, config.BUILD_PATH)
+
+
+def _path_hash(path):
+    md5 = hashlib.md5()
+    md5.update(path.encode('utf-8'))
+    return md5.hexdigest()[:8]
+
+
+def get_virtual_dirname(path):
+    if config.BUILD_IN_LOCAL_PATH:
+        return path
+    assert os.path.isdir(path), path
+    dirname, basename = os.path.split(path)
+    # hash dirname
+    hash_dirname = _path_hash(dirname)
+    new_path = os.path.normpath(os.path.join(
+        config.BUILD_PATH, 'build', '{}_{}'.format(basename, hash_dirname)))
+    mkdir(new_path)
+    tag_fname = os.path.join(new_path, 'ORIGINAL_PATH')
+    if not os.path.exists(tag_fname):
+        with open(tag_fname, 'w') as fout:
+            fout.write(os.path.abspath(path))
+    return new_path
 
 
 def pass_argv(argv):

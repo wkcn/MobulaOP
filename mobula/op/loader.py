@@ -10,7 +10,7 @@ import warnings
 import portalocker
 from ..internal.edict import edict
 from ..func import CFuncDef, bind, get_func_idcode, get_idcode_hash
-from ..building.build import source_to_so_ctx, build_context, file_is_changed, ENV_PATH
+from ..building.build import source_to_so_ctx, get_virtual_dirname, build_context, file_is_changed, ENV_PATH
 from ..utils import get_git_hash, makedirs
 from ..internal.dtype import DType, CStruct, TemplateType, CTYPENAME2CTYPE
 from ..version import OP_LOAD_MODULE_BUILD_VERSION
@@ -172,7 +172,7 @@ def parse_parameters_list(plist):
     match = FUNC_REG.search(plist)
     head, plist = match.groups()
     head_split = re.split(r'\s+', head)
-    plist_split = re.split(r'\s*,\s*', plist)
+    plist_split = filter(lambda x: len(x) > 0, re.split(r'\s*,\s*', plist))
     func_name = head_split[-1]
     rtn_type = head_split[-2] if len(head_split) == 3 else None
     pars_list = list(map(parse_parameter_decl, plist_split))
@@ -211,18 +211,19 @@ class CPPInfo:
 
 
 def _build_lib(cpp_fname, code_buffer, ctx, target_name):
+    # the virtual dirname of the source code
     cpp_path, cpp_basename = os.path.split(cpp_fname)
-    build_path = os.path.join(cpp_path, 'build')
+    build_path = get_virtual_dirname(cpp_path)
     create_time = time.strftime('%a %Y-%m-%d %H:%M:%S (%z)', time.localtime())
     git_hash = get_git_hash()
     extra_code = gen_code('./templates/header.cpp')(
         cpp_fname=cpp_fname,
         git_hash=git_hash,
         create_time=create_time,
-        inc_fname=os.path.normpath(os.path.join('../..', cpp_basename)),
+        inc_fname=os.path.abspath(cpp_fname),
         code=code_buffer)
 
-    build_path_ctx = os.path.join(build_path, ctx)
+    build_path_ctx = os.path.join(build_path, 'build', ctx)
     makedirs(build_path_ctx, exist_ok=True)
 
     # build so
@@ -418,6 +419,7 @@ class OpLoader:
             2. loading the function with same function name but different cpp filename
             '''
             cpp_path, cpp_basename = os.path.split(cpp_fname)
+            cpp_path = get_virtual_dirname(cpp_path)
             build_path = os.path.join(cpp_path, 'build')
 
             use_template = bool(cfunc.template_list)

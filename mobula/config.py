@@ -3,7 +3,8 @@ from .utils import with_metaclass
 
 class DefaultConfig:
     TARGET = 'mobula_op'
-    BUILD_PATH = 'build'
+    BUILD_PATH = './'
+    BUILD_IN_LOCAL_PATH = False
     MAX_BUILDING_WORKER_NUM = 8
 
     DEBUG = False
@@ -41,3 +42,24 @@ class Config:
 
 
 config = Config()
+
+
+class TempConfig:
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        self.old_config = dict()
+
+    def __enter__(self):
+        for k, v in self.kwargs.items():
+            if not hasattr(config, k):
+                raise AttributeError(
+                    "'mobula.config' object has no attribute '{}'".format(k))
+            self.old_config[k] = getattr(config, k)
+            setattr(config, k, v)
+
+    def __exit__(self, *dummy):
+        for k, v in self.old_config.items():
+            setattr(config, k, v)
+
+
+Config.TempConfig = TempConfig
