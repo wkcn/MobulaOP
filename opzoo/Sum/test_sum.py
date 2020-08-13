@@ -15,3 +15,7 @@ def test_sum():
     x = np.random.uniform(size=(N, ))
     y = mobula.op.Sum(x)
     assert_almost_equal(y, x.sum(), atol=1e-7)
+
+
+if __name__ == '__main__':
+    test_sum()

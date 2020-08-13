@@ -1,11 +1,15 @@
 import mobula
 from mobula.const import req
+import warnings
 
 
 # this softmax support 1 or 2-dim input and the reduce on axis 0
 @mobula.op.register
 class Softmax:
     def forward(self, x):
+        warnings.warn(
+            'There is a flaky bug in Softmax :( We will fix it later.')
+
         if x.ndim == 2:
             N, C = x.shape
         else:

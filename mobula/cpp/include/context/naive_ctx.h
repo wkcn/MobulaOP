@@ -90,7 +90,7 @@ inline void __syncthreads() { thread_local_barrier->wait(); }
 
 MOBULA_DEVICE inline int get_num_threads() { return 1; }
 
-MOBULA_DEVICE inline int get_thread_num() { return 1; }
+MOBULA_DEVICE inline int get_thread_num() { return 0; }
 
 template <typename Func>
 MOBULA_DEVICE void parfor(const size_t n, Func F) {

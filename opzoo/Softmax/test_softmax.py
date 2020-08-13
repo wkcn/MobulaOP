@@ -9,6 +9,7 @@ mobula.op.load('Softmax')
 
 T = np.float32
 atol = 2e-3
+rtol = 2e-3
 
 
 def test_softmax1d():
@@ -49,8 +50,8 @@ def test_softmax2d_grad():
         with mx.autograd.record():
             gt = mx.nd.softmax(data2, axis=-1)
         gt.backward(dy)
-        assert_almost_equal(out, gt, atol=atol)
-        assert_almost_equal(data.grad, data2.grad, atol=atol)
+        assert_almost_equal(out, gt, atol=atol, rtol=rtol)
+        assert_almost_equal(data.grad, data2.grad, atol=atol, rtol=rtol)
     softmax2d_grad(3, 10)
     softmax2d_grad(10, 3)
 

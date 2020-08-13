@@ -15,3 +15,7 @@ def test_transpose2d():
         op = mobula.op.Transpose2D[mx.nd.NDArray]
         y = op(x, continuous_input=c)
         assert_almost_equal(y, x.T)
+
+
+if __name__ == '__main__':
+    test_transpose2d()

@@ -2,6 +2,7 @@ import mobula
 from mobula.const import req
 import numpy as np
 
+
 @mobula.op.register
 class FocalLoss:
     def __init__(self, alpha=0.25, gamma=2):
@@ -17,13 +18,13 @@ class FocalLoss:
         gamma = self.gamma
         if self.req[0] == req.add:
             out_temp = self.F.zeros_like(out)
-            mobula.func.focal_loss_forward(out_size=out_size, alpha=alpha, gamma=gamma,  logits=logits, targets=targets,
+            mobula.func.focal_loss_forward(out_size=out_size, alpha=alpha, gamma=gamma, logits=logits, targets=targets,
                                            outputs=out_temp)
             self.y[:] += out_temp
         else:
             self.y[:] = 0
-            mobula.func.focal_loss_forward(out_size=out_size, alpha=alpha, gamma=gamma,  logits=logits, targets=targets,
-                                        outputs=self.y)
+            mobula.func.focal_loss_forward(out_size=out_size, alpha=alpha, gamma=gamma, logits=logits, targets=targets,
+                                           outputs=self.y)
 
     def backward(self, dy):
         assert self.req[1] == "null"
@@ -31,7 +32,8 @@ class FocalLoss:
         gamma = self.gamma
         logits = self.X[0]
         targets = self.X[1]
-        out_size = np.prod(targets.size()) if callable(targets.size) else targets.size
+        out_size = np.prod(targets.size()) if callable(
+            targets.size) else targets.size
         if self.req[0] == req.add:
             out_temp = self.F.zeros_like(self.dX[0])
             mobula.func.focal_loss_forward(out_size=out_size, alpha=alpha, gamma=gamma, logits=logits, targets=targets,
@@ -39,8 +41,8 @@ class FocalLoss:
             self.dX[0] += out_temp
         else:
             self.dX[0][:] = 0
-            mobula.func.focal_loss_backward(out_size=out_size, alpha=alpha, gamma=gamma,  logits=logits, targets=targets,
-                                        outputs=self.dX[0])
+            mobula.func.focal_loss_backward(out_size=out_size, alpha=alpha, gamma=gamma, logits=logits, targets=targets,
+                                            outputs=self.dX[0])
         self.dX[0][:] = self.dX[0][:] * dy
 
     def infer_shape(self, in_shape):

@@ -4,8 +4,6 @@ import os
 import mobula
 from mobula.testing import assert_almost_equal, gradcheck
 
-# [TODO] change BUILD_PATH
-
 
 def test_custom_struct():
     class MyStruct(ctypes.Structure):
