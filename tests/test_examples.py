@@ -23,6 +23,7 @@ def test_examples():
                      'dynamic_import_op/dynamic_import_op.py',
                      '../opzoo/Convolution/test_conv.py',
                      '../opzoo/FocalLoss/test_focalloss.py',
+                     '../opzoo/IoULoss/test_iouloss.py',
                      '../opzoo/ROIAlign/test_roialign.py',
                      # '../opzoo/Softmax/test_softmax.py',
                      '../opzoo/Sum/test_sum.py',
