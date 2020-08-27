@@ -148,3 +148,4 @@ venv.bak/
 *.old
 *.temp
 *.tmp
+*.cache

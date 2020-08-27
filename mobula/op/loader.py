@@ -366,12 +366,12 @@ def _update_template_inst_map(idcode, template_functions, cfunc, arg_types):
 def _add_function(func_map, func_idcode, rtn_type, cpp_info, dll_fname):
     func_idcode_hash = get_idcode_hash(func_idcode)
     func = getattr(cpp_info.dll, func_idcode_hash, None)
-    func.restype = CTYPENAME2CTYPE[rtn_type]
     if func is None:
         functions = [name for name in dir(
             cpp_info.dll) if not name.startswith('_')]
         raise NameError('No function `{}` in DLL {}, current functions: {}'.format(
             func_idcode, dll_fname, functions))
+    func.restype = CTYPENAME2CTYPE[rtn_type]
 
     old_func = func_map.get(func_idcode, None)
     if old_func is not None:

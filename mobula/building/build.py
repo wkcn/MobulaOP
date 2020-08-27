@@ -19,7 +19,7 @@ def source_to_o(build_path, src_obj, compiler, cflags):
         dir_name, obj_name = os.path.split(obj)
         build_dir_name = os.path.join(build_path, dir_name)
         build_name = os.path.join(build_path, dir_name, obj_name)
-        if file_is_latest(src) and os.path.exists(build_name):
+        if not code_need_to_rebuild(src) and os.path.exists(build_name):
             continue
         updated = True
         if build_dir_name not in existed_dirs:

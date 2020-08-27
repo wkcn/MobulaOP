@@ -45,7 +45,7 @@ def test_custom_ctensor():
 def test_build_path():
     new_build_path = os.path.join(os.path.dirname(__file__), 'a_new_path')
     old_build_path = mobula.config.BUILD_PATH
-    with mobula.config.TempConfig(BUILD_PATH=new_build_path):
+    with mobula.config.TempConfig(BUILD_PATH=new_build_path, BUILD_IN_LOCAL_PATH=False):
         mobula.config.BUILD_PATH = new_build_path
         module_name = 'BuildPath'
         mobula.op.load(module_name, os.path.dirname(__file__))

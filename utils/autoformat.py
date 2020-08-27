@@ -1,6 +1,23 @@
 import os
-from mobula.building.build_utils import build_context, \
-    file_is_changed, update_file_hash, update_build_path
+import json
+
+INFO_FNAME = './AUTOFORMAT.json'
+INFO_DICT = dict()
+
+
+def load_info_dict():
+    global INFO_DICT
+    if os.path.exists(INFO_FNAME):
+        with open(INFO_FNAME, 'r') as fin:
+            INFO_DICT = json.load(fin)
+
+
+load_info_dict()
+
+
+def save_info_dict():
+    with open(INFO_FNAME, 'w') as fout:
+        json.dump(INFO_DICT, fout)
 
 
 def find_all_file(path, exts):
@@ -19,21 +36,39 @@ def find_all_file(path, exts):
     return result
 
 
+def get_file_hash(fname):
+    return str(int(os.path.getmtime(fname)))
+
+
+def file_is_changed(fname):
+    global INFO_DICT
+    fname = os.path.abspath(fname)
+    cur_hash = get_file_hash(fname)
+    return INFO_DICT.get(fname, None) != cur_hash
+
+
+def update_file_hash(fname):
+    global INFO_DICT
+    fname = os.path.abspath(fname)
+    cur_hash = get_file_hash(fname)
+    INFO_DICT[fname] = cur_hash
+
+
 def clang_format(fnames):
     for fname in fnames:
         if file_is_changed(fname):
             print('Format {}'.format(fname))
             script = 'clang-format -style="{BasedOnStyle: Google, Standard: Cpp11}" -i ' + fname
-            if os.system(script) == 0:
-                update_file_hash(fname)
+            os.system(script)
+            update_file_hash(fname)
 
 
 def autopep8(fnames):
     for fname in fnames:
         if file_is_changed(fname):
             print('Format {}'.format(fname))
-            if os.system('autopep8 --ignore E402 --in-place {}'.format(fname)) == 0:
-                update_file_hash(fname)
+            os.system('autopep8 --ignore E402 --in-place {}'.format(fname))
+            update_file_hash(fname)
 
 
 def filter_ignore_path(fnames, ignore_path):
@@ -47,13 +82,12 @@ def filter_ignore_path(fnames, ignore_path):
 
 
 if __name__ == '__main__':
-    update_build_path('./autoformat_code')
     ignore_path = './mobula/op/templates/'
-    with build_context():
-        cpp_res = find_all_file('./', ['.cpp', '.h'])
-        cpp_res = filter_ignore_path(cpp_res, ignore_path)
-        clang_format(cpp_res)
+    cpp_res = find_all_file('./', ['.cpp', '.h'])
+    cpp_res = filter_ignore_path(cpp_res, ignore_path)
+    clang_format(cpp_res)
 
-        py_res = find_all_file('./', ['.py'])
-        py_res = filter_ignore_path(py_res, ignore_path)
-        autopep8(py_res)
+    py_res = find_all_file('./', ['.py'])
+    py_res = filter_ignore_path(py_res, ignore_path)
+    autopep8(py_res)
+    save_info_dict()

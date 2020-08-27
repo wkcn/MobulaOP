@@ -4,7 +4,7 @@ from .utils import with_metaclass
 class DefaultConfig:
     TARGET = 'mobula_op'
     BUILD_PATH = './'
-    BUILD_IN_LOCAL_PATH = False
+    BUILD_IN_LOCAL_PATH = True
     MAX_BUILDING_WORKER_NUM = 8
 
     DEBUG = False
