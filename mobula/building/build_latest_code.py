@@ -134,8 +134,9 @@ def save_hash_files():
 
 
 def save_graph_files():
-    for fname, v in GRAPH_FILE_BUFFER.items():
+    for fname in GRAPH_FILE_BUFFER.keys():
         try:
+            v = GRAPH_FILE_BUFFER[fname]
             v.pop(UPDATED_FLAG)
             _write_graph_file(fname, v)
         except KeyError:
