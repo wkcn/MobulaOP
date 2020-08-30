@@ -40,7 +40,8 @@ if os.path.dirname(config.BUILD_PATH) == '.':
 
 def mkdir(dir_name):
     if not os.path.exists(dir_name):
-        print('mkdir -p %s' % dir_name)
+        if config.SHOW_BUILDING_COMMAND:
+            print('mkdir -p %s' % dir_name)
         makedirs(dir_name, exist_ok=True)
 
 
@@ -58,7 +59,8 @@ def rmdir(dir_name):
 
 
 def run_command(command):
-    print(command)
+    if config.SHOW_BUILDING_COMMAND:
+        print(command)
     return os.system(command)
 
 

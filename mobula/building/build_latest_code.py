@@ -121,7 +121,6 @@ def code_need_to_rebuild(source):
         if v is None:
             change_state[k] = False
     changed = change_state[source]
-    print('rebuild', source, changed)
     return changed
 
 

@@ -1,5 +1,5 @@
 MOBULA_DLL PackedFunc* ${func_idcode_hash}_register_mx() {
-  return RegisterTVMFunc(
+  return GetMXNetFunc(
       "${func_idcode_hash}",
       [](TVMArgs args, TVMRetValue*) {
         KERNEL_RUN_BEGIN(DEV_ID);
