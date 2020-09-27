@@ -117,16 +117,17 @@ def code_need_to_rebuild(source):
         for v in graph[fname]:
             if change_state[v] is None:
                 q.put(v)
-    for k, v in change_state.items():
-        if v is None:
+    for k in change_state.keys():
+        if change_state[k] is None:
             change_state[k] = False
     changed = change_state[source]
     return changed
 
 
 def save_hash_files():
-    for fname, v in HASH_FILE_BUFFER.items():
+    for fname in HASH_FILE_BUFFER.keys():
         try:
+            v = HASH_FILE_BUFFER[fname]
             v.pop(UPDATED_FLAG)
             _write_hash_file(fname, v)
         except KeyError:
